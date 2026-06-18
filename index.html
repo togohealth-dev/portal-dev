@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TogoHealth · ONC Tracker</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: #e1e4e8;
+    --text: #24292e;
+    --text-muted: #6a737d;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --green: #16a34a;
+    --red: #dc2626;
+    --yellow: #d97706;
+    --purple: #7c3aed;
+    --gray: #6b7280;
+    --wave1: #eff6ff;
+    --wave2: #f0fdf4;
+    --wave3: #fefce8;
+    --wave4: #fdf4ff;
+    --wave1-border: #bfdbfe;
+    --wave2-border: #bbf7d0;
+    --wave3-border: #fef08a;
+    --wave4-border: #e9d5ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-weight: 700; font-size: 16px; color: var(--primary); }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  /* ── Auth overlay ── */
+  #auth-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  .auth-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 32px;
+    width: 480px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .auth-card h2 { font-size: 20px; margin-bottom: 8px; }
+  .auth-card p { color: var(--text-muted); margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+  .auth-card a { color: var(--primary); }
+  .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .input-group label { font-weight: 500; font-size: 13px; }
+  .input-group input {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: monospace;
+    outline: none;
+    width: 100%;
+  }
+  .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-outline { background: #fff; color: var(--text); border-color: var(--border); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-danger { background: #fff; color: var(--red); border-color: #fca5a5; }
+  .btn-danger:hover { background: #fef2f2; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-copy { background: #fff; color: var(--purple); border-color: #ddd6fe; }
+  .btn-copy:hover { background: #f5f3ff; }
+  .btn-copy.copied { color: var(--green); border-color: #bbf7d0; background: #f0fdf4; }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Main content ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .page-header h1 { font-size: 22px; font-weight: 700; }
+  .page-header p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: flex; gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 100px;
+  }
+  .stat-value { font-size: 24px; font-weight: 700; }
+  .stat-label { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
+  /* ── Filters ── */
+  .filters {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .filter-sep { color: var(--border); }
+
+  /* ── Wave group ── */
+  .wave-group { margin-bottom: 24px; }
+  .wave-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid;
+    border-bottom: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .wave-header h2 { font-size: 14px; font-weight: 700; }
+  .wave-header .wave-meta { color: var(--text-muted); font-size: 12px; margin-left: auto; }
+  .wave-1 .wave-header { background: var(--wave1); border-color: var(--wave1-border); }
+  .wave-2 .wave-header { background: var(--wave2); border-color: var(--wave2-border); }
+  .wave-3 .wave-header { background: var(--wave3); border-color: var(--wave3-border); }
+  .wave-4 .wave-header { background: var(--wave4); border-color: var(--wave4-border); }
+  .chevron { font-size: 10px; transition: transform 0.2s; }
+  .wave-group.collapsed .chevron { transform: rotate(-90deg); }
+  .wave-group.collapsed .wave-table-wrap { display: none; }
+
+  /* ── Table ── */
+  .wave-table-wrap {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8faff; }
+
+  .issue-link { color: var(--text); font-weight: 500; text-decoration: none; }
+  .issue-link:hover { color: var(--primary); }
+  .issue-num { color: var(--text-muted); font-size: 12px; font-family: monospace; }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-not-started { background: #f3f4f6; color: var(--gray); }
+  .badge-in-progress { background: #dbeafe; color: #1d4ed8; }
+  .badge-ready-for-eval { background: #d1fae5; color: var(--green); }
+  .badge-blocked { background: #fee2e2; color: var(--red); }
+  .badge-done { background: #f0fdf4; color: var(--green); }
+  .badge-onc { background: #ede9fe; color: var(--purple); }
+  .badge-mips { background: #fef3c7; color: var(--yellow); }
+
+  /* ── Priority dots ── */
+  .priority { display: flex; gap: 3px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .dot.filled { background: var(--primary); }
+  .priority-5 .dot.filled { background: var(--red); }
+  .priority-4 .dot.filled { background: var(--yellow); }
+
+  /* ── Assignees ── */
+  .assignees { display: flex; gap: 4px; flex-wrap: wrap; }
+  .assignee { font-size: 11px; color: var(--text-muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; }
+
+  /* ── Action cells ── */
+  .actions { display: flex; gap: 6px; align-items: center; }
+
+  /* ── Loading / empty ── */
+  #loading, #error-msg {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  #error-msg { color: var(--red); }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1e293b; color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 500;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>TogoHealth · ONC Tracker</h2>
+    <p>
+      Enter a GitHub Personal Access Token with <strong>repo</strong> scope to access the ONC certification tracker.
+      Create one at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a>
+      (Classic token → repo scope). Your token is stored only in this browser's localStorage.
+    </p>
+    <div class="input-group">
+      <label for="pat-input">GitHub Personal Access Token</label>
+      <input type="password" id="pat-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="saveToken()" style="width:100%">Connect to GitHub</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <div class="logo">TogoHealth <span>· ONC Tracker</span></div>
+  </div>
+  <div class="header-right">
+    <a href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+label%3Aonc%2Cmips" target="_blank" class="btn btn-outline btn-sm">Open in GitHub ↗</a>
+    <button class="btn btn-outline btn-sm" onclick="refresh()">↻ Refresh</button>
+    <button class="btn btn-danger btn-sm" onclick="clearToken()">Sign out</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <div>
+      <h1>ONC §170.315 Certification Tracker</h1>
+      <p>GitHub Issues are the source of truth · Claim a criterion to mark it in progress</p>
+    </div>
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="onc" onclick="setFilter('onc',this)">ONC only</button>
+      <button class="filter-btn" data-filter="mips" onclick="setFilter('mips',this)">MIPS only</button>
+      <span class="filter-sep">|</span>
+      <button class="filter-btn active" data-filter-status="open" onclick="toggleStatusFilter('open',this)">Open</button>
+      <button class="filter-btn" data-filter-status="done" onclick="toggleStatusFilter('done',this)">Done</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    Loading issues from GitHub…
+  </div>
+  <div id="error-msg" style="display:none"></div>
+  <div id="content" style="display:none"></div>
+</main>
+
+<footer>
+  <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank">View all issues</a>
+  · Saves directly to GitHub · Token stored in localStorage only
+</footer>
+
+<div id="toast"></div>
+
+<script>
+const REPO = 'togohealth-dev/emr-beta';
+const API  = 'https://api.github.com';
+
+// ── CRITERION CONTEXT ────────────────────────────────────────────────────────
+const CRITERION_CONTEXT = {
+  "(d)(2)": {
+    existing: "audit.record_version table exists for write events. No read-event logging. No middleware. No filterable report.",
+    upstream: ["(d)(1) RBAC — user identity must be resolvable in middleware context"],
+    enables: ["(d)(3) audit reports reads from the same audit_log table","(d)(6) emergency access writes a break-glass entry to the same table","Every EHI route needs this middleware — build it drop-in attachable"],
+    scaffold: "Create audit_log table: (id, user_id, patient_id, action, resource_type, resource_id, data_changed jsonb, timestamp). Build as Axum middleware layer that any route can attach. (d)(3) and (d)(6) will query this same table — do not build a separate one.",
+    hours: 8
+  },
+  "(d)(5)": {
+    existing: "Firebase token has 8h server-side expiry. No client-side idle detection. No lock screen overlay.",
+    upstream: ["Firebase Auth (exists)"],
+    enables: ["(d)(13) MFA session management will extend this idle timer pattern"],
+    scaffold: "Idle timer in _app.tsx as a useEffect. Lock screen overlay is a full-screen component. Build the timer as a reusable hook — (d)(13) adds MFA re-prompt to the same resume flow.",
+    hours: 3
+  },
+  "(d)(1)": {
+    existing: "Firebase Auth handles authentication. Role fields exist on professional table (is_admin, role). Route-level RBAC is inconsistent — some routes check roles, many don't.",
+    upstream: [],
+    enables: ["(d)(6) emergency access needs role context in middleware","(d)(13) MFA enforcement is per-route via same role middleware"],
+    scaffold: "Build a reusable Axum middleware extractor that enforces role. Every future route attaches it with one line. Don't add role checks inline per handler.",
+    hours: 5
+  },
+  "(a)(8)": {
+    existing: "No allergy table exists anywhere in the codebase.",
+    upstream: ["RxNorm lookup (build this for drug allergens — same NLM API as (a)(1))"],
+    enables: ["(a)(9) CDS drug-allergy check queries patient_allergy by rxnorm_code","(b)(1) C-CDA allergy section reads patient_allergy","(b)(3) eRx safety check needs allergy list"],
+    scaffold: "Create patient_allergy table: (id, patient_id, allergen_name, rxnorm_code nullable, reaction, severity, onset_date). (a)(9), (b)(1), and (b)(3) all query this same table.",
+    hours: 6
+  },
+  "(a)(5)": {
+    existing: "DOB, name, address, phone exist. Race, ethnicity, preferred language, gender identity, pronouns (USCDI v3) are missing.",
+    upstream: [],
+    enables: ["(b)(1) C-CDA demographics section reads these same columns","(g)(10) FHIR US Core Patient profile requires all USCDI v3 fields"],
+    scaffold: "DB migration adds USCDI v3 columns to patient table. Both (b)(1) C-CDA and (g)(10) FHIR read these same columns — do not add a separate demographics export table.",
+    hours: 4
+  },
+  "(d)(13)": {
+    existing: "Email+password auth only via Firebase. No MFA enrollment or enforcement.",
+    upstream: ["(d)(1) RBAC — MFA enforcement is per-route via same middleware","(d)(5) session management — MFA re-prompt happens at idle resume"],
+    enables: [],
+    scaffold: "Firebase TOTP enrollment flow in settings page. MFA enforcement added to the same role middleware as (d)(1). (d)(5) idle resume: if MFA enrolled, prompt for TOTP before unlocking.",
+    hours: 5
+  },
+  "(g)(4)": {
+    existing: "No QMS documentation exists.",
+    upstream: [],
+    enables: [],
+    scaffold: "~40 hrs documentation, not code. Deliverables: (1) Quality Policy, (2) Change Control Procedure, (3) Incident Response Plan, (4) Software Test Plans per criterion, (5) Problem Report & CAPA log. Start with Change Control Procedure — ATL asks for it first.",
+    hours: 40
+  },
+  "(a)(9)": {
+    existing: "Sepsis protocol PR in progress. No CDS framework. No drug-drug or drug-allergy checks.",
+    upstream: ["(a)(8) allergy list — drug-allergy CDS queries patient_allergy table","(a)(1) CPOE meds — drug-drug CDS queries medication list with RxNorm codes"],
+    enables: [],
+    scaffold: "CDS response schema: {criterion_id, evidence_source, alert_text, provider_decision, decision_reason, logged_at}. Log every CDS interaction to audit_log (same table as (d)(2)). NLM RxNav API for drug interactions (free). Build as a Rust service function — not inline in route handler.",
+    hours: 10
+  },
+  "(a)(1)": {
+    existing: "Medication table exists with dose/frequency linked to diagnoses. No RxNorm codes. No structured CPOE workflow.",
+    upstream: [],
+    enables: ["(a)(9) CDS drug-allergy check queries medications by RxNorm — scaffold rxnorm_code column now","(b)(3) eRx needs NCPDP SCRIPT format — medication records must have RxNorm first","(b)(1) C-CDA medication section requires RxNorm"],
+    scaffold: "Add rxnorm_code VARCHAR column to medication table now. Add RxNorm lookup to medication entry UI (NLM RxNav API — free). Every medication written after this has a code. (a)(9), (b)(3), and (b)(1) all read this same column.",
+    hours: 8
+  },
+  "(a)(2)": {
+    existing: "visit_orders table exists. No LOINC codes on lab orders. No structured lab order workflow.",
+    upstream: [],
+    enables: ["(a)(9) CDS lab result CDS needs LOINC-coded lab orders","(c)(1) CQM needs computable lab data with LOINC","(b)(1) C-CDA results section needs LOINC"],
+    scaffold: "Add loinc_code VARCHAR to visit_orders for lab type. Same column pattern as (a)(3) imaging — build the lookup UI generically for both.",
+    hours: 6
+  },
+  "(a)(3)": {
+    existing: "visit_orders table exists. No LOINC codes on imaging orders. No imaging workflow.",
+    upstream: [],
+    enables: ["(b)(1) C-CDA imaging section needs LOINC"],
+    scaffold: "Same LOINC column + lookup as (a)(2). Reuse the order entry UI component — don't build separate lab and imaging order UIs.",
+    hours: 5
+  },
+  "(a)(11)": {
+    existing: "Smoking status visible in /audit. Not wired to patient record as a structured field.",
+    upstream: [],
+    enables: ["(b)(1) C-CDA social history section reads smoking status with LOINC code"],
+    scaffold: "LOINC code 72166-2. Store as a LOINC observation in the observations table pattern. Do not store as free text or boolean — C-CDA exporter needs the LOINC code.",
+    hours: 2
+  },
+  "(b)(3)": {
+    existing: "iPrescribe used separately. No portal eRx. No NCPDP SCRIPT structure.",
+    upstream: ["(a)(1) CPOE meds with RxNorm codes — eRx cannot be built without coded medication data"],
+    enables: [],
+    scaffold: "Structure medication orders for NCPDP SCRIPT NewRx format now — even before vendor integration. Vendor options: Prescryptive (FHIR-native), NewCrop (proven SNF/LTC), DrFirst Rcopia (already paying for iPrescribe).",
+    hours: 12
+  },
+  "(c)(1)": {
+    existing: "/admin/mips CSV export exists. No QRDA III. Measures not computed from discrete coded data.",
+    upstream: ["(a)(1) coded meds","(a)(2) coded labs — CQM measures require structured coded data to compute"],
+    enables: ["(g)(2) automated measure calculation reuses QRDA III generator"],
+    scaffold: "QRDA III XML via quick-xml — same pattern as (b)(1) C-CDA. Build as a standalone Rust module (qrda::generate). (g)(2) extends this same generator.",
+    hours: 10
+  },
+  "(b)(1)": {
+    existing: "Patient documents exist. No C-CDA XML generation.",
+    upstream: ["(a)(5) demographics with USCDI v3 fields","(a)(7) medications with RxNorm codes","(a)(8) allergy list with RxNorm codes","(a)(1)/(a)(2) coded orders"],
+    enables: ["(e)(1) patient portal transmit reuses the C-CDA XML generator"],
+    scaffold: "C-CDA R2.1 XML via quick-xml in Rust. Build as a standalone Rust module (ccda::generate) that takes a patient_id and returns XML bytes. (e)(1) calls the same function.",
+    hours: 10
+  },
+  "(d)(3)": {
+    existing: "No filterable audit log UI. /admin/access-log page does not exist.",
+    upstream: ["(d)(2) audit log middleware and audit_log table must exist first"],
+    enables: [],
+    scaffold: "Filterable query on audit_log by user/patient/date/action. Export reuses the same pattern as /admin/mips export.",
+    hours: 4
+  },
+  "(d)(6)": {
+    existing: "No break-glass access mechanism exists.",
+    upstream: ["(d)(1) RBAC — break-glass must still identify the user","(d)(2) audit log — every break-glass event must emit an audit entry"],
+    enables: [],
+    scaffold: "Break-glass sets a session flag granting elevated read access. On flag set: immediately write to audit_log (same table as (d)(2)) with action='emergency_access'. Alert sent to admin email via ctx.send_mail.",
+    hours: 5
+  },
+  "(d)(7)": {
+    existing: "HTTPS enforced everywhere. localStorage usage not audited for PHI.",
+    upstream: [],
+    enables: [],
+    scaffold: "Audit pass: grep all localStorage/sessionStorage calls in portal/web. Flag any that store patient_id, visit data, or clinical content. Replace with sessionStorage or remove. No new feature — hardening pass.",
+    hours: 3
+  },
+  "(d)(8)": {
+    existing: "No hash verification on stored records.",
+    upstream: [],
+    enables: [],
+    scaffold: "Add hash column to key EHI tables. On write: compute SHA-256 of row's clinical fields, store as hash. On read: recompute and compare. Build as a Rust utility function reused across tables.",
+    hours: 4
+  },
+  "(d)(12)": {
+    existing: "Firebase token used for auth. Token transmitted over HTTPS. Local storage usage not fully audited.",
+    upstream: [],
+    enables: [],
+    scaffold: "Audit + documentation criterion. Verify: Firebase tokens not logged, not stored in localStorage, transmitted only over HTTPS. Document findings for ATL.",
+    hours: 2
+  },
+  "(e)(2)": {
+    existing: "assert_patient_authorization() exists. No secure messaging UI.",
+    upstream: ["(d)(1) RBAC","(d)(2) audit log — messages touching patient data need audit entries"],
+    enables: [],
+    scaffold: "Message table needs: sender_id, recipient_id, patient_id nullable, encrypted_body, sent_at. Every message write emits an audit_log entry (same table as (d)(2)).",
+    hours: 8
+  },
+  "(g)(2)": {
+    existing: "MIPS CSV exists. No QRDA III auto-calculation.",
+    upstream: ["(c)(1) CQM — QRDA III generator must exist first"],
+    enables: [],
+    scaffold: "Extends (c)(1) QRDA III generator with automated measure computation. No separate generator — same module.",
+    hours: 8
+  },
+  "(g)(5)": {
+    existing: "Tailwind CSS base. WCAG 2.0 AA not formally tested or remediated.",
+    upstream: [],
+    enables: [],
+    scaffold: "Run axe-core audit on key portal pages. Fix: color contrast failures, missing ARIA labels, keyboard navigation gaps. Remediation pass, not new features.",
+    hours: 8
+  },
+  "(g)(10)": {
+    existing: "No FHIR R4 server. All clinical data exists in Postgres but not mapped to US Core profiles.",
+    upstream: ["(a)(5) USCDI v3 demographics","(a)(7) RxNorm-coded medications","(a)(8) RxNorm-coded allergies","(a)(1)/(a)(2) LOINC-coded orders — all coded clinical data must exist before FHIR"],
+    enables: [],
+    scaffold: "FHIR R4 server in Rust. US Core R4 profiles read from same Postgres columns already built for other criteria — no new tables. Test with ONC Inferno tool. SMART App Launch 2.0 extends (d)(1) RBAC.",
+    hours: 20
+  },
+  "(e)(1)": {
+    existing: "patient_export module exists as partial infrastructure. No patient-facing portal for view/download/transmit.",
+    upstream: ["(b)(1) C-CDA — patient download uses C-CDA XML generator"],
+    enables: [],
+    scaffold: "View: patient reads their own record via authenticated route. Download: calls ccda::generate (same as (b)(1)). Transmit: email via ctx.send_mail with C-CDA attachment. Three features, one C-CDA generator.",
+    hours: 10
+  }
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+let issues = [];
+let filter = 'all';
+let showDone = false;
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('gh_pat'); }
+
+function saveToken() {
+  const val = document.getElementById('pat-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('gh_pat', val);
+  document.getElementById('auth-overlay').style.display = 'none';
+  load();
+}
+
+function clearToken() {
+  localStorage.removeItem('gh_pat');
+  location.reload();
+}
+
+document.getElementById('pat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveToken();
+});
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function ghFetch(path, opts = {}) {
+  const token = getToken();
+  const res = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `GitHub API error ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Load issues ──────────────────────────────────────────────────────────────
+async function load() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('error-msg').style.display = 'none';
+
+  try {
+    const seen = new Map();
+    for (const label of ['onc', 'mips']) {
+      for (const state of ['open', 'closed']) {
+        const batch = await ghFetch(
+          `/repos/${REPO}/issues?labels=${label}&state=${state}&per_page=100`
+        );
+        for (const issue of batch) {
+          if (!seen.has(issue.number)) seen.set(issue.number, issue);
+        }
+      }
+    }
+
+    issues = [...seen.values()].map(normalize).sort((a,b) =>
+      a.wave - b.wave || b.priority - a.priority || a.number - b.number
+    );
+
+    renderStats();
+    renderContent();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    const el = document.getElementById('error-msg');
+    el.style.display = 'block';
+    el.textContent = `Error: ${e.message}`;
+  }
+}
+
+function normalize(issue) {
+  const labels = (issue.labels || []).map(l => l.name);
+  const isOnc  = labels.includes('onc');
+  const isMips = labels.includes('mips');
+  const priority = +(labels.find(l => l.startsWith('priority-'))?.replace('priority-','') || '3');
+  const wave     = +(labels.find(l => l.startsWith('wave-'))?.replace('wave-','')         || '4');
+  const assignees = (issue.assignees || []).map(a => a.login);
+  let status = issue.state === 'closed' ? 'done'
+    : labels.includes('status:ready-for-eval') ? 'ready_for_eval'
+    : labels.includes('status:in-progress')    ? 'in_progress'
+    : labels.includes('status:blocked')        ? 'blocked'
+    : 'not_started';
+  const titleMatch = issue.title.match(/\([a-z]\)\(\d+\)/);
+  const criterionId = titleMatch ? titleMatch[0] : null;
+  return { number: issue.number, title: issue.title, url: issue.html_url,
+           labels, assignees, status, priority, wave, isOnc, isMips, criterionId };
+}
+
+// ── Render stats ─────────────────────────────────────────────────────────────
+function renderStats() {
+  const total = issues.length;
+  const done  = issues.filter(i => i.status === 'done').length;
+  const ip    = issues.filter(i => i.status === 'in_progress').length;
+  const hrs   = issues.reduce((s,i) => {
+    const c = i.criterionId && CRITERION_CONTEXT[i.criterionId];
+    return s + (c ? c.hours : 0);
+  }, 0);
+  const doneHrs = issues.filter(i => i.status === 'done').reduce((s,i) => {
+    const c = i.criterionId && CRITERION_CONTEXT[i.criterionId];
+    return s + (c ? c.hours : 0);
+  }, 0);
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-value">${total}</div><div class="stat-label">Total criteria</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--green)">${done}</div><div class="stat-label">Done</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--primary)">${ip}</div><div class="stat-label">In Progress</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--text-muted)">${total - done - ip}</div><div class="stat-label">Not Started</div></div>
+    <div class="stat"><div class="stat-value">${doneHrs}/${hrs}h</div><div class="stat-label">Est. hours done</div></div>
+  `;
+}
+
+// ── Render content ───────────────────────────────────────────────────────────
+function renderContent() {
+  let filtered = issues.filter(i => {
+    if (filter === 'onc' && !i.isOnc) return false;
+    if (filter === 'mips' && !i.isMips) return false;
+    if (!showDone && i.status === 'done') return false;
+    return true;
+  });
+
+  const byWave = [1,2,3,4].map(w => ({
+    wave: w,
+    items: filtered.filter(i => i.wave === w)
+  })).filter(g => g.items.length > 0);
+
+  const container = document.getElementById('content');
+  container.innerHTML = byWave.map(group => {
+    const doneCount = group.items.filter(i => i.status === 'done').length;
+    return `
+    <div class="wave-group wave-${group.wave}" id="wave-${group.wave}">
+      <div class="wave-header" onclick="toggleWave(${group.wave})">
+        <span class="chevron">▼</span>
+        <h2>Wave ${group.wave}</h2>
+        <span class="wave-meta">${group.items.length} criteria · ${doneCount} done</span>
+      </div>
+      <div class="wave-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Criterion</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Type</th>
+              <th>Est.</th>
+              <th>Assignee</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${group.items.map(issueRow).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function issueRow(issue) {
+  const ctx = issue.criterionId && CRITERION_CONTEXT[issue.criterionId];
+  const hours = ctx ? `${ctx.hours}h` : '—';
+  const statusBadge = {
+    not_started:    `<span class="badge badge-not-started">Not started</span>`,
+    in_progress:    `<span class="badge badge-in-progress">● In progress</span>`,
+    ready_for_eval: `<span class="badge badge-ready-for-eval">✓ Ready for eval</span>`,
+    blocked:        `<span class="badge badge-blocked">✕ Blocked</span>`,
+    done:           `<span class="badge badge-done">✓ Done</span>`,
+  }[issue.status] || '';
+
+  const dots = [1,2,3,4,5].map(n =>
+    `<div class="dot${n <= issue.priority ? ' filled' : ''}"></div>`
+  ).join('');
+
+  const typeBadges = [
+    issue.isOnc  ? `<span class="badge badge-onc">ONC</span>` : '',
+    issue.isMips ? `<span class="badge badge-mips">MIPS</span>` : '',
+  ].join(' ');
+
+  const assigneeHtml = issue.assignees.length
+    ? `<div class="assignees">${issue.assignees.map(a => `<span class="assignee">${a}</span>`).join('')}</div>`
+    : `<span style="color:var(--text-muted)">—</span>`;
+
+  const claimBtn = issue.status !== 'done' ? (
+    issue.status === 'in_progress'
+      ? `<button class="btn btn-outline btn-sm" onclick="claimIssue(${issue.number},'unclaim')">Unclaim</button>`
+      : `<button class="btn btn-primary btn-sm" onclick="claimIssue(${issue.number},'claim')">Claim</button>`
+  ) : '';
+
+  const copyBtn = ctx
+    ? `<button class="btn btn-copy btn-sm" id="copy-${issue.number}" onclick="copyPrompt(${issue.number})">Copy Prompt</button>`
+    : '';
+
+  return `
+  <tr id="row-${issue.number}">
+    <td><span class="issue-num">#${issue.number}</span></td>
+    <td><a class="issue-link" href="${issue.url}" target="_blank">${issue.title}</a></td>
+    <td>${statusBadge}</td>
+    <td><div class="priority priority-${issue.priority}">${dots}</div></td>
+    <td>${typeBadges}</td>
+    <td style="color:var(--text-muted)">${hours}</td>
+    <td>${assigneeHtml}</td>
+    <td><div class="actions">${copyBtn}${claimBtn}</div></td>
+  </tr>`;
+}
+
+// ── Claim / Unclaim ───────────────────────────────────────────────────────────
+async function claimIssue(number, action) {
+  const btn = document.querySelector(`#row-${number} .btn-primary, #row-${number} .btn-outline`);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  try {
+    const token = getToken();
+    const me = await ghFetch('/user');
+    const login = me.login;
+
+    const commentBody = action === 'claim'
+      ? `🙋 **Claimed by @${login}** via TogoHealth ONC Tracker — working on this criterion.`
+      : `🔓 **Unclaimed by @${login}** via TogoHealth ONC Tracker.`;
+
+    await ghFetch(`/repos/${REPO}/issues/${number}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: commentBody })
+    });
+
+    if (action === 'claim') {
+      await ghFetch(`/repos/${REPO}/issues/${number}/labels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labels: ['status:in-progress'] })
+      });
+    } else {
+      await ghFetch(`/repos/${REPO}/issues/${number}/labels/status%3Ain-progress`, {
+        method: 'DELETE'
+      }).catch(() => {});
+    }
+
+    toast(action === 'claim' ? `Claimed #${number}` : `Unclaimed #${number}`);
+    await load();
+  } catch(e) {
+    toast(`Error: ${e.message}`, true);
+    if (btn) { btn.disabled = false; btn.textContent = action === 'claim' ? 'Claim' : 'Unclaim'; }
+  }
+}
+
+// ── Copy Prompt ───────────────────────────────────────────────────────────────
+function buildPrompt(issue) {
+  const ctx = CRITERION_CONTEXT[issue.criterionId];
+  if (!ctx) return '';
+  const upstream = ctx.upstream.length ? ctx.upstream.map(u => `  - ${u}`).join('\n') : '  - None — can start independently';
+  const enables  = ctx.enables.length  ? ctx.enables.map(e  => `  - ${e}`).join('\n')  : '  - None';
+  return `Session topic: Building ONC §170.315 ${issue.criterionId} — GitHub Issue #${issue.number}
+GitHub Issue: ${issue.url}
+Estimated effort: ~${ctx.hours} Claude Code session hours
+
+Before writing any code:
+1. Read ~/strategy-sessions-repo/SESSION-STARTER.md
+2. Read ~/strategy-sessions-repo/strategy-1-morgan.md
+   → ONC DEPENDENCY MAP
+   → BUILD-WITH-END-IN-MIND PROTOCOL
+   → ONC FEATURE IMPACT LOOKUP
+3. Read ~/strategy-sessions-repo/strategy-5-scott.md
+   → ONC CERTIFICATION GATE
+
+─────────────────────────────────────────
+WHAT EXISTS IN THE CODEBASE TODAY
+─────────────────────────────────────────
+${ctx.existing}
+
+─────────────────────────────────────────
+UPSTREAM DEPENDENCIES
+─────────────────────────────────────────
+(Check these exist or scaffold minimums before building)
+${upstream}
+
+─────────────────────────────────────────
+DOWNSTREAM CRITERIA THIS BUILD ENABLES
+─────────────────────────────────────────
+(Scaffold shared infrastructure now so these don't require a refactor later)
+${enables}
+
+─────────────────────────────────────────
+SHARED INFRASTRUCTURE TO BUILD GENERICALLY
+─────────────────────────────────────────
+${ctx.scaffold}
+
+─────────────────────────────────────────
+CONSTRAINTS
+─────────────────────────────────────────
+- Backend: SQLX_OFFLINE=true. Runtime sqlx only (sqlx::query / query_as), never query! macros.
+- No Firebase/Firestore for new data — Postgres only.
+- Frontend-first: confirm frontend-only is impossible before touching backend.
+  If backend required: state table/endpoint changes + frontend fallback + effort. Wait for approval.
+- Deployment order: localhost → beta → production. Never skip beta.
+- PHI stays on Mac mini (192.168.1.190). No real patient data in this chat.
+- Add ONC criterion in code comments: // ONC §170.315 ${issue.criterionId}
+
+─────────────────────────────────────────
+BEFORE WRITING CODE — STATE OUT LOUD
+─────────────────────────────────────────
+1. Which upstream dependencies are present / which need scaffolding?
+2. Which downstream criteria am I scaffolding shared infrastructure for?
+3. What shared infrastructure will I build generically (name the table/function/component)?
+4. Full implementation plan — wait for approval before executing.`;
+}
+
+function copyPrompt(number) {
+  const issue = issues.find(i => i.number === number);
+  if (!issue) return;
+  const text = buildPrompt(issue);
+  const btn = document.getElementById(`copy-${number}`);
+
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderContent();
+}
+
+function toggleStatusFilter(f, el) {
+  if (f === 'done') {
+    showDone = !showDone;
+    el.classList.toggle('active', showDone);
+  }
+  renderContent();
+}
+
+function toggleWave(w) {
+  document.getElementById(`wave-${w}`).classList.toggle('collapsed');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, isErr = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isErr ? '#dc2626' : '#1e293b';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function refresh() { load(); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (getToken()) {
+  document.getElementById('auth-overlay').style.display = 'none';
+  load();
+}
+</script>
+</body>
+</html>
