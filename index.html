@@ -412,15 +412,11 @@ function renderStats() {
       <div class="stat-progress-track"><div class="stat-progress-fill fill-mips" style="width:${mipsPct}%"></div></div>
       <div class="stat-sub">${mipsDoneHrs}/${mipsHrs}h est · ready for ATL or done</div>
     </div>
+    <div class="stat stat-sm"><div class="stat-label">Beta Testing</div><div class="stat-value" style="${inBeta?'color:var(--orange)':''}">${inBeta}</div></div>
     <div class="stat stat-sm" style="${atl?'border-color:var(--green-atl);background:#f0fdf4':''}">
       <div class="stat-label" style="${atl?'color:var(--green-atl)':''}">Ready for ATL</div>
       <div class="stat-value" style="${atl?'color:var(--green-atl)':''}">${atl}</div>
     </div>
-    <div class="stat stat-sm" style="${needsEval?'border-color:#fcd34d;background:#fffbeb':''}">
-      <div class="stat-label" style="${needsEval?'color:var(--amber)':''}">Needs Eval</div>
-      <div class="stat-value" style="${needsEval?'color:var(--amber)':''}">${needsEval}</div>
-    </div>
-    <div class="stat stat-sm"><div class="stat-label">Beta Testing</div><div class="stat-value">${inBeta}</div></div>
   `;
 }
 
@@ -450,7 +446,9 @@ function renderContent() {
     return true;
   });
   const byWave = [1,2,3,4].map(w=>({ wave:w, items:filtered.filter(i=>i.wave===w) })).filter(g=>g.items.length);
+  let rank = 0;
   document.getElementById('content').innerHTML = byWave.map(g => {
+    const rankStart = rank; rank += g.items.length;
     const doneCount = g.items.filter(i=>['ready_for_atl','done'].includes(i.status)).length;
     const atlCount  = g.items.filter(i=>i.status==='ready_for_atl').length;
     const avgPct    = g.items.length ? Math.round(g.items.reduce((s,i)=>s+i.pct,0)/g.items.length) : 0;
@@ -468,7 +466,7 @@ function renderContent() {
       <div class="wave-table-wrap">
         <table>
           <thead><tr>
-            <th style="width:34px">#</th>
+            <th style="width:34px">Pri</th>
             <th>Criterion</th>
             <th style="width:150px">Status</th>
             <th style="width:110px">Progress</th>
@@ -478,14 +476,14 @@ function renderContent() {
             <th style="width:90px">Assigned</th>
             <th>Actions</th>
           </tr></thead>
-          <tbody>${g.items.map(row).join('')}</tbody>
+          <tbody>${g.items.map((item, idx) => row(item, rankStart + idx)).join('')}</tbody>
         </table>
       </div>
     </div>`;
   }).join('');
 }
 
-function row(i) {
+function row(i, rank) {
   const ctx = CTX[i.criterionId];
   const rowClass = i.status==='ready_for_atl' ? 'row-atl' : i.status==='beta_complete' ? 'row-beta-complete' : i.status==='done' ? 'row-done' : '';
 
@@ -509,7 +507,7 @@ function row(i) {
   const actions = buildActions(i);
 
   return `<tr id="row-${i.number}" class="${rowClass}">
-    <td><span style="font-size:11px;font-family:monospace;color:var(--text-muted)">${i.number}</span></td>
+    <td><span style="font-size:12px;font-weight:600;color:var(--text-muted)">${rank + 1}</span></td>
     <td><a class="issue-link" href="${i.url}" target="_blank">${i.title}</a></td>
     <td>${badge}</td>
     <td>${progressHtml}</td>
