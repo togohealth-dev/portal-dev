@@ -373,9 +373,24 @@
     <div class="modal-field">
       <label><input type="checkbox" id="m-assign" checked style="width:auto;margin-right:6px">Assign to me</label>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="modal-form-actions">
       <button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
       <button class="btn btn-primary" id="modal-submit-btn" onclick="submitNewProject()">Create</button>
+    </div>
+    <!-- success state, shown after creation -->
+    <div id="modal-success" style="display:none">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:36px;margin-bottom:10px">✅</div>
+        <div id="modal-success-title" style="font-weight:700;font-size:16px;margin-bottom:6px"></div>
+        <a id="modal-success-link" href="" target="_blank" style="font-size:12px;color:var(--primary)">View on GitHub ↗</a>
+      </div>
+      <div style="padding:12px 14px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e;line-height:1.5;margin-bottom:14px">
+        <strong>Next step:</strong> Copy the Claude prompt below and paste it into a new Claude Code session. It pre-loads all strategy files, checks every ONC/MIPS criterion this build touches, and scans current projects for overlaps — so you build it the right way from line one.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-primary" id="modal-copy-prompt-btn" onclick="copyNewProjectPrompt()">📋 Copy Claude Prompt</button>
+        <button class="btn btn-outline" onclick="closeAddModal()">Done</button>
+      </div>
     </div>
   </div>
 </div>
@@ -442,6 +457,7 @@ let filter = 'all';
 let showDone = false;
 let currentUser = null;
 let addModalMode = 'current'; // 'current' | 'future'
+let pendingProjectPrompt = '';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem('gh_pat');
@@ -653,8 +669,9 @@ function renderCurrentProjects() {
 }
 
 function projectActions(p) {
-  if (p.status === 'done' || p.status === 'abandoned') return `<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a>`;
-  const parts = [];
+  const copyBtn = `<button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyProjectPrompt(${p.number})" title="Copy Claude session prompt for this build">📋</button>`;
+  if (p.status === 'done' || p.status === 'abandoned') return `<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a> ${copyBtn}`;
+  const parts = [copyBtn];
   if (p.status === 'planning' || p.status === 'in_progress') {
     if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})">PR Ready — Notify Scott</button>`);
     else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})">Notify Scott</button>`);
@@ -788,7 +805,14 @@ function openAddModal(mode) {
   document.getElementById('add-modal').classList.add('open');
 }
 
-function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  // reset to form state for next open
+  document.getElementById('modal-success').style.display = 'none';
+  document.getElementById('modal-form-actions').style.display = 'flex';
+  document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = '');
+  document.getElementById('m-priority-field').style.display = 'none';
+}
 
 function updateOncNote() {
   const sel = document.getElementById('m-onc');
@@ -836,14 +860,104 @@ async function submitNewProject() {
         assignees: assign ? [currentUser.login] : []
       })
     });
-    closeAddModal();
-    toast(`Created #${issue.number}`);
+    // Generate prompt before loading (uses currentProjects snapshot)
+    pendingProjectPrompt = buildProjectPrompt({ number: issue.number, title, body, url: issue.html_url, oncRefs: oncSel });
+    // Show success state inside modal (don't close yet)
+    document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = 'none');
+    document.getElementById('modal-form-actions').style.display = 'none';
+    document.getElementById('modal-success-title').textContent = title;
+    document.getElementById('modal-success-link').href = issue.html_url;
+    document.getElementById('modal-success').style.display = 'block';
+    document.getElementById('modal-copy-prompt-btn').textContent = '📋 Copy Claude Prompt';
     await loadAll();
   } catch(e) {
     toast(`Error: ${e.message}`, true);
-  } finally {
     btn.disabled = false; btn.textContent = 'Create';
   }
+}
+
+// ── Project Prompt ────────────────────────────────────────────────────────────
+function buildProjectPrompt(proj) {
+  const oncContext = (proj.oncRefs||[]).length
+    ? proj.oncRefs.map(id => {
+        const c = CTX[id];
+        return c
+          ? `${id}:\n  What exists: ${c.existing}\n  Scaffold generically: ${c.scaffold}\n  Enables downstream: ${c.enables.join(', ')||'—'}`
+          : id;
+      }).join('\n\n')
+    : 'None — not directly tied to ONC/MIPS certification.\n(Still check strategy-1-morgan.md to see if any current build overlaps.)';
+
+  const activeProjects = currentProjects
+    .filter(p => p.status !== 'done' && p.status !== 'abandoned')
+    .map(p => `  - #${p.number} "${p.title}" [${p.status}]${p.oncRefs.length ? ' — touches ' + p.oncRefs.join(', ') : ''}`)
+    .join('\n') || '  - None currently in progress';
+
+  const firstLine = (proj.body||'').split('\n').filter(l=>l.trim()).slice(0,6).join('\n');
+
+  return `Session topic: Building "${proj.title}"
+GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${proj.number}
+
+━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
+1. ~/strategy-sessions-repo/SESSION-STARTER.md
+2. ~/strategy-sessions-repo/strategy-1-morgan.md
+   → ONC DEPENDENCY MAP, BUILD-WITH-END-IN-MIND PROTOCOL
+3. ~/strategy-sessions-repo/strategy-5-scott.md
+   → PR REVIEW STANDARDS, CONSTRAINTS, FRONTEND-FIRST RULE
+4. ~/strategy-sessions-repo/strategy-2.md  (if this touches facility/scheduling)
+5. ~/strategy-sessions-repo/strategy-3.md  (if this touches clinical protocols)
+
+─── WHAT THIS BUILD DOES ─────────────────────────────
+${firstLine}
+
+─── ONC / MIPS CRITERIA THIS TOUCHES ────────────────
+${oncContext}
+
+─── CURRENT PROJECTS IN FLIGHT (do not contradict or duplicate) ──
+${activeProjects}
+
+─── OVERLAP CHECK — STATE ALL OF THESE OUT LOUD ──────
+1. Does any current project above share DB tables, API routes, or UI components
+   with this build? If yes — reuse, don't duplicate. Coordinate the schema now.
+2. Does this build touch any ONC criterion above?
+   If yes — check BUILD-WITH-END-IN-MIND in strategy-1-morgan.md.
+   Build shared infrastructure generically so the next criterion doesn't refactor it.
+3. Does this touch EHI (patient data, visit notes, medications, orders)?
+   → Audit log hook required before the feature logic.
+4. Does this add a new route? → Role enforcement middleware goes on first.
+5. Does this touch medications, allergies, or orders? → RxNorm/LOINC, not free text.
+
+─── CONSTRAINTS ──────────────────────────────────────
+- SQLX_OFFLINE=true. Runtime sqlx only — no query! macros.
+- No Firebase/Firestore for new data — Postgres only.
+- Frontend-first: confirm feature can't be done with existing API before adding backend.
+  If backend is needed, stop and get approval from Greg first.
+- PDF/exports: server-side only (Rust backend). Never browser-side (no jsPDF/html2canvas).
+- Frontend + backend changes ship in the same PR.
+- Deployment: localhost → beta → production. Never skip beta.
+- PHI stays on Mac mini (192.168.1.190). No PHI in this chat.
+
+─── FULL PLAN BEFORE CODING ─────────────────────────
+State out loud before writing a single line:
+1. Which current projects does this overlap with, and how will you coordinate?
+2. Which ONC criteria does this touch? What shared infra should be built generically?
+3. Complete implementation plan (schema changes, endpoints, frontend, migrations).
+   Wait for explicit approval before executing.`;
+}
+
+function copyNewProjectPrompt() {
+  if (!pendingProjectPrompt) return;
+  copyToClipboard(pendingProjectPrompt);
+  const btn = document.getElementById('modal-copy-prompt-btn');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => { btn.textContent = '📋 Copy Claude Prompt'; }, 2500);
+}
+
+function copyProjectPrompt(number) {
+  const p = currentProjects.find(p => p.number === number);
+  if (!p) return;
+  copyToClipboard(buildProjectPrompt(p));
+  const btn = document.getElementById(`cpbtn-${number}`);
+  if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '📋'; }, 2000); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
