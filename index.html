@@ -189,6 +189,62 @@
 
   footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; }
   footer a { color: var(--primary); }
+
+  /* ── Section headers ── */
+  .section-block { margin-bottom: 32px; }
+  .section-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+  .section-hdr h2 { font-size: 18px; font-weight: 700; flex: 1; }
+  .section-hdr p { font-size: 12px; color: var(--text-muted); }
+  .section-divider { border: none; border-top: 2px solid var(--border); margin: 28px 0; }
+
+  /* ── Project table (Current Projects + Future Ideas) ── */
+  .proj-table-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+  .proj-table-wrap table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  .proj-table-wrap th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid var(--border); }
+  .proj-table-wrap td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .proj-table-wrap tr:last-child td { border-bottom: none; }
+  .proj-table-wrap tr:hover td { background: #f8faff; }
+  .proj-table-wrap tr.abandoned td { opacity: 0.45; }
+
+  .proj-title { font-weight: 600; font-size: 13px; color: var(--text); text-decoration: none; }
+  .proj-title:hover { color: var(--primary); }
+  .proj-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Status badges for projects */
+  .ps-planning   { background:#f3f4f6; color:var(--gray); }
+  .ps-in-progress{ background:#dbeafe; color:#1d4ed8; }
+  .ps-pr-ready   { background:#fef3c7; color:var(--amber); }
+  .ps-needs-revision { background:#fee2e2; color:var(--red); }
+  .ps-beta       { background:var(--green-bg); color:var(--green-atl); font-weight:700; }
+  .ps-abandoned  { background:#f3f4f6; color:#9ca3af; }
+  .ps-done       { background:#e5e7eb; color:#374151; }
+
+  /* ONC ref tag on project row */
+  .onc-ref { display:inline-flex; align-items:center; gap:3px; padding:2px 6px; background:var(--purple-bg); color:var(--purple); border-radius:4px; font-size:10px; font-weight:600; white-space:nowrap; cursor:help; }
+
+  /* Scott's comment preview */
+  .scott-comment { font-size:11px; color:var(--text-muted); max-width:260px; }
+  .scott-comment strong { color:var(--amber); display:block; margin-bottom:1px; }
+  .scott-comment .comment-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:240px; }
+  .beta-link { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; background:var(--green-bg); color:var(--green-atl); border-radius:4px; font-size:11px; font-weight:600; text-decoration:none; }
+
+  /* Priority stars */
+  .stars { color:#fbbf24; font-size:13px; letter-spacing:1px; }
+  .stars .empty { color:var(--border); }
+
+  /* ── Add New Modal ── */
+  #add-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:200; }
+  #add-modal.open { display:flex; }
+  .modal-card { background:var(--surface); border-radius:12px; padding:28px; width:560px; max-width:94vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+  .modal-card h3 { font-size:17px; font-weight:700; margin-bottom:16px; }
+  .modal-field { margin-bottom:14px; }
+  .modal-field label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.3px; }
+  .modal-field input, .modal-field textarea, .modal-field select { width:100%; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit; background:var(--surface); outline:none; }
+  .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+  .modal-field textarea { height:72px; resize:vertical; }
+  .modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+  .modal-onc-note { font-size:11px; color:var(--purple); background:var(--purple-bg); padding:8px 10px; border-radius:6px; margin-top:6px; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -210,34 +266,119 @@
     <div class="logo">TogoHealth <span>· ONC Tracker</span></div>
   </div>
   <div class="header-right">
-    <div class="filters" id="filters">
-      <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
-      <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
-      <button class="filter-btn"        data-filter="mips" onclick="setFilter('mips',this)">MIPS</button>
-      <span class="filter-sep">|</span>
-      <button class="filter-btn"        data-filter="done" onclick="toggleDone(this)">Show Done</button>
-    </div>
-    <a href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+label%3Aonc%2Cmips" target="_blank" class="btn btn-outline">GitHub ↗</a>
-    <button class="btn btn-outline" onclick="load()">↻ Refresh</button>
+    <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
+    <button class="btn btn-outline" onclick="loadAll()">↻ Refresh</button>
     <button class="btn btn-danger" onclick="clearToken()">Sign out</button>
   </div>
 </header>
 
 <main>
-  <div class="page-header">
-    <div>
-      <h1>ONC §170.315 Certification Tracker</h1>
-      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
+  <!-- ── CURRENT PROJECTS ── -->
+  <div class="section-block">
+    <div class="section-hdr">
+      <h2>Current Projects</h2>
+      <p>Active builds — every project checks ONC/MIPS impact before writing code</p>
+      <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
     </div>
+    <div id="cp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+    <div id="cp-content" style="display:none"></div>
   </div>
 
-  <div class="stats" id="stats"></div>
-  <div id="eval-alerts"></div>
+  <hr class="section-divider">
 
-  <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
-  <div id="error-msg" style="display:none"></div>
-  <div id="content" style="display:none"></div>
+  <!-- ── ONC / MIPS CERTIFICATION ── -->
+  <div class="section-block">
+    <div class="section-hdr">
+      <h2>ONC §170.315 Certification Requirements</h2>
+      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
+      <div class="filters" id="filters">
+        <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
+        <button class="filter-btn"        data-filter="mips" onclick="setFilter('mips',this)">MIPS</button>
+        <span class="filter-sep">|</span>
+        <button class="filter-btn"        data-filter="done" onclick="toggleDone(this)">Show Done</button>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div id="eval-alerts"></div>
+    <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
+    <div id="error-msg" style="display:none"></div>
+    <div id="content" style="display:none"></div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── FUTURE IDEAS ── -->
+  <div class="section-block">
+    <div class="section-hdr">
+      <h2>Future Ideas</h2>
+      <p>Priority 1–5 · Claim any idea to move it into Current Projects</p>
+      <button class="btn btn-outline" onclick="openAddModal('future')">+ Add Idea</button>
+    </div>
+    <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+    <div id="fi-content" style="display:none"></div>
+  </div>
 </main>
+
+<!-- ── ADD NEW MODAL ── -->
+<div id="add-modal">
+  <div class="modal-card">
+    <h3 id="modal-title">Add Project</h3>
+    <div class="modal-field">
+      <label>Title</label>
+      <input type="text" id="m-title" placeholder="e.g. Bulk PDF export via backend">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="m-desc" placeholder="What does this build do? What problem does it solve?"></textarea>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Type</label>
+        <select id="m-type">
+          <option value="feature">Feature</option>
+          <option value="bugfix">Bug Fix</option>
+          <option value="performance">Performance</option>
+          <option value="infrastructure">Infrastructure</option>
+          <option value="ux">UX / Design</option>
+          <option value="documentation">Documentation</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Est. Hours</label>
+        <input type="number" id="m-hours" placeholder="8" min="1">
+      </div>
+    </div>
+    <div class="modal-field" id="m-priority-field" style="display:none">
+      <label>Priority (1 = lowest, 5 = highest)</label>
+      <select id="m-priority">
+        <option value="1">1 — Low / someday</option>
+        <option value="2">2 — Nice to have</option>
+        <option value="3" selected>3 — Medium</option>
+        <option value="4">4 — High</option>
+        <option value="5">5 — Critical</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>ONC / MIPS Criteria This Touches (select all that apply)</label>
+      <select id="m-onc" multiple size="4" style="height:90px">
+        <option value="">None — not certification related</option>
+      </select>
+      <div class="modal-onc-note" id="m-onc-note" style="display:none"></div>
+    </div>
+    <div class="modal-field">
+      <label>PR Link (optional — can add later)</label>
+      <input type="url" id="m-pr" placeholder="https://github.com/togohealth-dev/emr-beta/pull/…">
+    </div>
+    <div class="modal-field">
+      <label><input type="checkbox" id="m-assign" checked style="width:auto;margin-right:6px">Assign to me</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-submit-btn" onclick="submitNewProject()">Create</button>
+    </div>
+  </div>
+</div>
 
 <footer><a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank">View all issues on GitHub</a> · Token stored in localStorage only · No PHI</footer>
 <div id="toast"></div>
@@ -291,11 +432,16 @@ const CTX = {
 const STATUS_PCT = { beta_testing:85, beta_complete:90, ready_for_eval:95, ready_for_atl:100, done:100 };
 const PROGRESS_LABELS = { 'progress-25':25, 'progress-50':50, 'progress-75':75 };
 
+const SCOTT = 'msdrigg';
+
 // ── State ────────────────────────────────────────────────────────────────────
 let issues = [];
+let currentProjects = [];
+let futureIdeas = [];
 let filter = 'all';
 let showDone = false;
 let currentUser = null;
+let addModalMode = 'current'; // 'current' | 'future'
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem('gh_pat');
@@ -304,7 +450,7 @@ function saveToken() {
   if (!v) return;
   localStorage.setItem('gh_pat', v);
   document.getElementById('auth-overlay').style.display = 'none';
-  load();
+  loadAll();
 }
 function clearToken() { localStorage.removeItem('gh_pat'); location.reload(); }
 document.getElementById('pat-input').addEventListener('keydown', e => { if(e.key==='Enter') saveToken(); });
@@ -320,6 +466,11 @@ async function ghFetch(path, opts={}) {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  if (!currentUser) currentUser = await ghFetch('/user');
+  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas()]);
+}
+
 async function load() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('content').style.display = 'none';
@@ -347,6 +498,362 @@ async function load() {
     el.style.display = 'block';
     el.textContent = `Error: ${e.message}`;
   }
+}
+
+// ── Current Projects ──────────────────────────────────────────────────────────
+
+async function loadCurrentProjects() {
+  document.getElementById('cp-loading').style.display = 'block';
+  document.getElementById('cp-content').style.display = 'none';
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`);
+    // Fetch latest comment for each open project (for Scott's feedback / beta URL)
+    currentProjects = await Promise.all(raw.map(async issue => {
+      const labels = issue.labels.map(l => l.name);
+      const comments = issue.comments > 0
+        ? await ghFetch(`/repos/${REPO}/issues/${issue.number}/comments?per_page=20`)
+        : [];
+      return normalizeProject(issue, labels, comments);
+    }));
+    currentProjects.sort((a,b) => {
+      const order = {pr_ready:0, needs_revision:1, in_progress:2, planning:3, beta:4, done:5, abandoned:6};
+      return (order[a.status]??9) - (order[b.status]??9);
+    });
+    renderCurrentProjects();
+    document.getElementById('cp-loading').style.display = 'none';
+    document.getElementById('cp-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('cp-loading').textContent = `Error: ${e.message}`;
+  }
+}
+
+async function loadFutureIdeas() {
+  document.getElementById('fi-loading').style.display = 'block';
+  document.getElementById('fi-content').style.display = 'none';
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=future-idea&state=open&per_page=100`);
+    futureIdeas = raw.map(issue => {
+      const labels = issue.labels.map(l => l.name);
+      const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
+      const oncRefs = extractOncRefs(issue.title + ' ' + (issue.body||''));
+      return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login) };
+    }).sort((a,b) => b.priority - a.priority);
+    renderFutureIdeas();
+    document.getElementById('fi-loading').style.display = 'none';
+    document.getElementById('fi-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('fi-loading').textContent = `Error: ${e.message}`;
+  }
+}
+
+function normalizeProject(issue, labels, comments) {
+  const status = labels.includes('status:abandoned')     ? 'abandoned'
+    : issue.state === 'closed'                            ? 'done'
+    : labels.includes('status:beta')                      ? 'beta'
+    : labels.includes('status:needs-revision')            ? 'needs_revision'
+    : labels.includes('status:pr-ready')                  ? 'pr_ready'
+    : labels.includes('status:in-progress')               ? 'in_progress'
+    : 'planning';
+
+  // Find PR link from body or comments
+  const bodyPlusComs = (issue.body||'') + comments.map(c=>c.body||'').join(' ');
+  const prMatch = bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
+  const prUrl   = prMatch ? `https://github.com/togohealth-dev/emr-beta/pull/${prMatch[1]}` : null;
+  const prNum   = prMatch ? prMatch[1] : null;
+
+  // Find beta URL from comments (🚀 Beta: URL or beta: URL pattern)
+  let betaUrl = null;
+  for (const c of [...comments].reverse()) {
+    const m = (c.body||'').match(/(?:🚀\s*Beta|beta\s*deploy(?:ed)?|live\s*at)\s*[:\-]?\s*(https?:\/\/\S+)/i);
+    if (m) { betaUrl = m[1].replace(/[.,)>]$/, ''); break; }
+  }
+
+  // Find latest Scott comment
+  const scottComments = comments.filter(c => c.user?.login === SCOTT);
+  const latestScott = scottComments[scottComments.length - 1] || null;
+
+  // Extract ONC refs from title + body
+  const oncRefs = extractOncRefs((issue.title||'') + ' ' + (issue.body||''));
+
+  // Type from label
+  const typeLabel = labels.find(l => ['feature','bugfix','performance','infrastructure','ux','documentation'].includes(l)) || 'feature';
+
+  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login) };
+}
+
+function extractOncRefs(text) {
+  const matches = text.match(/\([a-z]\)\(\d+\)/g) || [];
+  return [...new Set(matches)];
+}
+
+function renderCurrentProjects() {
+  const el = document.getElementById('cp-content');
+  if (!currentProjects.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No current projects yet. <button class="btn btn-primary" onclick="openAddModal('current')" style="margin-left:8px">+ Add First Project</button></div>`;
+    return;
+  }
+  const statusBadge = s => ({
+    planning:       `<span class="badge ps-planning">Planning</span>`,
+    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+    pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready — awaiting Scott</span>`,
+    needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
+    beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
+    done:           `<span class="badge ps-done">✓ Done</span>`,
+    abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
+  }[s] || '';
+
+  el.innerHTML = `
+  <div class="proj-table-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:40px">#</th>
+        <th>Build</th>
+        <th style="width:180px">Status</th>
+        <th style="width:80px">PR</th>
+        <th style="width:60px">ONC/MIPS</th>
+        <th>Scott's Feedback</th>
+        <th style="width:50px">Beta</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${currentProjects.map((p, idx) => {
+          const sc = p.latestScott;
+          const scottHtml = sc
+            ? `<div class="scott-comment"><strong>@msdrigg · ${timeAgo(sc.created_at)}</strong><span class="comment-text" title="${esc(sc.body)}">${esc(sc.body.slice(0,120))}${sc.body.length>120?'…':''}</span></div>`
+            : `<span style="color:var(--border);font-size:12px">—</span>`;
+          const oncHtml = p.oncRefs.length
+            ? p.oncRefs.map(r => `<span class="onc-ref" title="${CTX[r]?.existing||''}">${r}</span>`).join(' ')
+            : `<span style="color:var(--border)">—</span>`;
+          const prHtml = p.prUrl
+            ? `<a href="${p.prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px">PR #${p.prNum} ↗</a>`
+            : `<span style="color:var(--border);font-size:12px">—</span>`;
+          const betaHtml = p.betaUrl
+            ? `<a href="${p.betaUrl}" target="_blank" class="beta-link">🚀 Test</a>`
+            : `<span style="color:var(--border);font-size:12px">—</span>`;
+          const rowClass = p.status === 'abandoned' ? 'abandoned' : '';
+
+          const actions = projectActions(p);
+          return `<tr class="${rowClass}">
+            <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+            <td>
+              <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+              <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+            </td>
+            <td>${statusBadge(p.status)}</td>
+            <td>${prHtml}</td>
+            <td>${oncHtml}</td>
+            <td>${scottHtml}</td>
+            <td>${betaHtml}</td>
+            <td><div class="actions">${actions}</div></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function projectActions(p) {
+  if (p.status === 'done' || p.status === 'abandoned') return `<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a>`;
+  const parts = [];
+  if (p.status === 'planning' || p.status === 'in_progress') {
+    if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})">PR Ready — Notify Scott</button>`);
+    else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})">Notify Scott</button>`);
+  }
+  if (p.status === 'pr_ready') parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})">Re-notify Scott</button>`);
+  if (p.status === 'needs_revision') parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})">PR Updated — Notify Scott</button>`);
+  if (p.status === 'beta') parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})">Mark Done</button>`);
+  parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})">Abandon</button>`);
+  return parts.join('');
+}
+
+function renderFutureIdeas() {
+  const el = document.getElementById('fi-content');
+  if (!futureIdeas.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No ideas yet. <button class="btn btn-outline" onclick="openAddModal('future')" style="margin-left:8px">+ Add First Idea</button></div>`;
+    return;
+  }
+  el.innerHTML = `
+  <div class="proj-table-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:80px">Priority</th>
+        <th>Idea</th>
+        <th style="width:80px">ONC/MIPS</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${futureIdeas.map(p => {
+          const stars = [1,2,3,4,5].map(n => `<span class="${n<=p.priority?'':'empty'}">★</span>`).join('');
+          const oncHtml = p.oncRefs.length
+            ? p.oncRefs.map(r => `<span class="onc-ref">${r}</span>`).join(' ')
+            : `<span style="color:var(--border);font-size:12px">—</span>`;
+          return `<tr>
+            <td><span class="stars">${stars}</span></td>
+            <td>
+              <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+              <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+            </td>
+            <td>${oncHtml}</td>
+            <td><div class="actions">
+              <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})">Claim → Current</button>
+              <button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})">Abandon</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ── Project actions ───────────────────────────────────────────────────────────
+
+async function setPrReady(number) {
+  const pr = prompt('Paste your PR link (or press OK to skip):');
+  await withProjectLoading(number, async () => {
+    const body = pr
+      ? `🔔 **PR ready for review — @${SCOTT}**\n\nPR: ${pr}\n\nSubmitted by @${currentUser.login} — please review when you get a chance.`
+      : `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.`;
+    await postComment(number, body);
+    await removeLabel(number, 'status:in-progress');
+    await removeLabel(number, 'status:needs-revision');
+    await addLabel(number, 'status:pr-ready');
+    if (pr) {
+      // append PR to issue body
+      const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
+      const newBody = (issue.body||'') + `\n\n**PR:** ${pr}`;
+      await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
+    }
+    toast(`Scott notified on #${number}`);
+  });
+}
+
+async function notifyScott(number) {
+  const msg = prompt('Add a message for Scott (or press OK for default):');
+  await withProjectLoading(number, async () => {
+    const body = `🔔 **Heads up @${SCOTT}** — update on this build.\n\n${msg||'Wanted to flag this for your review.'}\n\n— @${currentUser.login}`;
+    await postComment(number, body);
+    toast(`Scott notified`);
+  });
+}
+
+async function abandonProject(number) {
+  if (!confirm('Mark this as abandoned?')) return;
+  await withProjectLoading(number, async () => {
+    await postComment(number, `🚫 **Marked abandoned by @${currentUser.login}.**`);
+    await addLabel(number, 'status:abandoned');
+    toast(`Marked abandoned`);
+  });
+}
+
+async function markProjectDone(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✅ **Marked done by @${currentUser.login}.**`);
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
+    toast(`Marked done`);
+  });
+}
+
+async function claimIdea(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects.`);
+    await removeLabel(number, 'future-idea');
+    await addLabel(number, 'current-project');
+    await addLabel(number, 'status:in-progress');
+    toast(`Idea claimed — moved to Current Projects`);
+  });
+}
+
+async function withProjectLoading(number, fn) {
+  try { await fn(); await loadAll(); }
+  catch(e) { toast(`Error: ${e.message}`, true); }
+}
+
+// ── Add New Modal ─────────────────────────────────────────────────────────────
+
+function openAddModal(mode) {
+  addModalMode = mode;
+  document.getElementById('modal-title').textContent = mode === 'future' ? 'Add Future Idea' : 'Add Project';
+  document.getElementById('m-priority-field').style.display = mode === 'future' ? 'block' : 'none';
+  document.getElementById('m-title').value = '';
+  document.getElementById('m-desc').value = '';
+  document.getElementById('m-pr').value = '';
+  document.getElementById('m-onc-note').style.display = 'none';
+
+  // Populate ONC dropdown
+  const sel = document.getElementById('m-onc');
+  sel.innerHTML = '<option value="">None — not certification related</option>' +
+    Object.keys(CTX).map(k => `<option value="${k}">${k} — ${CTX[k].existing.slice(0,60)}…</option>`).join('');
+  sel.addEventListener('change', updateOncNote);
+
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+function updateOncNote() {
+  const sel = document.getElementById('m-onc');
+  const selected = [...sel.selectedOptions].map(o=>o.value).filter(Boolean);
+  const note = document.getElementById('m-onc-note');
+  if (!selected.length) { note.style.display='none'; return; }
+  const impacts = selected.map(id => {
+    const c = CTX[id];
+    return c ? `<strong>${id}:</strong> ${c.scaffold.slice(0,120)}…` : '';
+  }).filter(Boolean).join('<br>');
+  note.innerHTML = `⚡ Build-with-end-in-mind: this project touches certification criteria. Consider scaffolding:<br>${impacts}`;
+  note.style.display = 'block';
+}
+
+async function submitNewProject() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) { alert('Title is required'); return; }
+  const desc    = document.getElementById('m-desc').value.trim();
+  const type    = document.getElementById('m-type').value;
+  const hours   = document.getElementById('m-hours').value;
+  const priority= document.getElementById('m-priority').value;
+  const prUrl   = document.getElementById('m-pr').value.trim();
+  const assign  = document.getElementById('m-assign').checked;
+  const oncSel  = [...document.getElementById('m-onc').selectedOptions].map(o=>o.value).filter(Boolean);
+
+  const btn = document.getElementById('modal-submit-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  const oncSection = oncSel.length ? `\n\n## ONC / MIPS Impact\nThis build touches: ${oncSel.join(', ')}\n\n**Build-with-end-in-mind:** Before writing code, check the ONC dependency context for ${oncSel.join(', ')} in the tracker and scaffold shared infrastructure generically.` : '';
+  const prSection  = prUrl ? `\n\n**PR:** ${prUrl}` : '';
+  const body = `${desc}${oncSection}${prSection}\n\n---\n*Est: ${hours||'?'}h · Type: ${type}*`;
+
+  const labels = addModalMode === 'future'
+    ? ['future-idea', type, `priority-${priority}`]
+    : ['current-project', type, 'status:in-progress'];
+
+  try {
+    const issue = await ghFetch(`/repos/${REPO}/issues`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title,
+        body,
+        labels,
+        assignees: assign ? [currentUser.login] : []
+      })
+    });
+    closeAddModal();
+    toast(`Created #${issue.number}`);
+    await loadAll();
+  } catch(e) {
+    toast(`Error: ${e.message}`, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s/60)}m ago`;
+  if (s < 86400) return `${Math.round(s/3600)}h ago`;
+  return `${Math.round(s/86400)}d ago`;
 }
 
 function normalize(issue) {
@@ -730,7 +1237,7 @@ function toast(msg, err=false) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-if (getToken()) { document.getElementById('auth-overlay').style.display='none'; load(); }
+if (getToken()) { document.getElementById('auth-overlay').style.display='none'; loadAll(); }
 </script>
 </body>
 </html>
