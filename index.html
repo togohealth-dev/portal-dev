@@ -1019,31 +1019,37 @@ async function submitMarkBeta() {
 }
 
 async function setPrReady(number) {
-  const pr = prompt('Paste your PR link (or press OK to skip):');
+  const pr = prompt('Paste your GitHub PR link:');
+  if (!pr || !pr.trim()) { toast('No PR URL — paste the pull request link and try again.', true); return; }
+  const prTrimmed = pr.trim();
+  const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
+  const prNum = prNumMatch ? prNumMatch[1] : null;
+  if (!prNum) { toast('That doesn\'t look like a GitHub PR URL. Expected: …/pull/123', true); return; }
   await withProjectLoading(number, async () => {
-    const body = pr
-      ? `🔔 **PR ready for review — @${SCOTT}**\n\nPR: ${pr}\n\nSubmitted by @${currentUser.login} — please review when you get a chance.`
-      : `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.`;
-    await postComment(number, body);
+    // Post on the PR itself so Scott sees it in the PR thread
+    await postComment(parseInt(prNum), `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.\n\nProject tracker: togohealth-dev/emr-beta#${number}`);
+    // Log on the project issue too
+    await postComment(number, `🔔 **PR ready for review — @${SCOTT}**\n\nPR: ${prTrimmed}\n\n— @${currentUser.login}`);
     await removeLabel(number, 'status:in-progress');
     await removeLabel(number, 'status:needs-revision');
     await addLabel(number, 'status:pr-ready');
-    if (pr) {
-      // append PR to issue body
-      const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
-      const newBody = (issue.body||'') + `\n\n**PR:** ${pr}`;
-      await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
-    }
-    toast(`Scott notified on #${number}`);
+    // Append PR link to issue body so the PR column updates
+    const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
+    const newBody = (issue.body||'') + `\n\n**PR:** ${prTrimmed}`;
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
+    toast(`PR #${prNum} saved · @${SCOTT} pinged`);
   });
 }
 
 async function notifyScott(number) {
+  const p = currentProjects.find(p => p.number === number);
+  if (!p?.prUrl) { toast('No PR found for this project — use PR Ready to submit one first.', true); return; }
   const msg = prompt('Add a message for Scott (or press OK for default):');
   await withProjectLoading(number, async () => {
-    const body = `🔔 **Heads up @${SCOTT}** — update on this build.\n\n${msg||'Wanted to flag this for your review.'}\n\n— @${currentUser.login}`;
-    await postComment(number, body);
-    toast(`Scott notified`);
+    const body = `🔔 **Heads up @${SCOTT}** — update on this build.\n\n${msg||'Wanted to flag this for your review.'}\n\n— @${currentUser.login}\n\nProject tracker: togohealth-dev/emr-beta#${number}`;
+    // Post directly on the PR
+    await postComment(parseInt(p.prNum), body);
+    toast(`@${SCOTT} pinged on PR #${p.prNum}`);
   });
 }
 
