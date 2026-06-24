@@ -232,6 +232,11 @@
   .stars { color:#fbbf24; font-size:13px; letter-spacing:1px; }
   .stars .empty { color:var(--border); }
 
+  /* ── Collapsible sections ── */
+  .section-block.sec-collapsed .sec-body { display: none; }
+  .sec-toggle { background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted); padding:0 4px; transition:transform 0.2s; }
+  .section-block.sec-collapsed .sec-toggle { transform: rotate(-90deg); }
+
   /* ── Add New Modal ── */
   #add-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:200; }
   #add-modal.open { display:flex; }
@@ -274,20 +279,23 @@
 
 <main>
   <!-- ── CURRENT PROJECTS ── -->
-  <div class="section-block">
+  <div class="section-block" id="sec-cp">
     <div class="section-hdr">
       <h2>Current Projects</h2>
       <p>Active builds — every project checks ONC/MIPS impact before writing code</p>
       <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
+      <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
-    <div id="cp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-    <div id="cp-content" style="display:none"></div>
+    <div class="sec-body">
+      <div id="cp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="cp-content" style="display:none"></div>
+    </div>
   </div>
 
   <hr class="section-divider">
 
   <!-- ── ONC / MIPS CERTIFICATION ── -->
-  <div class="section-block">
+  <div class="section-block" id="sec-onc">
     <div class="section-hdr">
       <h2>ONC §170.315 Certification Requirements</h2>
       <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
@@ -298,25 +306,60 @@
         <span class="filter-sep">|</span>
         <button class="filter-btn"        data-filter="done" onclick="toggleDone(this)">Show Done</button>
       </div>
+      <button class="sec-toggle" onclick="toggleSection('onc')">▾</button>
     </div>
-    <div class="stats" id="stats"></div>
-    <div id="eval-alerts"></div>
-    <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
-    <div id="error-msg" style="display:none"></div>
-    <div id="content" style="display:none"></div>
+    <div class="sec-body">
+      <div class="stats" id="stats"></div>
+      <div id="eval-alerts"></div>
+      <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
+      <div id="error-msg" style="display:none"></div>
+      <div id="content" style="display:none"></div>
+    </div>
   </div>
 
   <hr class="section-divider">
 
   <!-- ── FUTURE IDEAS ── -->
-  <div class="section-block">
+  <div class="section-block" id="sec-fi">
     <div class="section-hdr">
       <h2>Future Ideas</h2>
       <p>Priority 1–5 · Claim any idea to move it into Current Projects</p>
       <button class="btn btn-outline" onclick="openAddModal('future')">+ Add Idea</button>
+      <button class="sec-toggle" onclick="toggleSection('fi')">▾</button>
     </div>
-    <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-    <div id="fi-content" style="display:none"></div>
+    <div class="sec-body">
+      <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="fi-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── COMPLETED PROJECTS ── -->
+  <div class="section-block" id="sec-done">
+    <div class="section-hdr">
+      <h2>Completed Projects</h2>
+      <p>Closed and shipped</p>
+      <button class="sec-toggle" onclick="toggleSection('done')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="done-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="done-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── ABANDONED ── -->
+  <div class="section-block sec-collapsed" id="sec-ab">
+    <div class="section-hdr">
+      <h2>Abandoned</h2>
+      <p>Projects that were stopped</p>
+      <button class="sec-toggle" onclick="toggleSection('ab')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="ab-content"></div>
+    </div>
   </div>
 </main>
 
@@ -578,6 +621,8 @@ async function loadCurrentProjects() {
       return (order[a.status]??9) - (order[b.status]??9);
     });
     renderCurrentProjects();
+    renderCompleted();
+    renderAbandoned();
     document.getElementById('cp-loading').style.display = 'none';
     document.getElementById('cp-content').style.display = 'block';
   } catch(e) {
@@ -605,7 +650,7 @@ async function loadFutureIdeas() {
 }
 
 function normalizeProject(issue, labels, comments) {
-  const status = labels.includes('status:abandoned')     ? 'abandoned'
+  let status = labels.includes('status:abandoned')       ? 'abandoned'
     : issue.state === 'closed'                            ? 'done'
     : labels.includes('status:beta')                      ? 'beta'
     : labels.includes('status:needs-revision')            ? 'needs_revision'
@@ -646,7 +691,8 @@ function extractOncRefs(text) {
 
 function renderCurrentProjects() {
   const el = document.getElementById('cp-content');
-  if (!currentProjects.length) {
+  const activeProjects = currentProjects.filter(p => p.status !== 'abandoned' && p.status !== 'done');
+  if (!activeProjects.length) {
     el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No current projects yet. <button class="btn btn-primary" onclick="openAddModal('current')" style="margin-left:8px">+ Add First Project</button></div>`;
     return;
   }
@@ -676,7 +722,7 @@ function renderCurrentProjects() {
         <th>Actions</th>
       </tr></thead>
       <tbody>
-        ${currentProjects.map((p, idx) => {
+        ${activeProjects.map((p, idx) => {
           const count = p.allComments.length;
           const notesHtml = `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" style="font-size:11px;gap:4px">
             💬 ${count > 0 ? `<span style="font-weight:700">${count}</span>` : 'Notes'}
@@ -763,6 +809,63 @@ function renderFutureIdeas() {
             </div></td>
           </tr>`;
         }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderCompleted() {
+  const done = currentProjects.filter(p => p.status === 'done');
+  const loading = document.getElementById('done-loading');
+  const content = document.getElementById('done-content');
+  if (!loading || !content) return;
+  loading.style.display = 'none';
+  content.style.display = 'block';
+  if (!done.length) {
+    content.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None.</div>`;
+    return;
+  }
+  content.innerHTML = `
+  <div class="proj-table-wrap" style="opacity:0.75">
+    <table>
+      <thead><tr>
+        <th>Build</th>
+        <th style="width:140px">Closed</th>
+        <th style="width:80px">Actions</th>
+      </tr></thead>
+      <tbody>
+        ${done.map(p => `<tr>
+          <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+          <td style="font-size:12px;color:var(--text-muted)">Done</td>
+          <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderAbandoned() {
+  const abandoned = currentProjects.filter(p => p.status === 'abandoned');
+  const el = document.getElementById('ab-content');
+  if (!el) return;
+  if (!abandoned.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None.</div>`;
+    return;
+  }
+  el.innerHTML = `
+  <div class="proj-table-wrap" style="opacity:0.65">
+    <table>
+      <thead><tr>
+        <th>Build</th>
+        <th style="width:140px">Status</th>
+        <th style="width:80px">Actions</th>
+      </tr></thead>
+      <tbody>
+        ${abandoned.map(p => `<tr>
+          <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+          <td style="font-size:12px;color:var(--text-muted)">Abandoned</td>
+          <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a></td>
+        </tr>`).join('')}
       </tbody>
     </table>
   </div>`;
@@ -1299,7 +1402,7 @@ function buildActions(i) {
   if (i.status==='ready_for_eval')
     return `<button class="btn btn-green" onclick="markAtl(${i.number})">✓ Mark Ready for ATL</button>${cp}`;
   if (i.status==='ready_for_atl')
-    return `<button class="btn btn-outline" onclick="markDone(${i.number})">Mark Submitted</button>${cp}`;
+    return `<button class="btn btn-danger" onclick="revise(${i.number})">↩ Revise</button><button class="btn btn-outline" onclick="markDone(${i.number})">Mark Submitted</button>${cp}`;
   return cp; // done
 }
 
@@ -1321,12 +1424,12 @@ async function removeLabel(number, label) {
   await ghFetch(`/repos/${REPO}/issues/${number}/labels/${encodeURIComponent(label)}`, { method:'DELETE' }).catch(()=>{});
 }
 
-function claim(n) { withLoading(n, async()=>{ await postComment(n,`🙋 **Claimed by @${currentUser.login}** — working on this criterion.`); await addLabel(n,'status:in-progress'); toast(`Claimed #${n}`); }); }
+function claim(n) { withLoading(n, async()=>{ await postComment(n,`🙋 **Claimed by @${currentUser.login}** — working on this criterion.`); await addLabel(n,'status:in-progress'); await addLabel(n,'current-project'); toast(`Claimed #${n}`); }); }
 function unclaim(n) { withLoading(n, async()=>{ await postComment(n,`🔓 **Unclaimed by @${currentUser.login}**.`); await removeLabel(n,'status:in-progress'); toast(`Unclaimed #${n}`); }); }
 
 function setProgress(n, pct) {
   withLoading(n, async()=>{
-    for (const lbl of ['progress-25','progress-50','progress-75']) await removeLabel(n,lbl);
+    for (const lbl of ['progress-25','progress-50','progress-75','progress-90']) await removeLabel(n,lbl);
     await addLabel(n, `progress-${pct}`);
     toast(`#${n} progress set to ${pct}%`);
   });
@@ -1374,6 +1477,19 @@ function markAtl(n) {
     await removeLabel(n,'status:ready-for-eval');
     await addLabel(n,'status:ready-for-atl');
     toast(`#${n} marked Ready for ATL!`);
+  });
+}
+
+function revise(n) {
+  withLoading(n, async () => {
+    await postComment(n, `↩ **Revision requested by @${currentUser.login}** — moving back to in-progress at 90%.`);
+    await removeLabel(n, 'status:ready-for-atl');
+    await removeLabel(n, 'status:ready-for-eval');
+    for (const l of ['progress-25','progress-50','progress-75']) await removeLabel(n, l);
+    await addLabel(n, 'status:in-progress');
+    await addLabel(n, 'current-project');
+    await addLabel(n, 'progress-90');
+    toast(`#${n} moved back to In Progress at 90%`);
   });
 }
 
@@ -1480,6 +1596,7 @@ document.addEventListener('click', e => { if (!e.target.closest('.drop-wrap')) d
 function setFilter(f, el) { filter=f; document.querySelectorAll('[data-filter]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); renderContent(); }
 function toggleDone(el) { showDone=!showDone; el.classList.toggle('active',showDone); renderContent(); }
 function toggleWave(w) { document.getElementById(`wave-${w}`)?.classList.toggle('collapsed'); }
+function toggleSection(key) { document.getElementById('sec-' + key).classList.toggle('sec-collapsed'); }
 
 function toast(msg, err=false) {
   const el = document.getElementById('toast');
