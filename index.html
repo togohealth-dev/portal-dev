@@ -577,8 +577,12 @@ const TABLE_HEAD = `<thead><tr>
 
 function starsHtml(p) {
   if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
-  const n = Math.max(1, 6 - p); // priority-1 = 5 stars, priority-5 = 1 star
+  const n = Math.max(1, 6 - p);
   return `<span class="stars" title="Priority ${p}">${[1,2,3,4,5].map(i=>`<span class="${i<=n?'':'empty'}">★</span>`).join('')}</span>`;
+}
+function dotsHtml(p) {
+  if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  return `<div class="priority p${p}" title="Priority ${p}">${[1,2,3,4,5].map(n=>`<div class="dot${n<=p?' on':''}"></div>`).join('')}</div>`;
 }
 function assigneeHtml(assignees) {
   if (!assignees?.length) return `<span style="color:var(--border);font-size:12px">—</span>`;
@@ -600,7 +604,7 @@ function notesHtml(p) {
 }
 function promptBtn(number, isFuture) {
   const fn = isFuture ? `copyFuturePrompt(${number})` : `copyProjectPrompt(${number})`;
-  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="${fn}" title="Copy Claude session prompt">Prompt</button>`;
+  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="${fn}" title="Copy Claude session prompt">Copy Prompt</button>`;
 }
 function editBtn(number) {
   return `<button class="btn btn-outline btn-sm" onclick="openEditModal(${number})" title="Edit title and priority">Edit</button>`;
@@ -792,7 +796,7 @@ function renderCurrentProjects() {
           <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
         </td>
         <td>${statusBadge(p.status, p.betaUrl)}</td>
-        <td>${starsHtml(p.priority)}</td>
+        <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
         <td>${prHtml(p.prUrl, p.prNum)}</td>
         <td>${oncHtml(p.oncRefs)}</td>
@@ -841,7 +845,7 @@ function renderFutureIdeas() {
           <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
         </td>
         <td><span class="badge" style="background:var(--bg-card);color:var(--text-muted);font-size:11px;padding:2px 8px;border:1px solid var(--border)">Idea</span></td>
-        <td>${starsHtml(p.priority)}</td>
+        <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
         <td><span style="color:var(--border);font-size:12px">—</span></td>
         <td>${oncHtml(p.oncRefs)}</td>
@@ -875,7 +879,7 @@ function renderCompleted() {
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
         <td><span class="badge ps-done" style="font-size:11px">✓ Done</span></td>
-        <td>${starsHtml(p.priority)}</td>
+        <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
         <td>${prHtml(p.prUrl, p.prNum)}</td>
         <td>${oncHtml(p.oncRefs)}</td>
@@ -906,7 +910,7 @@ function renderAbandoned() {
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
         <td><span class="badge ps-abandoned" style="font-size:11px">Abandoned</span></td>
-        <td>${starsHtml(p.priority)}</td>
+        <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
         <td>${prHtml(p.prUrl, p.prNum)}</td>
         <td>${oncHtml(p.oncRefs)}</td>
@@ -1247,7 +1251,7 @@ function copyProjectPrompt(number) {
   if (!p) return;
   copyToClipboard(buildProjectPrompt(p));
   const btn = document.getElementById(`cpbtn-${number}`);
-  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Prompt'; }, 2000); }
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
 }
 
 function copyFuturePrompt(number) {
@@ -1282,7 +1286,7 @@ Log overlap findings before writing a single line of code.
 ${promptCore}`;
   copyToClipboard(text);
   const btn = document.getElementById(`cpbtn-${number}`);
-  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Prompt'; }, 2000); }
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
 }
 
 // ── Edit modal ────────────────────────────────────────────────────────────────
@@ -1448,15 +1452,15 @@ function renderContent() {
       <div class="wave-table-wrap">
         <table>
           <thead><tr>
-            <th style="width:34px">Pri</th>
+            <th style="width:34px">#</th>
             <th>Criterion</th>
             <th style="width:150px">Status</th>
             <th style="width:110px">Progress</th>
-            <th style="width:50px">Pri</th>
+            <th style="width:60px">Priority</th>
             <th style="width:60px">Type</th>
             <th style="width:50px">Est</th>
             <th style="width:90px">Assigned</th>
-            <th>Actions</th>
+            <th style="width:280px">Actions</th>
           </tr></thead>
           <tbody>${g.items.map((item, idx) => row(item, rankStart + idx)).join('')}</tbody>
         </table>
