@@ -480,6 +480,32 @@
   </div>
 </div>
 
+<!-- ── EDIT MODAL ── -->
+<div id="edit-modal" onclick="closeEditModal(event)" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:480px" onclick="event.stopPropagation()">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Edit Project</h3>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Title</label>
+      <input type="text" id="edit-title" style="width:100%;box-sizing:border-box">
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Priority</label>
+      <select id="edit-priority">
+        <option value="">— None —</option>
+        <option value="1">★★★★★ Highest (Priority 1)</option>
+        <option value="2">★★★★☆ High (Priority 2)</option>
+        <option value="3">★★★☆☆ Medium (Priority 3)</option>
+        <option value="4">★★☆☆☆ Low (Priority 4)</option>
+        <option value="5">★☆☆☆☆ Lowest (Priority 5)</option>
+      </select>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
 <footer><a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank">View all issues on GitHub</a> · Token stored in localStorage only · No PHI</footer>
 <div id="toast"></div>
 
@@ -533,6 +559,52 @@ const STATUS_PCT = { beta_testing:85, beta_complete:90, ready_for_eval:95, ready
 const PROGRESS_LABELS = { 'progress-25':25, 'progress-50':50, 'progress-75':75 };
 
 const SCOTT = 'msdrigg';
+const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg' };
+const teamName = login => TEAM[login] || login;
+
+// ── Shared table helpers ──────────────────────────────────────────────────────
+const TABLE_HEAD = `<thead><tr>
+  <th style="width:28px">#</th>
+  <th>Build</th>
+  <th style="width:150px">Status</th>
+  <th style="width:72px">Priority</th>
+  <th style="width:72px">Assigned</th>
+  <th style="width:62px">PR</th>
+  <th style="width:68px">ONC/MIPS</th>
+  <th style="width:58px">Notes</th>
+  <th style="width:220px">Actions</th>
+</tr></thead>`;
+
+function starsHtml(p) {
+  if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  const n = Math.max(1, 6 - p); // priority-1 = 5 stars, priority-5 = 1 star
+  return `<span class="stars" title="Priority ${p}">${[1,2,3,4,5].map(i=>`<span class="${i<=n?'':'empty'}">★</span>`).join('')}</span>`;
+}
+function assigneeHtml(assignees) {
+  if (!assignees?.length) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  return `<span style="font-size:11px;font-weight:600">${assignees.map(teamName).join(', ')}</span>`;
+}
+function oncHtml(oncRefs, ctx) {
+  if (!oncRefs?.length) return `<span style="color:var(--text-muted);font-size:11px">None</span>`;
+  return oncRefs.map(r=>`<span class="onc-ref" title="${(ctx||CTX)[r]?.existing||''}">${r}</span>`).join(' ');
+}
+function prHtml(prUrl, prNum) {
+  return prUrl
+    ? `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open pull request">PR #${prNum} ↗</a>`
+    : `<span style="color:var(--border);font-size:12px">—</span>`;
+}
+function notesHtml(p) {
+  if (!p.allComments) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  const count = p.allComments.length;
+  return `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" title="View and add notes" style="font-size:11px">💬${count?` <strong>${count}</strong>`:''}</button>`;
+}
+function promptBtn(number, isFuture) {
+  const fn = isFuture ? `copyFuturePrompt(${number})` : `copyProjectPrompt(${number})`;
+  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="${fn}" title="Copy Claude session prompt">Prompt</button>`;
+}
+function editBtn(number) {
+  return `<button class="btn btn-outline btn-sm" onclick="openEditModal(${number})" title="Edit title and priority">Edit</button>`;
+}
 
 // ── State ────────────────────────────────────────────────────────────────────
 let issues = [];
@@ -681,13 +753,27 @@ function normalizeProject(issue, labels, comments) {
   // Type from label
   const typeLabel = labels.find(l => ['feature','bugfix','performance','infrastructure','ux','documentation'].includes(l)) || 'feature';
 
-  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login) };
+  const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0');
+  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority };
 }
 
 function extractOncRefs(text) {
   const matches = text.match(/\([a-z]\)\(\d+\)/g) || [];
   return [...new Set(matches)];
 }
+
+const statusBadge = (s, betaUrl) => {
+  if (s === 'beta' && betaUrl) return `<a href="${betaUrl}" target="_blank" class="badge ps-beta" style="text-decoration:none" title="Click to test beta">🚀 Beta ↗</a>`;
+  return ({
+    planning:       `<span class="badge ps-planning">Planning</span>`,
+    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+    pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready</span>`,
+    needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
+    beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
+    done:           `<span class="badge ps-done">✓ Done</span>`,
+    abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
+  }[s] || '');
+};
 
 function renderCurrentProjects() {
   const el = document.getElementById('cp-content');
@@ -696,82 +782,46 @@ function renderCurrentProjects() {
     el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No current projects yet. <button class="btn btn-primary" onclick="openAddModal('current')" style="margin-left:8px">+ Add First Project</button></div>`;
     return;
   }
-  const statusBadge = (s, betaUrl) => {
-    if (s === 'beta' && betaUrl) return `<a href="${betaUrl}" target="_blank" class="badge ps-beta" style="text-decoration:none">🚀 Beta — Test ↗</a>`;
-    return ({
-      planning:       `<span class="badge ps-planning">Planning</span>`,
-      in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
-      pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready — awaiting Scott</span>`,
-      needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-      beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
-      done:           `<span class="badge ps-done">✓ Done</span>`,
-      abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
-    }[s] || '');
-  };
-
   el.innerHTML = `
   <div class="proj-table-wrap">
-    <table>
-      <thead><tr>
-        <th style="width:40px">#</th>
-        <th>Build</th>
-        <th style="width:180px">Status</th>
-        <th style="width:80px">PR</th>
-        <th style="width:60px">ONC/MIPS</th>
-        <th style="width:120px">Notes</th>
-        <th>Actions</th>
-      </tr></thead>
-      <tbody>
-        ${activeProjects.map((p, idx) => {
-          const count = p.allComments.length;
-          const notesHtml = `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" style="font-size:11px;gap:4px">
-            💬 ${count > 0 ? `<span style="font-weight:700">${count}</span>` : 'Notes'}
-          </button>`;
-          const oncHtml = p.oncRefs.length
-            ? p.oncRefs.map(r => `<span class="onc-ref" title="${CTX[r]?.existing||''}">${r}</span>`).join(' ')
-            : `<span style="color:var(--border)">—</span>`;
-          const prHtml = p.prUrl
-            ? `<a href="${p.prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px">PR #${p.prNum} ↗</a>`
-            : `<span style="color:var(--border);font-size:12px">—</span>`;
-          const rowClass = p.status === 'abandoned' ? 'abandoned' : '';
-
-          const actions = projectActions(p);
-          return `<tr class="${rowClass}">
-            <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
-            <td>
-              <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
-              <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
-            </td>
-            <td>${statusBadge(p.status, p.betaUrl)}</td>
-            <td>${prHtml}</td>
-            <td>${oncHtml}</td>
-            <td>${notesHtml}</td>
-            <td><div class="actions">${actions}</div></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
+    <table>${TABLE_HEAD}<tbody>
+      ${activeProjects.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td>
+          <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+        </td>
+        <td>${statusBadge(p.status, p.betaUrl)}</td>
+        <td>${starsHtml(p.priority)}</td>
+        <td>${assigneeHtml(p.assignees)}</td>
+        <td>${prHtml(p.prUrl, p.prNum)}</td>
+        <td>${oncHtml(p.oncRefs)}</td>
+        <td>${notesHtml(p)}</td>
+        <td><div class="actions">${projectActions(p)}</div></td>
+      </tr>`).join('')}
+    </tbody></table>
   </div>`;
 }
 
 function projectActions(p) {
-  const copyBtn = `<button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyProjectPrompt(${p.number})" title="Copy Claude session prompt">📋</button>`;
-  if (p.status === 'done' || p.status === 'abandoned') return `<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a> ${copyBtn}`;
-  const parts = [copyBtn];
+  const pb = promptBtn(p.number, false);
+  const eb = editBtn(p.number);
+  if (p.status === 'done' || p.status === 'abandoned') return `${pb} ${eb} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
+  const parts = [pb, eb];
   if (p.status === 'planning' || p.status === 'in_progress') {
-    if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})">PR Ready — Notify Scott</button>`);
-    else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})">Notify Scott</button>`);
+    if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})" title="Mark PR ready and notify Scott">PR Ready</button>`);
+    else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
   }
   if (p.status === 'pr_ready') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})">Mark Beta</button>`);
-    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})">Re-notify Scott</button>`);
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott again on this PR">Re-ping Scott</button>`);
   }
   if (p.status === 'needs_revision') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})">Mark Beta</button>`);
-    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})">PR Updated — Notify Scott</button>`);
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})" title="Notify Scott that PR has been updated">PR Updated</button>`);
   }
-  if (p.status === 'beta') parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})">Mark Done</button>`);
-  parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})">Abandon</button>`);
+  if (p.status === 'beta') parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
+  parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
 }
 
@@ -783,34 +833,27 @@ function renderFutureIdeas() {
   }
   el.innerHTML = `
   <div class="proj-table-wrap">
-    <table>
-      <thead><tr>
-        <th style="width:80px">Priority</th>
-        <th>Idea</th>
-        <th style="width:80px">ONC/MIPS</th>
-        <th>Actions</th>
-      </tr></thead>
-      <tbody>
-        ${futureIdeas.map(p => {
-          const stars = [1,2,3,4,5].map(n => `<span class="${n<=p.priority?'':'empty'}">★</span>`).join('');
-          const oncHtml = p.oncRefs.length
-            ? p.oncRefs.map(r => `<span class="onc-ref">${r}</span>`).join(' ')
-            : `<span style="color:var(--border);font-size:12px">—</span>`;
-          return `<tr>
-            <td><span class="stars">${stars}</span></td>
-            <td>
-              <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
-              <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
-            </td>
-            <td>${oncHtml}</td>
-            <td><div class="actions">
-              <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})">Claim → Current</button>
-              <button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})">Abandon</button>
-            </div></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
+    <table>${TABLE_HEAD}<tbody>
+      ${futureIdeas.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td>
+          <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+        </td>
+        <td><span class="badge" style="background:var(--bg-card);color:var(--text-muted);font-size:11px;padding:2px 8px;border:1px solid var(--border)">Idea</span></td>
+        <td>${starsHtml(p.priority)}</td>
+        <td>${assigneeHtml(p.assignees)}</td>
+        <td><span style="color:var(--border);font-size:12px">—</span></td>
+        <td>${oncHtml(p.oncRefs)}</td>
+        <td><span style="color:var(--border);font-size:12px">—</span></td>
+        <td><div class="actions">
+          ${promptBtn(p.number, true)}
+          ${editBtn(p.number)}
+          <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this idea and move it to Current Projects">Claim</button>
+          <button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>
   </div>`;
 }
 
@@ -827,21 +870,24 @@ function renderCompleted() {
   }
   content.innerHTML = `
   <div class="proj-table-wrap">
-    <table>
-      <thead><tr>
-        <th>Build</th>
-        <th style="width:120px">Actions</th>
-      </tr></thead>
-      <tbody>
-        ${done.map(p => `<tr>
-          <td><span style="color:#4caf50;font-size:15px;margin-right:6px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
-          <td style="display:flex;gap:4px">
-            <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})">↩ Revise</button>
-            <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
+    <table>${TABLE_HEAD}<tbody>
+      ${done.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+        <td><span class="badge ps-done" style="font-size:11px">✓ Done</span></td>
+        <td>${starsHtml(p.priority)}</td>
+        <td>${assigneeHtml(p.assignees)}</td>
+        <td>${prHtml(p.prUrl, p.prNum)}</td>
+        <td>${oncHtml(p.oncRefs)}</td>
+        <td>${notesHtml(p)}</td>
+        <td><div class="actions">
+          ${promptBtn(p.number, false)}
+          ${editBtn(p.number)}
+          <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})" title="Reopen and move back to In Progress at 90%">↩ Revise</button>
+          <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>
   </div>`;
 }
 
@@ -855,20 +901,23 @@ function renderAbandoned() {
   }
   el.innerHTML = `
   <div class="proj-table-wrap" style="opacity:0.65">
-    <table>
-      <thead><tr>
-        <th>Build</th>
-        <th style="width:140px">Status</th>
-        <th style="width:80px">Actions</th>
-      </tr></thead>
-      <tbody>
-        ${abandoned.map(p => `<tr>
-          <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
-          <td style="font-size:12px;color:var(--text-muted)">Abandoned</td>
-          <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
+    <table>${TABLE_HEAD}<tbody>
+      ${abandoned.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+        <td><span class="badge ps-abandoned" style="font-size:11px">Abandoned</span></td>
+        <td>${starsHtml(p.priority)}</td>
+        <td>${assigneeHtml(p.assignees)}</td>
+        <td>${prHtml(p.prUrl, p.prNum)}</td>
+        <td>${oncHtml(p.oncRefs)}</td>
+        <td>${notesHtml(p)}</td>
+        <td><div class="actions">
+          ${promptBtn(p.number, false)}
+          ${editBtn(p.number)}
+          <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>
   </div>`;
 }
 
@@ -1198,7 +1247,78 @@ function copyProjectPrompt(number) {
   if (!p) return;
   copyToClipboard(buildProjectPrompt(p));
   const btn = document.getElementById(`cpbtn-${number}`);
-  if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '📋'; }, 2000); }
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Prompt'; }, 2000); }
+}
+
+function copyFuturePrompt(number) {
+  const p = futureIdeas.find(p => p.number === number);
+  if (!p) return;
+  const body = p.body || '';
+  // Extract the claude prompt code block from the issue body
+  const m = body.match(/### Claude prompt\s*\n```[^\n]*\n([\s\S]*?)```/);
+  const promptCore = m ? m[1].trim() : body.trim();
+  const activeProjects = currentProjects
+    .filter(p => p.status !== 'done' && p.status !== 'abandoned')
+    .map(p => `  - #${p.number} "${p.title}" [${p.status}]`)
+    .join('\n') || '  - None currently in progress';
+  const text = `Session topic: "${p.title}"
+GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${number}
+
+━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
+1. ~/strategy-sessions-repo/SESSION-STARTER.md
+2. ~/strategy-sessions-repo/strategy-5-scott.md → PROJECT OVERLAP CHECK, PR REVIEW STANDARDS
+
+━━━ OVERLAP CHECK — RUN THESE FIRST ━━━
+gh issue list --repo togohealth-dev/emr-beta --label "current-project" --state open --json number,title,labels
+gh issue list --repo togohealth-dev/emr-beta --label "future-idea" --state open --json number,title
+gh issue list --repo togohealth-dev/emr-beta --label "current-project" --state closed --json number,title,labels
+
+Current projects in flight (do not contradict):
+${activeProjects}
+
+Log overlap findings before writing a single line of code.
+
+━━━ BUILD TASK ━━━
+${promptCore}`;
+  copyToClipboard(text);
+  const btn = document.getElementById(`cpbtn-${number}`);
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Prompt'; }, 2000); }
+}
+
+// ── Edit modal ────────────────────────────────────────────────────────────────
+let editIssueNumber = null;
+function openEditModal(n) {
+  const p = [...currentProjects, ...futureIdeas].find(p => p.number === n);
+  if (!p) return;
+  editIssueNumber = n;
+  document.getElementById('edit-title').value = p.title;
+  const prio = p.labels?.find(l => l.startsWith('priority-'))?.slice(9) || '';
+  document.getElementById('edit-priority').value = prio;
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').style.display = 'none';
+  editIssueNumber = null;
+}
+async function saveEdit() {
+  const n = editIssueNumber; if (!n) return;
+  const title = document.getElementById('edit-title').value.trim();
+  const prio  = document.getElementById('edit-priority').value;
+  if (!title) { toast('Title cannot be empty'); return; }
+  const saveBtn = document.querySelector('#edit-modal .btn-primary');
+  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+  try {
+    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title}) });
+    for (let i=1; i<=5; i++) await removeLabel(n, `priority-${i}`).catch(()=>{});
+    if (prio) await addLabel(n, `priority-${prio}`);
+    await loadAll();
+    document.getElementById('edit-modal').style.display = 'none';
+    editIssueNumber = null;
+    toast(`#${n} updated`);
+  } finally {
+    saveBtn.textContent = 'Save'; saveBtn.disabled = false;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
