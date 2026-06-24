@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Togo Health · Portal Development</title>
+<title>TogoHealth · Portal Development Tracker</title>
 <style>
   :root {
     --bg: #f8f9fa;
@@ -256,7 +256,7 @@
 
 <div id="auth-overlay">
   <div class="auth-card">
-    <h2>Togo Health · Portal Development</h2>
+    <h2>TogoHealth · Portal Development Tracker</h2>
     <p>Enter a GitHub Personal Access Token with <strong>repo</strong> scope to access this tracker. Create one at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> (Classic token → repo scope). Stored only in this browser's localStorage.</p>
     <div class="input-group">
       <label>GitHub Personal Access Token</label>
@@ -268,7 +268,7 @@
 
 <header>
   <div class="header-left">
-    <div class="logo">TogoHealth <span>· Portal Development</span></div>
+    <div class="logo">TogoHealth <span>· Portal Development Tracker</span></div>
   </div>
   <div class="header-right">
     <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
@@ -819,6 +819,7 @@ function projectActions(p) {
   if (p.status === 'pr_ready') {
     parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
     parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott again on this PR">Re-ping Scott</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision — posts on PR and tags developer">Needs Revision</button>`);
   }
   if (p.status === 'needs_revision') {
     parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
@@ -1050,6 +1051,23 @@ async function notifyScott(number) {
     // Post directly on the PR
     await postComment(parseInt(p.prNum), body);
     toast(`@${SCOTT} pinged on PR #${p.prNum}`);
+  });
+}
+
+async function markNeedsRevision(number) {
+  const p = currentProjects.find(p => p.number === number);
+  const msg = prompt('Revision notes for the developer (required):');
+  if (!msg || !msg.trim()) { toast('Please add revision notes so the developer knows what to fix.', true); return; }
+  await withProjectLoading(number, async () => {
+    const assigneeTags = p.assignees.length ? p.assignees.map(a => `@${a}`).join(', ') : '';
+    const body = `🔄 **Needs Revision${assigneeTags ? ' — ' + assigneeTags : ''}**\n\n${msg.trim()}\n\n— @${currentUser.login}`;
+    // Post on the PR if one exists
+    if (p.prNum) await postComment(parseInt(p.prNum), body);
+    // Also log on the project issue
+    await postComment(number, body);
+    await removeLabel(number, 'status:pr-ready');
+    await addLabel(number, 'status:needs-revision');
+    toast(`#${number} marked Needs Revision`);
   });
 }
 
