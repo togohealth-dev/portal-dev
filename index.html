@@ -575,6 +575,18 @@ const TABLE_HEAD = `<thead><tr>
   <th style="width:220px">Actions</th>
 </tr></thead>`;
 
+const FUTURE_TABLE_HEAD = `<thead><tr>
+  <th style="width:28px">#</th>
+  <th>Build</th>
+  <th style="width:150px">Status</th>
+  <th style="width:72px">Priority</th>
+  <th style="width:72px">Assigned</th>
+  <th style="width:48px">Est</th>
+  <th style="width:68px">ONC/MIPS</th>
+  <th style="width:58px">Notes</th>
+  <th style="width:220px">Actions</th>
+</tr></thead>`;
+
 function starsHtml(p) {
   if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
   const n = Math.max(1, 6 - p);
@@ -758,7 +770,9 @@ function normalizeProject(issue, labels, comments) {
   const typeLabel = labels.find(l => ['feature','bugfix','performance','infrastructure','ux','documentation'].includes(l)) || 'feature';
 
   const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0');
-  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority };
+  const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
+  const codingEst = estMatch ? estMatch[1] + 'h' : null;
+  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority, codingEst };
 }
 
 function extractOncRefs(text) {
@@ -838,7 +852,7 @@ function renderFutureIdeas() {
   }
   el.innerHTML = `
   <div class="proj-table-wrap">
-    <table>${TABLE_HEAD}<tbody>
+    <table>${FUTURE_TABLE_HEAD}<tbody>
       ${futureIdeas.map((p, idx) => `<tr>
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td>
@@ -848,7 +862,7 @@ function renderFutureIdeas() {
         <td><span class="badge" style="background:var(--bg-card);color:var(--text-muted);font-size:11px;padding:2px 8px;border:1px solid var(--border)">Idea</span></td>
         <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
-        <td><span style="color:var(--border);font-size:12px">—</span></td>
+        <td style="font-size:12px;color:var(--text-muted);font-weight:600">${p.codingEst || '<span style="color:var(--border)">—</span>'}</td>
         <td>${oncHtml(p.oncRefs)}</td>
         <td><span style="color:var(--border);font-size:12px">—</span></td>
         <td><div class="actions">
