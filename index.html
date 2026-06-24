@@ -466,8 +466,8 @@
     <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🚀 Mark as Beta</h3>
     <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
     <div class="modal-field">
-      <label>Beta URL <span style="color:var(--text-muted);font-weight:400">(optional — paste the beta link so the team can test)</span></label>
-      <input type="url" id="beta-url-input" placeholder="https://grab-md.pages.dev/…">
+      <label>Beta URL <span style="color:var(--red);font-size:11px">required</span></label>
+      <input type="url" id="beta-url-input" placeholder="https://grab-md.pages.dev/…" required>
     </div>
     <div class="modal-field">
       <label>Note <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
@@ -755,7 +755,7 @@ function normalizeProject(issue, labels, comments) {
   // Find beta URL from comments (🚀 Beta: URL or beta: URL pattern)
   let betaUrl = null;
   for (const c of [...comments].reverse()) {
-    const m = (c.body||'').match(/(?:🚀\s*Beta|beta\s*deploy(?:ed)?|live\s*at)\s*[:\-]?\s*(https?:\/\/\S+)/i);
+    const m = (c.body||'').match(/(?:🚀\s*\*{0,2}Beta\*{0,2}|beta\s*deploy(?:ed)?|live\s*at)\s*[:\-]?\*?\s*(https?:\/\/\S+)/i);
     if (m) { betaUrl = m[1].replace(/[.,)>]$/, ''); break; }
   }
 
@@ -1016,12 +1016,11 @@ function closeBetaModal() { document.getElementById('beta-modal').style.display 
 async function submitMarkBeta() {
   const url  = document.getElementById('beta-url-input').value.trim();
   const note = document.getElementById('beta-note-input').value.trim();
+  if (!url) { toast('Beta URL is required — paste the deploy link first.', true); return; }
   const btn  = document.getElementById('beta-submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const body = url
-      ? `🚀 **Beta:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`
-      : `🚀 **Deployed to beta**${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
+    const body = `🚀 **Beta:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
     await postComment(betaIssueNumber, body);
     await removeLabel(betaIssueNumber, 'status:pr-ready');
     await removeLabel(betaIssueNumber, 'status:needs-revision');
