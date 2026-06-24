@@ -826,18 +826,19 @@ function renderCompleted() {
     return;
   }
   content.innerHTML = `
-  <div class="proj-table-wrap" style="opacity:0.75">
+  <div class="proj-table-wrap">
     <table>
       <thead><tr>
         <th>Build</th>
-        <th style="width:140px">Closed</th>
-        <th style="width:80px">Actions</th>
+        <th style="width:120px">Actions</th>
       </tr></thead>
       <tbody>
         ${done.map(p => `<tr>
-          <td><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
-          <td style="font-size:12px;color:var(--text-muted)">Done</td>
-          <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a></td>
+          <td><span style="color:#4caf50;font-size:15px;margin-right:6px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+          <td style="display:flex;gap:4px">
+            <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})">↩ Revise</button>
+            <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -1490,6 +1491,19 @@ function revise(n) {
     await addLabel(n, 'current-project');
     await addLabel(n, 'progress-90');
     toast(`#${n} moved back to In Progress at 90%`);
+  });
+}
+
+function reviseCompleted(n) {
+  withLoading(n, async () => {
+    await postComment(n, `↩ **Revision requested by @${currentUser.login}** — reopening and moving back to in-progress at 90%.`);
+    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({state:'open'}) });
+    await removeLabel(n, 'status:done');
+    await addLabel(n, 'status:in-progress');
+    await addLabel(n, 'current-project');
+    await addLabel(n, 'progress-90');
+    await loadAll();
+    toast(`#${n} reopened — moved back to In Progress at 90%`);
   });
 }
 
