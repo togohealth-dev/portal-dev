@@ -263,7 +263,7 @@
 
 <header>
   <div class="header-left">
-    <div class="logo">TogoHealth <span>· ONC Tracker</span></div>
+    <div class="logo">TogoHealth <span>· Portal Development</span></div>
   </div>
   <div class="header-right">
     <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
@@ -391,6 +391,42 @@
         <button class="btn btn-primary" id="modal-copy-prompt-btn" onclick="copyNewProjectPrompt()">📋 Copy Claude Prompt</button>
         <button class="btn btn-outline" onclick="closeAddModal()">Done</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback modal -->
+<div id="feedback-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:480px">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Leave Feedback</h3>
+    <p id="feedback-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
+    <div class="modal-field">
+      <label>Feedback / comment</label>
+      <textarea id="feedback-text" placeholder="Describe what needs to change, or leave a note for the team…" style="min-height:100px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeFeedbackModal()">Cancel</button>
+      <button class="btn btn-primary" id="feedback-submit-btn" onclick="submitFeedback()">Post Comment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Beta modal -->
+<div id="beta-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:480px">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🚀 Mark as Beta</h3>
+    <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
+    <div class="modal-field">
+      <label>Beta URL <span style="color:var(--text-muted);font-weight:400">(optional — paste the beta link so the team can test)</span></label>
+      <input type="url" id="beta-url-input" placeholder="https://grab-md.pages.dev/…">
+    </div>
+    <div class="modal-field">
+      <label>Note <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="beta-note-input" placeholder="e.g. Both fall protocol and establish care are in this build">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeBetaModal()">Cancel</button>
+      <button class="btn btn-green" id="beta-submit-btn" onclick="submitMarkBeta()">Mark Beta</button>
     </div>
   </div>
 </div>
@@ -608,15 +644,18 @@ function renderCurrentProjects() {
     el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No current projects yet. <button class="btn btn-primary" onclick="openAddModal('current')" style="margin-left:8px">+ Add First Project</button></div>`;
     return;
   }
-  const statusBadge = s => ({
-    planning:       `<span class="badge ps-planning">Planning</span>`,
-    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
-    pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready — awaiting Scott</span>`,
-    needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-    beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
-    done:           `<span class="badge ps-done">✓ Done</span>`,
-    abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
-  }[s] || '');
+  const statusBadge = (s, betaUrl) => {
+    if (s === 'beta' && betaUrl) return `<a href="${betaUrl}" target="_blank" class="badge ps-beta" style="text-decoration:none">🚀 Beta — Test ↗</a>`;
+    return ({
+      planning:       `<span class="badge ps-planning">Planning</span>`,
+      in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+      pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready — awaiting Scott</span>`,
+      needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
+      beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
+      done:           `<span class="badge ps-done">✓ Done</span>`,
+      abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
+    }[s] || '');
+  };
 
   el.innerHTML = `
   <div class="proj-table-wrap">
@@ -655,7 +694,7 @@ function renderCurrentProjects() {
               <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
               <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
             </td>
-            <td>${statusBadge(p.status)}</td>
+            <td>${statusBadge(p.status, p.betaUrl)}</td>
             <td>${prHtml}</td>
             <td>${oncHtml}</td>
             <td>${scottHtml}</td>
@@ -669,15 +708,22 @@ function renderCurrentProjects() {
 }
 
 function projectActions(p) {
-  const copyBtn = `<button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyProjectPrompt(${p.number})" title="Copy Claude session prompt for this build">📋</button>`;
+  const copyBtn     = `<button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyProjectPrompt(${p.number})" title="Copy Claude session prompt">📋</button>`;
+  const feedbackBtn = `<button class="btn btn-outline btn-sm" onclick="openFeedback(${p.number})" title="Leave feedback">💬</button>`;
   if (p.status === 'done' || p.status === 'abandoned') return `<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">View ↗</a> ${copyBtn}`;
-  const parts = [copyBtn];
+  const parts = [copyBtn, feedbackBtn];
   if (p.status === 'planning' || p.status === 'in_progress') {
     if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})">PR Ready — Notify Scott</button>`);
     else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})">Notify Scott</button>`);
   }
-  if (p.status === 'pr_ready') parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})">Re-notify Scott</button>`);
-  if (p.status === 'needs_revision') parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})">PR Updated — Notify Scott</button>`);
+  if (p.status === 'pr_ready') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})">Mark Beta</button>`);
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})">Re-notify Scott</button>`);
+  }
+  if (p.status === 'needs_revision') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})">Mark Beta</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})">PR Updated — Notify Scott</button>`);
+  }
   if (p.status === 'beta') parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})">Mark Done</button>`);
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})">Abandon</button>`);
   return parts.join('');
@@ -723,6 +769,63 @@ function renderFutureIdeas() {
 }
 
 // ── Project actions ───────────────────────────────────────────────────────────
+
+// ── Feedback modal ────────────────────────────────────────────────────────────
+let feedbackIssueNumber = null;
+function openFeedback(number) {
+  feedbackIssueNumber = number;
+  const p = currentProjects.find(p => p.number === number);
+  document.getElementById('feedback-modal-title').textContent = p ? p.title : `Issue #${number}`;
+  document.getElementById('feedback-text').value = '';
+  document.getElementById('feedback-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('feedback-text').focus(), 50);
+}
+function closeFeedbackModal() { document.getElementById('feedback-modal').style.display = 'none'; }
+async function submitFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  if (!text || !feedbackIssueNumber) return;
+  const btn = document.getElementById('feedback-submit-btn');
+  btn.disabled = true; btn.textContent = 'Posting…';
+  try {
+    await postComment(feedbackIssueNumber, `💬 **Feedback from @${currentUser.login}:**\n\n${text}`);
+    closeFeedbackModal();
+    toast('Feedback posted');
+    await loadCurrentProjects();
+  } catch(e) { toast(`Error: ${e.message}`, true); }
+  finally { btn.disabled = false; btn.textContent = 'Post Comment'; }
+}
+
+// ── Mark Beta modal ───────────────────────────────────────────────────────────
+let betaIssueNumber = null;
+function openBetaModal(number) {
+  betaIssueNumber = number;
+  const p = currentProjects.find(p => p.number === number);
+  document.getElementById('beta-modal-title').textContent = p ? p.title : `Issue #${number}`;
+  document.getElementById('beta-url-input').value = '';
+  document.getElementById('beta-note-input').value = '';
+  document.getElementById('beta-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('beta-url-input').focus(), 50);
+}
+function closeBetaModal() { document.getElementById('beta-modal').style.display = 'none'; }
+async function submitMarkBeta() {
+  const url  = document.getElementById('beta-url-input').value.trim();
+  const note = document.getElementById('beta-note-input').value.trim();
+  const btn  = document.getElementById('beta-submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const body = url
+      ? `🚀 **Beta:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`
+      : `🚀 **Deployed to beta**${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
+    await postComment(betaIssueNumber, body);
+    await removeLabel(betaIssueNumber, 'status:pr-ready');
+    await removeLabel(betaIssueNumber, 'status:needs-revision');
+    await addLabel(betaIssueNumber, 'status:beta');
+    closeBetaModal();
+    toast('Marked as beta');
+    await loadAll();
+  } catch(e) { toast(`Error: ${e.message}`, true); }
+  finally { btn.disabled = false; btn.textContent = 'Mark Beta'; }
+}
 
 async function setPrReady(number) {
   const pr = prompt('Paste your PR link (or press OK to skip):');
