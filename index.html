@@ -499,6 +499,17 @@
         <option value="5">★☆☆☆☆ Lowest (Priority 5)</option>
       </select>
     </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Assignee</label>
+      <select id="edit-assignee">
+        <option value="">— Unassigned —</option>
+        <option value="gregbaird11">Greg</option>
+        <option value="morgan477">Morgan</option>
+        <option value="msdrigg">Scott</option>
+        <option value="Jordan-togoclaude">Jordan</option>
+        <option value="riley870">Riley</option>
+      </select>
+    </div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveEdit()">Save</button>
@@ -1105,6 +1116,7 @@ async function markProjectDone(number) {
 
 async function claimIdea(number) {
   await withProjectLoading(number, async () => {
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ assignees: [currentUser.login] }) });
     await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects.`);
     await removeLabel(number, 'future-idea');
     await addLabel(number, 'current-project');
@@ -1337,6 +1349,7 @@ function openEditModal(n) {
   document.getElementById('edit-title').value = p.title;
   const prio = p.labels?.find(l => l.startsWith('priority-'))?.slice(9) || '';
   document.getElementById('edit-priority').value = prio;
+  document.getElementById('edit-assignee').value = p.assignees?.[0] || '';
   document.getElementById('edit-modal').style.display = 'flex';
 }
 function closeEditModal(e) {
@@ -1352,7 +1365,8 @@ async function saveEdit() {
   const saveBtn = document.querySelector('#edit-modal .btn-primary');
   saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
   try {
-    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title}) });
+    const assignee = document.getElementById('edit-assignee').value;
+    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, assignees: assignee ? [assignee] : [] }) });
     for (let i=1; i<=5; i++) await removeLabel(n, `priority-${i}`).catch(()=>{});
     if (prio) await addLabel(n, `priority-${prio}`);
     await loadAll();
