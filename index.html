@@ -616,9 +616,13 @@ function oncHtml(oncRefs, ctx) {
   return oncRefs.map(r=>`<span class="onc-ref" title="${(ctx||CTX)[r]?.existing||''}">${r}</span>`).join(' ');
 }
 function prHtml(prUrl, prNum) {
-  return prUrl
-    ? `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open pull request">PR #${prNum} ↗</a>`
-    : `<span style="color:var(--border);font-size:12px">—</span>`;
+  if (!prUrl) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  const commitMatch = prUrl.match(/\/commit\/([0-9a-f]{7,40})/i);
+  if (commitMatch) {
+    const sha = commitMatch[1].slice(0,7);
+    return `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open commit">${sha} ↗</a>`;
+  }
+  return `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open pull request">PR #${prNum} ↗</a>`;
 }
 function notesHtml(p) {
   if (!p.allComments) return `<span style="color:var(--border);font-size:12px">—</span>`;
@@ -1093,25 +1097,30 @@ async function submitMarkBeta() {
 }
 
 async function setPrReady(number) {
-  const pr = prompt('Paste your GitHub PR link:');
-  if (!pr || !pr.trim()) { toast('No PR URL — paste the pull request link and try again.', true); return; }
+  const pr = prompt('Paste your GitHub PR or commit link:');
+  if (!pr || !pr.trim()) { toast('No link — paste a pull request or commit URL and try again.', true); return; }
   const prTrimmed = pr.trim();
   const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
+  const commitMatch = prTrimmed.match(/\/commit\/([0-9a-f]{7,40})/i);
   const prNum = prNumMatch ? prNumMatch[1] : null;
-  if (!prNum) { toast('That doesn\'t look like a GitHub PR URL. Expected: …/pull/123', true); return; }
+  const commitSha = commitMatch ? commitMatch[1].slice(0,7) : null;
+  if (!prNum && !commitSha) { toast('Expected a GitHub …/pull/123 or …/commit/abc1234 URL.', true); return; }
   await withProjectLoading(number, async () => {
-    // Post on the PR itself so Scott sees it in the PR thread
-    await postComment(parseInt(prNum), `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.\n\nProject tracker: togohealth-dev/emr-beta#${number}`);
-    // Log on the project issue too
-    await postComment(number, `🔔 **PR ready for review — @${SCOTT}**\n\nPR: ${prTrimmed}\n\n— @${currentUser.login}`);
+    if (prNum) {
+      // Post on the PR itself so Scott sees it in the PR thread
+      await postComment(parseInt(prNum), `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.\n\nProject tracker: togohealth-dev/emr-beta#${number}`);
+    }
+    // Log on the project issue
+    const linkLabel = prNum ? `PR #${prNum}` : `commit ${commitSha}`;
+    await postComment(number, `🔔 **Ready for review — @${SCOTT}**\n\n${linkLabel}: ${prTrimmed}\n\n— @${currentUser.login}`);
     await removeLabel(number, 'status:in-progress');
     await removeLabel(number, 'status:needs-revision');
     await addLabel(number, 'status:pr-ready');
-    // Append PR link to issue body so the PR column updates
+    // Append link to issue body so the PR column updates
     const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
     const newBody = (issue.body||'') + `\n\n**PR:** ${prTrimmed}`;
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
-    toast(`PR #${prNum} saved · @${SCOTT} pinged`);
+    toast(`${linkLabel} saved · @${SCOTT} pinged`);
   });
 }
 
