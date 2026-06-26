@@ -453,7 +453,10 @@
     <div id="notes-history" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
       <textarea id="notes-text" placeholder="Add a note…" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <div id="notes-attachments" style="display:none;margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <input type="file" id="notes-file-input" style="display:none" onchange="handleNoteFile(event)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('notes-file-input').click()" title="Attach a file (CSV, PDF, image, etc.)">📎 Attach file</button>
         <button class="btn btn-primary" id="notes-submit-btn" onclick="submitNote()">Post Note</button>
       </div>
     </div>
@@ -1009,16 +1012,6 @@ function renderAbandoned() {
 // ── Notes modal ───────────────────────────────────────────────────────────────
 let notesIssueNumber = null;
 
-function openNotes(number) {
-  notesIssueNumber = number;
-  const p = currentProjects.find(p => p.number === number);
-  document.getElementById('notes-modal-title').textContent = p ? p.title : `Issue #${number}`;
-  document.getElementById('notes-text').value = '';
-  renderNotesHistory(p ? p.allComments : []);
-  document.getElementById('notes-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('notes-text').focus(), 50);
-}
-
 function closeNotesModal() { document.getElementById('notes-modal').style.display = 'none'; }
 
 function renderNotesHistory(comments) {
@@ -1046,11 +1039,18 @@ function renderNotesHistory(comments) {
 
 async function submitNote() {
   const text = document.getElementById('notes-text').value.trim();
-  if (!text || !notesIssueNumber) return;
+  if (!text && !pendingAttachments.length) return;
+  if (!notesIssueNumber) return;
   const btn = document.getElementById('notes-submit-btn');
   btn.disabled = true; btn.textContent = 'Posting…';
   try {
-    await postComment(notesIssueNumber, text);
+    const attachLines = pendingAttachments.map(a =>
+      a.isImage ? `![${a.name}](${a.url})` : `📎 [${a.name}](${a.url})`
+    ).join('\n');
+    const body = [text, attachLines].filter(Boolean).join('\n\n');
+    await postComment(notesIssueNumber, body);
+    pendingAttachments = [];
+    renderAttachmentPills();
     // Refresh just this project's comments and re-render history
     const fresh = await ghFetch(`/repos/${REPO}/issues/${notesIssueNumber}/comments?per_page=100`);
     const p = currentProjects.find(p => p.number === notesIssueNumber);
@@ -1063,6 +1063,55 @@ async function submitNote() {
     toast('Note posted');
   } catch(e) { toast(`Error: ${e.message}`, true); }
   finally { btn.disabled = false; btn.textContent = 'Post Note'; }
+}
+
+// ── Notes file attachment ─────────────────────────────────────────────────────
+let pendingAttachments = []; // [{name, url, isImage}]
+
+function openNotes(number) {
+  notesIssueNumber = number;
+  pendingAttachments = [];
+  renderAttachmentPills();
+  const p = currentProjects.find(p => p.number === number);
+  document.getElementById('notes-modal-title').textContent = p ? p.title : `Issue #${number}`;
+  document.getElementById('notes-text').value = '';
+  document.getElementById('notes-file-input').value = '';
+  renderNotesHistory(p ? p.allComments : []);
+  document.getElementById('notes-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('notes-text').focus(), 50);
+}
+
+async function handleNoteFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const btn = document.querySelector('#notes-modal .btn-outline[onclick*="file-input"]');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Uploading…'; btn.disabled = true;
+  try {
+    const res = await fetch(
+      `https://uploads.github.com/repos/${REPO}/uploads?name=${encodeURIComponent(file.name)}`,
+      { method: 'POST', headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': file.type || 'application/octet-stream', 'Accept': 'application/vnd.github+json' }, body: file }
+    );
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    const data = await res.json();
+    const url = data.browser_download_url || data.url;
+    const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
+    pendingAttachments.push({ name: file.name, url, isImage });
+    renderAttachmentPills();
+    toast(`${file.name} attached`);
+  } catch(e) { toast(`Upload error: ${e.message}`, true); }
+  finally { btn.textContent = origText; btn.disabled = false; event.target.value = ''; }
+}
+
+function renderAttachmentPills() {
+  const el = document.getElementById('notes-attachments');
+  if (!pendingAttachments.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = pendingAttachments.map((a, i) => `
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px">
+      📎 <a href="${a.url}" target="_blank" style="color:var(--primary);text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</a>
+      <button onclick="pendingAttachments.splice(${i},1);renderAttachmentPills()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">✕</button>
+    </span>`).join('');
 }
 
 // ── Mark Beta modal ───────────────────────────────────────────────────────────
