@@ -1543,7 +1543,12 @@ function normalize(issue) {
   // progress %: use builtPct baseline for not_started; developer labels for in_progress
   const match2 = issue.title.match(/\([a-z]\)\(\d+\)/);
   const cid = match2 ? match2[0] : null;
-  const basePct = (cid && CTX[cid]) ? CTX[cid].builtPct : 0;
+  const body = issue.body || '';
+  const bodyPctMatch = !cid ? body.match(/Schema complete:\s*(\d+)%/i) : null;
+  const bodyHrsMatch = !cid ? body.match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i) : null;
+  const bodyPct = bodyPctMatch ? +bodyPctMatch[1] : 0;
+  const bodyHrs = bodyHrsMatch ? +bodyHrsMatch[1] : null;
+  const basePct = cid ? (CTX[cid] ? CTX[cid].builtPct : 0) : bodyPct;
   let pct;
   if (STATUS_PCT[status] !== undefined) {
     pct = STATUS_PCT[status];
@@ -1551,10 +1556,9 @@ function normalize(issue) {
     const pl = labels.find(l=>PROGRESS_LABELS[l]);
     pct = pl ? Math.max(PROGRESS_LABELS[pl], basePct) : Math.max(basePct, 10);
   } else {
-    // not_started: show existing code baseline
     pct = basePct;
   }
-  return { number:issue.number, title:issue.title, url:issue.html_url, labels, assignees, status, priority, wave, isOnc, isMips, pct, ackCount: (hasAck1?1:0)+(hasAck2?1:0), criterionId: cid };
+  return { number:issue.number, title:issue.title, url:issue.html_url, labels, assignees, status, priority, wave, isOnc, isMips, pct, ackCount: (hasAck1?1:0)+(hasAck2?1:0), criterionId: cid, bodyHrs };
 }
 
 // ── Stats ────────────────────────────────────────────────────────────────────
@@ -1688,7 +1692,7 @@ function row(i, rank) {
     <td>${progressHtml}</td>
     <td><div class="priority p${i.priority}">${dots}</div></td>
     <td>${types}</td>
-    <td style="color:var(--text-muted);font-size:12px">${ctx?ctx.hours+'h':'—'}</td>
+    <td style="color:var(--text-muted);font-size:12px">${ctx?ctx.hours+'h':i.bodyHrs?i.bodyHrs+'h':'—'}</td>
     <td>${assignee}</td>
     <td><div class="actions">${actions}</div></td>
   </tr>`;
