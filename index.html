@@ -1023,7 +1023,21 @@ function renderNotesHistory(comments) {
   el.innerHTML = comments.map(c => {
     const isScott = c.user?.login === SCOTT;
     const border = isScott ? 'var(--amber)' : 'var(--border)';
-    const bodyHtml = esc(c.body).replace(/\n/g, '<br>');
+    // Split body into text lines and attachment lines
+    const lines = (c.body||'').split('\n');
+    const attachBtns = [];
+    const textLines = [];
+    for (const line of lines) {
+      const m = line.match(/📎 \[([^\]]+)\]\(portal-attach:\/\/([^)]+)\)/);
+      if (m) {
+        const [, fname, path] = m;
+        attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')}" style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600">⬇ ${esc(fname)}</button>`);
+      } else {
+        textLines.push(esc(line));
+      }
+    }
+    const bodyHtml = textLines.join('<br>');
+    const attachHtml = attachBtns.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:${bodyHtml.trim()?'8':'0'}px">${attachBtns.join('')}</div>` : '';
     return `<div style="border-left:3px solid ${border};padding:8px 12px;background:${isScott ? 'var(--amber-bg)' : '#f8faff'};border-radius:0 6px 6px 0">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
         <img src="${c.user?.avatar_url}" style="width:18px;height:18px;border-radius:50%">
@@ -1031,7 +1045,7 @@ function renderNotesHistory(comments) {
         <span style="font-size:11px;color:var(--text-muted)">${timeAgo(c.created_at)}</span>
         ${isScott ? `<span style="font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.4px">Scott</span>` : ''}
       </div>
-      <div style="font-size:12px;line-height:1.55;color:var(--text)">${bodyHtml}</div>
+      <div style="font-size:12px;line-height:1.55;color:var(--text)">${bodyHtml}${attachHtml}</div>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
@@ -1045,7 +1059,7 @@ async function submitNote() {
   btn.disabled = true; btn.textContent = 'Posting…';
   try {
     const attachLines = pendingAttachments.map(a =>
-      a.isImage ? `![${a.name}](${a.url})` : `📎 [${a.name}](${a.url})`
+      `📎 [${a.name}](${ATTACH_MARKER}${a.path})`
     ).join('\n');
     const body = [text, attachLines].filter(Boolean).join('\n\n');
     await postComment(notesIssueNumber, body);
@@ -1066,7 +1080,8 @@ async function submitNote() {
 }
 
 // ── Notes file attachment ─────────────────────────────────────────────────────
-let pendingAttachments = []; // [{name, url, isImage}]
+let pendingAttachments = []; // [{name, path, isImage}]
+const ATTACH_MARKER = 'portal-attach://';
 
 function openNotes(number) {
   notesIssueNumber = number;
@@ -1084,21 +1099,27 @@ function openNotes(number) {
 async function handleNoteFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const btn = document.querySelector('#notes-modal .btn-outline[onclick*="file-input"]');
+  const btn = document.querySelector('button[onclick*="notes-file-input"]');
   const origText = btn.textContent;
   btn.textContent = '⏳ Uploading…'; btn.disabled = true;
   try {
-    const res = await fetch(
-      `https://uploads.github.com/repos/${REPO}/uploads?name=${encodeURIComponent(file.name)}`,
-      { method: 'POST', headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': file.type || 'application/octet-stream', 'Accept': 'application/vnd.github+json' }, body: file }
-    );
-    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-    const data = await res.json();
-    const url = data.browser_download_url || data.url;
+    // Read as base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const path = `attachments/${notesIssueNumber}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    await ghFetch(`/repos/${REPO}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `attach: ${file.name} on issue #${notesIssueNumber}`, content: base64 })
+    });
     const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
-    pendingAttachments.push({ name: file.name, url, isImage });
+    pendingAttachments.push({ name: file.name, path, isImage });
     renderAttachmentPills();
-    toast(`${file.name} attached`);
+    toast(`✓ ${file.name} uploaded`);
   } catch(e) { toast(`Upload error: ${e.message}`, true); }
   finally { btn.textContent = origText; btn.disabled = false; event.target.value = ''; }
 }
@@ -1109,9 +1130,19 @@ function renderAttachmentPills() {
   el.style.display = 'flex';
   el.innerHTML = pendingAttachments.map((a, i) => `
     <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px">
-      📎 <a href="${a.url}" target="_blank" style="color:var(--primary);text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</a>
+      📎 <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</span>
       <button onclick="pendingAttachments.splice(${i},1);renderAttachmentPills()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">✕</button>
     </span>`).join('');
+}
+
+async function downloadAttachment(path, filename) {
+  try {
+    const data = await ghFetch(`/repos/${REPO}/contents/${path}`);
+    const bytes = Uint8Array.from(atob(data.content.replace(/\n/g,'')), c => c.charCodeAt(0));
+    const blob = new Blob([bytes]);
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch(e) { toast(`Download error: ${e.message}`, true); }
 }
 
 // ── Mark Beta modal ───────────────────────────────────────────────────────────
