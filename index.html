@@ -739,7 +739,7 @@ async function load() {
         for (const i of batch) if (!seen.has(i.number)) seen.set(i.number, i);
       }
     issues = [...seen.values()].map(normalize).sort((a,b)=>
-      a.wave-b.wave || b.priority-a.priority || a.number-b.number
+      a.wave-b.wave || (!a.criterionId?0:1)-(!b.criterionId?0:1) || b.priority-a.priority || a.number-b.number
     );
     renderStats();
     renderAlerts();
