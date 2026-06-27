@@ -1520,6 +1520,22 @@ async function saveEdit() {
     await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, assignees: assignee ? [assignee] : [], body }) });
     for (let i=1; i<=5; i++) await removeLabel(n, `priority-${i}`).catch(()=>{});
     if (prio) await addLabel(n, `priority-${prio}`);
+    // Update in-memory immediately so PR column shows without waiting for API cache
+    const p = currentProjects.find(p => p.number === n);
+    if (p) {
+      p.title = title;
+      p.body = body;
+      if (newPrUrl) {
+        p.prUrl = newPrUrl;
+        const prNumMatch = newPrUrl.match(/\/pull\/(\d+)/);
+        p.prNum = prNumMatch ? prNumMatch[1] : null;
+      }
+      if (assignee) p.assignees = [assignee]; else p.assignees = [];
+      const oldPrio = p.labels.find(l => l.startsWith('priority-'));
+      if (oldPrio) p.labels = p.labels.filter(l => !l.startsWith('priority-'));
+      if (prio) p.labels.push(`priority-${prio}`);
+      p.priority = prio ? +prio : 0;
+    }
     await loadAll();
     document.getElementById('edit-modal').style.display = 'none';
     editIssueNumber = null;
