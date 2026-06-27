@@ -513,6 +513,10 @@
         <option value="riley870">Riley</option>
       </select>
     </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>PR / Commit URL</label>
+      <input type="text" id="edit-pr-url" placeholder="https://github.com/togohealth-dev/emr-beta/pull/123" style="width:100%;box-sizing:border-box">
+    </div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveEdit()">Save</button>
@@ -1486,6 +1490,7 @@ function openEditModal(n) {
   const prio = p.labels?.find(l => l.startsWith('priority-'))?.slice(9) || '';
   document.getElementById('edit-priority').value = prio;
   document.getElementById('edit-assignee').value = p.assignees?.[0] || '';
+  document.getElementById('edit-pr-url').value = p.prUrl || '';
   document.getElementById('edit-modal').style.display = 'flex';
 }
 function closeEditModal(e) {
@@ -1502,7 +1507,17 @@ async function saveEdit() {
   saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
   try {
     const assignee = document.getElementById('edit-assignee').value;
-    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, assignees: assignee ? [assignee] : [] }) });
+    const newPrUrl = document.getElementById('edit-pr-url').value.trim();
+    const issue = await ghFetch(`/repos/${REPO}/issues/${n}`);
+    let body = issue.body || '';
+    if (newPrUrl) {
+      if (/\*\*PR:\*\*\s*https?:\/\/\S+/i.test(body)) {
+        body = body.replace(/\*\*PR:\*\*\s*https?:\/\/\S+/i, `**PR:** ${newPrUrl}`);
+      } else {
+        body = body + `\n\n**PR:** ${newPrUrl}`;
+      }
+    }
+    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, assignees: assignee ? [assignee] : [], body }) });
     for (let i=1; i<=5; i++) await removeLabel(n, `priority-${i}`).catch(()=>{});
     if (prio) await addLabel(n, `priority-${prio}`);
     await loadAll();
