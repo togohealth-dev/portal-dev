@@ -495,11 +495,11 @@
       <label>Priority</label>
       <select id="edit-priority">
         <option value="">— None —</option>
-        <option value="1">★★★★★ Highest (Priority 1)</option>
-        <option value="2">★★★★☆ High (Priority 2)</option>
+        <option value="5">★★★★★ Highest (Priority 5)</option>
+        <option value="4">★★★★☆ High (Priority 4)</option>
         <option value="3">★★★☆☆ Medium (Priority 3)</option>
-        <option value="4">★★☆☆☆ Low (Priority 4)</option>
-        <option value="5">★☆☆☆☆ Lowest (Priority 5)</option>
+        <option value="2">★★☆☆☆ Low (Priority 2)</option>
+        <option value="1">★☆☆☆☆ Lowest (Priority 1)</option>
       </select>
     </div>
     <div class="modal-field" style="margin-top:12px">
@@ -607,7 +607,7 @@ const FUTURE_TABLE_HEAD = `<thead><tr>
 
 function starsHtml(p) {
   if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
-  const n = Math.max(1, 6 - p);
+  const n = p;
   return `<span class="stars" title="Priority ${p}">${[1,2,3,4,5].map(i=>`<span class="${i<=n?'':'empty'}">★</span>`).join('')}</span>`;
 }
 function dotsHtml(p) {
