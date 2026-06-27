@@ -817,10 +817,13 @@ function normalizeProject(issue, labels, comments) {
     : labels.includes('status:in-progress')               ? 'in_progress'
     : 'planning';
 
-  // Find PR link from body or comments
+  // Find PR or commit link from body or comments
   const bodyPlusComs = (issue.body||'') + comments.map(c=>c.body||'').join(' ');
-  const prMatch = bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
-  const prUrl   = prMatch ? `https://github.com/togohealth-dev/emr-beta/pull/${prMatch[1]}` : null;
+  const prMatch     = bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
+  const commitMatch = !prMatch ? bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{7,40})/i) : null;
+  const prUrl   = prMatch     ? `https://github.com/togohealth-dev/emr-beta/pull/${prMatch[1]}`
+                : commitMatch ? `https://github.com/togohealth-dev/emr-beta/commit/${commitMatch[1]}`
+                : null;
   const prNum   = prMatch ? prMatch[1] : null;
 
   // Find beta URL from comments (🚀 Beta: URL or beta: URL pattern)
