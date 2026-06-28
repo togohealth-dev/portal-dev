@@ -1762,7 +1762,7 @@ function buildActions(i) {
 async function withLoading(number, fn) {
   const btns = document.querySelectorAll(`#row-${number} button`);
   btns.forEach(b=>b.disabled=true);
-  try { await fn(); await load(); }
+  try { await fn(); await loadAll(); }
   catch(e) { toast(`Error: ${e.message}`, true); btns.forEach(b=>b.disabled=false); }
 }
 
@@ -1776,8 +1776,8 @@ async function removeLabel(number, label) {
   await ghFetch(`/repos/${REPO}/issues/${number}/labels/${encodeURIComponent(label)}`, { method:'DELETE' }).catch(()=>{});
 }
 
-function claim(n) { withLoading(n, async()=>{ await postComment(n,`🙋 **Claimed by @${currentUser.login}** — working on this criterion.`); await addLabel(n,'status:in-progress'); await addLabel(n,'current-project'); toast(`Claimed #${n}`); }); }
-function unclaim(n) { withLoading(n, async()=>{ await postComment(n,`🔓 **Unclaimed by @${currentUser.login}**.`); await removeLabel(n,'status:in-progress'); toast(`Unclaimed #${n}`); }); }
+function claim(n) { withLoading(n, async()=>{ await postComment(n,`🙋 **Claimed by @${currentUser.login}** — working on this criterion.`); await addLabel(n,'status:in-progress'); await addLabel(n,'current-project'); await ghFetch(`/repos/${REPO}/issues/${n}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({assignees:[currentUser.login]})}); toast(`Claimed — moved to Current Projects`); }); }
+function unclaim(n) { withLoading(n, async()=>{ await postComment(n,`🔓 **Unclaimed by @${currentUser.login}**.`); await removeLabel(n,'status:in-progress'); await removeLabel(n,'current-project'); await ghFetch(`/repos/${REPO}/issues/${n}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({assignees:[]})}); toast(`Unclaimed #${n}`); }); }
 
 function setProgress(n, pct) {
   withLoading(n, async()=>{
