@@ -1975,7 +1975,20 @@ function toast(msg, err=false) {
   await handleOAuthCallback();
   if (getToken()) {
     document.getElementById('auth-overlay').style.display = 'none';
-    loadAll();
+    try {
+      await loadAll();
+    } catch (e) {
+      // GitHub App user tokens expire after 8h — a stale token throws on the first
+      // /user call and would otherwise leave every section spinning forever.
+      if (/bad credentials|401|requires authentication/i.test(e.message||'')) {
+        localStorage.removeItem('gh_pat');
+        document.getElementById('auth-overlay').style.display = 'flex';
+        showAuthError('Your session expired. Please sign in again.');
+      } else {
+        const el = document.getElementById('error-msg');
+        if (el) { el.style.display = 'block'; el.textContent = `Error: ${e.message}`; }
+      }
+    }
   }
 })();
 </script>
