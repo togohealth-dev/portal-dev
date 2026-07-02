@@ -816,6 +816,7 @@ function normalizeProject(issue, labels, comments) {
     : labels.includes('status:needs-revision')            ? 'needs_revision'
     : labels.includes('status:pr-ready')                  ? 'pr_ready'
     : labels.includes('status:in-progress')               ? 'in_progress'
+    : (issue.assignees && issue.assignees.length)          ? 'in_progress'  // assigned = actively being worked
     : 'planning';
 
   // Find PR or commit link from body or comments
@@ -902,8 +903,8 @@ function projectActions(p) {
   if (p.status === 'done' || p.status === 'abandoned') return `${pb} ${eb} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
   const parts = [pb, eb];
   if (p.status === 'planning' || p.status === 'in_progress') {
-    if (!p.prUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})" title="Mark PR ready and notify Scott">PR Ready</button>`);
-    else          parts.push(`<button class="btn btn-amber btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
+    parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})" title="Mark PR ready and notify Scott">PR Ready</button>`);
+    if (p.prUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
   }
   if (p.status === 'pr_ready') {
     parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
@@ -1185,7 +1186,8 @@ async function submitMarkBeta() {
 }
 
 async function setPrReady(number) {
-  const pr = prompt('Paste your GitHub PR or commit link:');
+  const p = currentProjects.find(p => p.number === number);
+  const pr = p?.prUrl || prompt('Paste your GitHub PR or commit link:');
   if (!pr || !pr.trim()) { toast('No link — paste a pull request or commit URL and try again.', true); return; }
   const prTrimmed = pr.trim();
   const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
