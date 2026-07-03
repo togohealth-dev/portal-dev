@@ -1187,7 +1187,12 @@ async function submitMarkBeta() {
 
 async function setPrReady(number) {
   const p = currentProjects.find(p => p.number === number);
-  const pr = p?.prUrl || prompt('Paste your GitHub PR or commit link:');
+  // Always confirm the link — PRs get replaced (orphaned branch, re-opened PR),
+  // so a stored prUrl can be stale. Prefill it: OK = same PR, or edit to the new one.
+  const existingPr = p?.prUrl || '';
+  const pr = prompt(existingPr
+    ? 'Confirm the PR link (press OK if unchanged, or edit if the PR was replaced):'
+    : 'Paste your GitHub PR or commit link:', existingPr);
   if (!pr || !pr.trim()) { toast('No link — paste a pull request or commit URL and try again.', true); return; }
   const prTrimmed = pr.trim();
   const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
@@ -1206,10 +1211,19 @@ async function setPrReady(number) {
     await removeLabel(number, 'status:in-progress');
     await removeLabel(number, 'status:needs-revision');
     await addLabel(number, 'status:pr-ready');
-    // Append link to issue body so the PR column updates
+    // Update the issue body so the PR column shows the current link. The tracker
+    // displays the FIRST PR link found in the body, so a replaced PR must be
+    // swapped in place — appending would leave the stale link winning.
     const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
-    const newBody = (issue.body||'') + `\n\n**PR:** ${prTrimmed}`;
-    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
+    let newBody = issue.body || '';
+    if (existingPr && existingPr !== prTrimmed && newBody.includes(existingPr)) {
+      newBody = newBody.split(existingPr).join(prTrimmed);
+    } else if (!newBody.includes(prTrimmed)) {
+      newBody = newBody + `\n\n**PR:** ${prTrimmed}`;
+    }
+    if (newBody !== issue.body) {
+      await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
+    }
     toast(`${linkLabel} saved · @${SCOTT} pinged`);
   });
 }
