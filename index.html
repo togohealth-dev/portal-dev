@@ -828,11 +828,14 @@ function normalizeProject(issue, labels, comments) {
                 : null;
   const prNum   = prMatch ? prMatch[1] : null;
 
-  // Find beta URL from comments (🚀 Beta: URL or beta: URL pattern)
+  // Find beta URL from comments. Tolerant of markdown bold (**Beta:**) and the
+  // various phrasings people use: "🚀 Beta:", "Beta done:", "Beta deployed:",
+  // "Beta ready:", "live at", etc. The Mark Beta button writes "🚀 **Beta:** URL",
+  // so the closing ** between the label and the URL must be allowed.
   let betaUrl = null;
   for (const c of [...comments].reverse()) {
-    const m = (c.body||'').match(/(?:🚀\s*\*{0,2}Beta\*{0,2}|beta\s*deploy(?:ed)?|live\s*at)\s*[:\-]?\*?\s*(https?:\/\/\S+)/i);
-    if (m) { betaUrl = m[1].replace(/[.,)>]$/, ''); break; }
+    const m = (c.body||'').match(/(?:🚀\s*)?\*{0,2}\s*(?:beta(?:\s+(?:deploy(?:ed)?|done|ready|live|url|link|up))?|live\s+at|deployed\s+(?:to|at))\s*\*{0,2}\s*[:\-]?\s*\*{0,2}\s*(https?:\/\/\S+)/i);
+    if (m) { betaUrl = m[1].replace(/[.,)>*]+$/, ''); break; }
   }
 
   // Find latest Scott comment
