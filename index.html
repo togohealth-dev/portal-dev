@@ -866,7 +866,7 @@ const statusBadge = (s, betaUrl) => {
     in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
     pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready</span>`,
     needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-    beta:           `<span class="badge ps-beta">🚀 Beta</span>`,
+    beta:           `<span class="badge ps-beta" style="opacity:.7" title="No beta link captured — use ⚠ Add beta link to attach the deploy URL">🚀 Beta ⚠</span>`,
     done:           `<span class="badge ps-done">✓ Done</span>`,
     abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
   }[s] || '');
@@ -918,7 +918,10 @@ function projectActions(p) {
     parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
     parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})" title="Notify Scott that PR has been updated">PR Updated</button>`);
   }
-  if (p.status === 'beta') parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
+  if (p.status === 'beta') {
+    if (!p.betaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openBetaModal(${p.number})" title="No beta link captured — add the deploy URL so the Beta badge links to it">⚠ Add beta link</button>`);
+    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
+  }
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
 }
