@@ -546,6 +546,9 @@
 
 <script>
 const REPO = 'togohealth-dev/emr-beta';
+// Dedicated private store for note attachments. Kept separate from emr-beta so
+// force-pushes / squash-syncs to the code repo can never wipe uploaded files.
+const ATTACH_REPO = 'togohealth-dev/portal-attachments';
 const API  = 'https://api.github.com';
 
 // ── Criterion context (25 criteria) ─────────────────────────────────────────
@@ -1234,7 +1237,7 @@ async function handleNoteFile(event) {
       r.readAsDataURL(file);
     });
     const path = `attachments/${notesIssueNumber}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    await ghFetch(`/repos/${REPO}/contents/${path}`, {
+    await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: `attach: ${file.name} on issue #${notesIssueNumber}`, content: base64 })
@@ -1260,7 +1263,7 @@ function renderAttachmentPills() {
 
 async function downloadAttachment(path, filename) {
   try {
-    const data = await ghFetch(`/repos/${REPO}/contents/${path}`);
+    const data = await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`);
     const bytes = Uint8Array.from(atob(data.content.replace(/\n/g,'')), c => c.charCodeAt(0));
     const blob = new Blob([bytes]);
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
