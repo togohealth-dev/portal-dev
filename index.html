@@ -320,6 +320,21 @@
 
   <hr class="section-divider">
 
+  <!-- ── FACILITY PORTAL BUILDOUT ── -->
+  <div class="section-block" id="sec-fp">
+    <div class="section-hdr">
+      <h2>Facility Portal Buildout</h2>
+      <p>Unclaimed facility-staff tools · % reflects code already in the branch · claim any to move it into Current Projects</p>
+      <button class="sec-toggle" onclick="toggleSection('fp')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="fp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="fp-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
   <!-- ── FUTURE IDEAS ── -->
   <div class="section-block" id="sec-fi">
     <div class="section-hdr">
@@ -727,7 +742,7 @@ async function ghFetch(path, opts={}) {
 // ── Load ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
   if (!currentUser) currentUser = await ghFetch('/user');
-  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas()]);
+  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas(), loadFacilityPortal()]);
 }
 
 async function load() {
@@ -807,6 +822,89 @@ async function loadFutureIdeas() {
   } catch(e) {
     document.getElementById('fi-loading').textContent = `Error: ${e.message}`;
   }
+}
+
+// ── Facility Portal Buildout ──────────────────────────────────────────────────
+let facilityPortal = [];
+
+async function loadFacilityPortal() {
+  document.getElementById('fp-loading').style.display = 'block';
+  document.getElementById('fp-content').style.display = 'none';
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=facility-portal&state=open&per_page=100`);
+    facilityPortal = raw.map(issue => {
+      const labels = issue.labels.map(l => l.name);
+      const body = issue.body || '';
+      const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
+      const oncRefs = extractOncRefs(issue.title + ' ' + body);
+      const estMatch = body.match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
+      const codingEst = estMatch ? estMatch[1] + 'h' : null;
+      const pctMatch = body.match(/Percent complete:\s*(\d+)\s*%/i);
+      const pct = pctMatch ? +pctMatch[1] : 0;
+      return { number: issue.number, title: issue.title, body, url: issue.html_url, labels, priority, oncRefs, assignees:(issue.assignees||[]).map(a=>a.login), codingEst, pct };
+    }).sort((a,b) => b.priority - a.priority || b.pct - a.pct || a.number - b.number);
+    renderFacilityPortal();
+    document.getElementById('fp-loading').style.display = 'none';
+    document.getElementById('fp-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('fp-loading').textContent = `Error: ${e.message}`;
+  }
+}
+
+function pctBar(pct) {
+  const color = pct >= 80 ? 'var(--wave2-border)' : pct >= 40 ? '#fde68a' : pct > 0 ? '#fecaca' : 'var(--border)';
+  const label = pct > 0 ? `${pct}%` : 'Not started';
+  return `<div title="${pct}% of the code already exists" style="min-width:90px">
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px">${label}</div>
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function renderFacilityPortal() {
+  const el = document.getElementById('fp-content');
+  if (!facilityPortal.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No facility builds yet.</div>`;
+    return;
+  }
+  const totalH = facilityPortal.reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
+  const started = facilityPortal.filter(p=>p.pct>0).length;
+  el.innerHTML = `
+  <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">
+    ${facilityPortal.length} builds · ${started} partially built · ${facilityPortal.length-started} not started · ~${totalH}h remaining
+  </div>
+  <div class="proj-table-wrap">
+    <table><thead><tr>
+      <th style="width:28px">#</th>
+      <th>Build</th>
+      <th style="width:110px">% Complete</th>
+      <th style="width:72px">Priority</th>
+      <th style="width:48px">Est</th>
+      <th style="width:68px">ONC/MIPS</th>
+      <th style="width:200px">Actions</th>
+    </tr></thead><tbody>
+      ${facilityPortal.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td>
+          <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <div class="proj-desc">${esc((p.body||'').split('\n').find(l=>l.startsWith('### Where to start')) ? '' : '')}${esc(fpBlurb(p.body))}</div>
+        </td>
+        <td>${pctBar(p.pct)}</td>
+        <td>${dotsHtml(p.priority)}</td>
+        <td style="font-size:12px;color:var(--text-muted);font-weight:600">${p.codingEst || '<span style="color:var(--border)">—</span>'}</td>
+        <td>${oncHtml(p.oncRefs)}</td>
+        <td><div class="actions">
+          ${promptBtn(p.number, true)}
+          <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this build and move it to Current Projects">Claim</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+// Pull the "What's built" one-liner for the row blurb
+function fpBlurb(body) {
+  const m = (body||'').match(/###\s*What's built\s*\n([^\n]+)/i);
+  return m ? m[1].slice(0,140) : '';
 }
 
 function normalizeProject(issue, labels, comments) {
@@ -1285,6 +1383,7 @@ async function claimIdea(number) {
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ assignees: [currentUser.login] }) });
     await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects.`);
     await removeLabel(number, 'future-idea');
+    await removeLabel(number, 'facility-portal');
     await addLabel(number, 'current-project');
     await addLabel(number, 'status:in-progress');
     toast(`Idea claimed — moved to Current Projects`);
@@ -1472,7 +1571,7 @@ function copyProjectPrompt(number) {
 }
 
 function copyFuturePrompt(number) {
-  const p = futureIdeas.find(p => p.number === number);
+  const p = futureIdeas.find(p => p.number === number) || facilityPortal.find(p => p.number === number);
   if (!p) return;
   const body = p.body || '';
   // Extract the claude prompt code block from the issue body
