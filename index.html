@@ -685,6 +685,7 @@ let currentProjects = [];
 let futureIdeas = [];
 let filter = 'all';
 let showDone = false;
+let cpAssigneeFilter = 'all'; // Current Projects assignee filter — defaults to showing everyone
 let currentUser = null;
 let addModalMode = 'current'; // 'current' | 'future'
 let pendingProjectPrompt = '';
@@ -995,15 +996,44 @@ const statusBadge = (s, betaUrl) => {
 
 function renderCurrentProjects() {
   const el = document.getElementById('cp-content');
-  const activeProjects = currentProjects.filter(p => p.status !== 'abandoned' && p.status !== 'done');
-  if (!activeProjects.length) {
+  const allActive = currentProjects.filter(p => p.status !== 'abandoned' && p.status !== 'done');
+  if (!allActive.length) {
     el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No current projects yet. <button class="btn btn-primary" onclick="openAddModal('current')" style="margin-left:8px">+ Add First Project</button></div>`;
     return;
   }
-  el.innerHTML = `
-  <div class="proj-table-wrap">
-    <table>${TABLE_HEAD}<tbody>
-      ${activeProjects.map((p, idx) => `<tr>
+
+  // Assignee filter options built from whoever actually has active projects.
+  const logins = [...new Set(allActive.flatMap(p => p.assignees || []))]
+    .sort((a,b) => teamName(a).localeCompare(teamName(b)));
+  const hasUnassigned = allActive.some(p => !p.assignees?.length);
+  // Drop a stale filter (e.g. person no longer has active projects) so we don't show an empty table with no way back.
+  if (cpAssigneeFilter !== 'all' && cpAssigneeFilter !== '__unassigned__' && !logins.includes(cpAssigneeFilter)) cpAssigneeFilter = 'all';
+  if (cpAssigneeFilter === '__unassigned__' && !hasUnassigned) cpAssigneeFilter = 'all';
+
+  const activeProjects = allActive.filter(p =>
+      cpAssigneeFilter === 'all'            ? true
+    : cpAssigneeFilter === '__unassigned__' ? !p.assignees?.length
+    : (p.assignees || []).includes(cpAssigneeFilter));
+
+  const opts = [`<option value="all"${cpAssigneeFilter==='all'?' selected':''}>All</option>`]
+    .concat(logins.map(l => `<option value="${esc(l)}"${cpAssigneeFilter===l?' selected':''}>${esc(teamName(l))}</option>`))
+    .concat(hasUnassigned ? [`<option value="__unassigned__"${cpAssigneeFilter==='__unassigned__'?' selected':''}>Unassigned</option>`] : [])
+    .join('');
+
+  const head = `<thead><tr>
+    <th style="width:28px">#</th>
+    <th>Build</th>
+    <th style="width:150px">Status</th>
+    <th style="width:72px">Priority</th>
+    <th style="width:120px">Assigned<br><select onchange="setCpAssignee(this.value)" style="margin-top:4px;font-size:11px;font-weight:500;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:108px;cursor:pointer">${opts}</select></th>
+    <th style="width:62px">PR</th>
+    <th style="width:68px">ONC/MIPS</th>
+    <th style="width:58px">Notes</th>
+    <th style="width:220px">Actions</th>
+  </tr></thead>`;
+
+  const rows = activeProjects.length
+    ? activeProjects.map((p, idx) => `<tr>
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td>
           <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
@@ -1016,9 +1046,18 @@ function renderCurrentProjects() {
         <td>${oncHtml(p.oncRefs)}</td>
         <td>${notesHtml(p)}</td>
         <td><div class="actions">${projectActions(p)}</div></td>
-      </tr>`).join('')}
-    </tbody></table>
+      </tr>`).join('')
+    : `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:12px">No current projects assigned to ${esc(cpAssigneeFilter==='__unassigned__'?'Unassigned':teamName(cpAssigneeFilter))}. <a onclick="setCpAssignee('all')" style="color:var(--primary);cursor:pointer">Show all</a></td></tr>`;
+
+  el.innerHTML = `
+  <div class="proj-table-wrap">
+    <table>${head}<tbody>${rows}</tbody></table>
   </div>`;
+}
+
+function setCpAssignee(value) {
+  cpAssigneeFilter = value;
+  renderCurrentProjects(); // client-side only — no reload needed
 }
 
 function projectActions(p) {
