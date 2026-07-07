@@ -1043,10 +1043,12 @@ function projectActions(p) {
     if (!p.betaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openBetaModal(${p.number})" title="No beta link captured — add the deploy URL so the Beta badge links to it">⚠ Add beta link</button>`);
     parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyForProd(${p.number})" title="Beta tested — mark ready for Scott to deploy to production">Ready for Production</button>`);
     parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not ready for production — send back for revision, posts on PR and tags developer">Needs Revision</button>`);
   }
   if (p.status === 'ready_for_prod') {
     parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Deployed to production — mark done and close issue">Mark Done</button>`);
     parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott that this is ready to deploy to production">Notify Scott</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not actually ready — send back for revision, posts on PR and tags developer">Needs Revision</button>`);
   }
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
@@ -1388,7 +1390,11 @@ async function markNeedsRevision(number) {
     if (p.prNum) await postComment(parseInt(p.prNum), body);
     // Also log on the project issue
     await postComment(number, body);
+    // Clear any forward-of-revision state so the project cleanly returns to
+    // needs-revision (status derivation checks beta/ready-for-prod first).
     await removeLabel(number, 'status:pr-ready');
+    await removeLabel(number, 'status:beta');
+    await removeLabel(number, 'status:ready-for-production');
     await addLabel(number, 'status:needs-revision');
     toast(`#${number} marked Needs Revision`);
   });
