@@ -1248,10 +1248,18 @@ function renderNotesHistory(comments) {
     const attachBtns = [];
     const textLines = [];
     for (const line of lines) {
-      const m = line.match(/📎 \[([^\]]+)\]\(portal-attach:\/\/([^)]+)\)/);
+      const m = line.match(/📎 \[([^\]]+)\]\((https?:\/\/[^)]+|portal-attach:\/\/[^)]+)\)/);
       if (m) {
-        const [, fname, path] = m;
-        attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600">⬇ ${esc(fname)}</button>`);
+        const [, fname, target] = m;
+        const btnStyle = `display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600;text-decoration:none`;
+        if (target.startsWith('portal-attach://')) {
+          // Legacy tracker-only marker — fetch via API and download.
+          const path = target.slice('portal-attach://'.length);
+          attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')" style="${btnStyle}">⬇ ${esc(fname)}</button>`);
+        } else {
+          // Real GitHub URL — a genuine link that works here and on GitHub.
+          attachBtns.push(`<a href="${esc(target)}" target="_blank" rel="noopener" style="${btnStyle}">⬇ ${esc(fname)} ↗</a>`);
+        }
       } else {
         textLines.push(esc(line));
       }
@@ -1279,7 +1287,7 @@ async function submitNote() {
   btn.disabled = true; btn.textContent = 'Posting…';
   try {
     const attachLines = pendingAttachments.map(a =>
-      `📎 [${a.name}](${ATTACH_MARKER}${a.path})`
+      `📎 [${a.name}](${a.url})`
     ).join('\n');
     const body = [text, attachLines].filter(Boolean).join('\n\n');
     await postComment(notesIssueNumber, body);
@@ -1331,13 +1339,16 @@ async function handleNoteFile(event) {
       r.readAsDataURL(file);
     });
     const path = `attachments/${notesIssueNumber}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`, {
+    const resp = await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: `attach: ${file.name} on issue #${notesIssueNumber}`, content: base64 })
     });
+    // Real GitHub blob URL — a link that actually works everywhere (tracker, the
+    // GitHub issue thread, email notifications), not a tracker-only custom scheme.
+    const url = resp?.content?.html_url || `https://github.com/${ATTACH_REPO}/blob/main/${path}`;
     const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
-    pendingAttachments.push({ name: file.name, path, isImage });
+    pendingAttachments.push({ name: file.name, path, url, isImage });
     renderAttachmentPills();
     toast(`✓ ${file.name} uploaded`);
   } catch(e) { toast(`Upload error: ${e.message}`, true); }
