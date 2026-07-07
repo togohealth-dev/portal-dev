@@ -686,6 +686,7 @@ let futureIdeas = [];
 let filter = 'all';
 let showDone = false;
 let cpAssigneeFilter = 'all'; // Current Projects assignee filter — defaults to showing everyone
+let completedDevFilter = 'all'; // Completed Projects developer filter — defaults to showing everyone
 let currentUser = null;
 let addModalMode = 'current'; // 'current' | 'future'
 let pendingProjectPrompt = '';
@@ -1126,20 +1127,48 @@ function renderFutureIdeas() {
 }
 
 function renderCompleted() {
-  const done = currentProjects.filter(p => p.status === 'done');
+  const allDone = currentProjects.filter(p => p.status === 'done');
   const loading = document.getElementById('done-loading');
   const content = document.getElementById('done-content');
   if (!loading || !content) return;
   loading.style.display = 'none';
   content.style.display = 'block';
-  if (!done.length) {
+  if (!allDone.length) {
     content.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None.</div>`;
     return;
   }
-  content.innerHTML = `
-  <div class="proj-table-wrap">
-    <table>${TABLE_HEAD}<tbody>
-      ${done.map((p, idx) => `<tr>
+
+  // Developer filter — same behavior as Current Projects, defaults to all.
+  const logins = [...new Set(allDone.flatMap(p => p.assignees || []))]
+    .sort((a,b) => teamName(a).localeCompare(teamName(b)));
+  const hasUnassigned = allDone.some(p => !p.assignees?.length);
+  if (completedDevFilter !== 'all' && completedDevFilter !== '__unassigned__' && !logins.includes(completedDevFilter)) completedDevFilter = 'all';
+  if (completedDevFilter === '__unassigned__' && !hasUnassigned) completedDevFilter = 'all';
+
+  const done = allDone.filter(p =>
+      completedDevFilter === 'all'            ? true
+    : completedDevFilter === '__unassigned__' ? !p.assignees?.length
+    : (p.assignees || []).includes(completedDevFilter));
+
+  const opts = [`<option value="all"${completedDevFilter==='all'?' selected':''}>All</option>`]
+    .concat(logins.map(l => `<option value="${esc(l)}"${completedDevFilter===l?' selected':''}>${esc(teamName(l))}</option>`))
+    .concat(hasUnassigned ? [`<option value="__unassigned__"${completedDevFilter==='__unassigned__'?' selected':''}>Unassigned</option>`] : [])
+    .join('');
+
+  const head = `<thead><tr>
+    <th style="width:28px">#</th>
+    <th>Build</th>
+    <th style="width:150px">Status</th>
+    <th style="width:72px">Priority</th>
+    <th style="width:120px">Developer<br><select onchange="setCompletedDev(this.value)" style="margin-top:4px;font-size:11px;font-weight:500;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:108px;cursor:pointer">${opts}</select></th>
+    <th style="width:62px">PR</th>
+    <th style="width:68px">ONC/MIPS</th>
+    <th style="width:58px">Notes</th>
+    <th style="width:220px">Actions</th>
+  </tr></thead>`;
+
+  const rows = done.length
+    ? done.map((p, idx) => `<tr>
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
         <td><span class="badge ps-done" style="font-size:11px">✓ Done</span></td>
@@ -1154,9 +1183,18 @@ function renderCompleted() {
           <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})" title="Reopen and move back to In Progress at 90%">↩ Revise</button>
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
         </div></td>
-      </tr>`).join('')}
-    </tbody></table>
+      </tr>`).join('')
+    : `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:12px">No completed projects by ${esc(completedDevFilter==='__unassigned__'?'Unassigned':teamName(completedDevFilter))}. <a onclick="setCompletedDev('all')" style="color:var(--primary);cursor:pointer">Show all</a></td></tr>`;
+
+  content.innerHTML = `
+  <div class="proj-table-wrap">
+    <table>${head}<tbody>${rows}</tbody></table>
   </div>`;
+}
+
+function setCompletedDev(value) {
+  completedDevFilter = value;
+  renderCompleted(); // client-side only — no reload needed
 }
 
 function renderAbandoned() {
