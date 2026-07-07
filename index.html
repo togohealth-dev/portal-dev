@@ -217,6 +217,7 @@
   .ps-pr-ready   { background:#fef3c7; color:var(--amber); }
   .ps-needs-revision { background:#fee2e2; color:var(--red); }
   .ps-beta       { background:var(--green-bg); color:var(--green-atl); font-weight:700; }
+  .ps-ready-prod { background:#e0e7ff; color:#4338ca; font-weight:700; }
   .ps-abandoned  { background:#f3f4f6; color:#9ca3af; }
   .ps-done       { background:#e5e7eb; color:#374151; }
 
@@ -790,7 +791,7 @@ async function loadCurrentProjects() {
       return normalizeProject(issue, labels, comments);
     }));
     currentProjects.sort((a,b) => {
-      const order = {pr_ready:0, needs_revision:1, in_progress:2, planning:3, beta:4, done:5, abandoned:6};
+      const order = {pr_ready:0, needs_revision:1, in_progress:2, planning:3, beta:4, ready_for_prod:5, done:6, abandoned:7};
       return (order[a.status]??9) - (order[b.status]??9);
     });
     renderCurrentProjects();
@@ -910,6 +911,7 @@ function fpBlurb(body) {
 function normalizeProject(issue, labels, comments) {
   let status = labels.includes('status:abandoned')       ? 'abandoned'
     : issue.state === 'closed'                            ? 'done'
+    : labels.includes('status:ready-for-production')      ? 'ready_for_prod'
     : labels.includes('status:beta')                      ? 'beta'
     : labels.includes('status:needs-revision')            ? 'needs_revision'
     : labels.includes('status:pr-ready')                  ? 'pr_ready'
@@ -959,6 +961,9 @@ function extractOncRefs(text) {
 
 const statusBadge = (s, betaUrl) => {
   if (s === 'beta' && betaUrl) return `<a href="${betaUrl}" target="_blank" class="badge ps-beta" style="text-decoration:none" title="Click to test beta">🚀 Beta ↗</a>`;
+  if (s === 'ready_for_prod') return betaUrl
+    ? `<a href="${betaUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Ready for production — click to test the beta build">✅ Ready for Prod ↗</a>`
+    : `<span class="badge ps-ready-prod">✅ Ready for Prod</span>`;
   return ({
     planning:       `<span class="badge ps-planning">Planning</span>`,
     in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
@@ -1018,7 +1023,12 @@ function projectActions(p) {
   }
   if (p.status === 'beta') {
     if (!p.betaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openBetaModal(${p.number})" title="No beta link captured — add the deploy URL so the Beta badge links to it">⚠ Add beta link</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyForProd(${p.number})" title="Beta tested — mark ready for Scott to deploy to production">Ready for Production</button>`);
     parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
+  }
+  if (p.status === 'ready_for_prod') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Deployed to production — mark done and close issue">Mark Done</button>`);
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott that this is ready to deploy to production">Notify Scott</button>`);
   }
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
@@ -1370,9 +1380,19 @@ async function abandonProject(number) {
   });
 }
 
+async function markReadyForProd(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✅ **Ready for Production** — beta tested and cleared by @${currentUser.login}. Awaiting Scott's production deploy.`);
+    await removeLabel(number, 'status:beta');
+    await addLabel(number, 'status:ready-for-production');
+    toast(`Marked ready for production`);
+  });
+}
+
 async function markProjectDone(number) {
   await withProjectLoading(number, async () => {
     await postComment(number, `✅ **Marked done by @${currentUser.login}.**`);
+    await removeLabel(number, 'status:ready-for-production');
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
     toast(`Marked done`);
   });
