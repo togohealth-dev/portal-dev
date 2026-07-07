@@ -1154,7 +1154,7 @@ function renderNotesHistory(comments) {
       const m = line.match(/📎 \[([^\]]+)\]\(portal-attach:\/\/([^)]+)\)/);
       if (m) {
         const [, fname, path] = m;
-        attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')}" style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600">⬇ ${esc(fname)}</button>`);
+        attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600">⬇ ${esc(fname)}</button>`);
       } else {
         textLines.push(esc(line));
       }
@@ -1265,7 +1265,12 @@ async function downloadAttachment(path, filename) {
     const blob = new Blob([bytes]);
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
     a.click(); URL.revokeObjectURL(a.href);
-  } catch(e) { toast(`Download error: ${e.message}`, true); }
+  } catch(e) {
+    const msg = /not found/i.test(e.message)
+      ? 'Attachment file is missing from the repo (it may have been lost in a force-push) — please re-upload it.'
+      : `Download error: ${e.message}`;
+    toast(msg, true);
+  }
 }
 
 // ── Mark Beta modal ───────────────────────────────────────────────────────────
