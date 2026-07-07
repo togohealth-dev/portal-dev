@@ -36,6 +36,11 @@
 
   /* ── Header ── */
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .section-nav { position: sticky; top: 56px; z-index: 99; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 4px; padding: 7px 24px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .section-nav .nav-label { font-size: 12px; color: var(--text-muted); margin-right: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  .section-nav a { font-size: 13px; color: var(--primary); cursor: pointer; padding: 4px 11px; border-radius: 6px; text-decoration: none; font-weight: 500; }
+  .section-nav a:hover { background: #eef2ff; }
+  .section-block { scroll-margin-top: 108px; }
   .header-left { display: flex; align-items: center; gap: 12px; }
   .logo { font-weight: 700; font-size: 16px; color: var(--primary); }
   .logo span { color: var(--text-muted); font-weight: 400; }
@@ -278,6 +283,16 @@
     <button class="btn btn-danger" onclick="clearToken()">Sign out</button>
   </div>
 </header>
+
+<nav class="section-nav">
+  <span class="nav-label">Jump to</span>
+  <a onclick="jumpTo('cp')">Current</a>
+  <a onclick="jumpTo('onc')">ONC</a>
+  <a onclick="jumpTo('fp')">Facility</a>
+  <a onclick="jumpTo('fi')">Future</a>
+  <a onclick="jumpTo('done')">Completed</a>
+  <a onclick="jumpTo('ab')">Abandoned</a>
+</nav>
 
 <main>
   <!-- ── CURRENT PROJECTS ── -->
@@ -2112,6 +2127,13 @@ function setFilter(f, el) { filter=f; document.querySelectorAll('[data-filter]')
 function toggleDone(el) { showDone=!showDone; el.classList.toggle('active',showDone); renderContent(); }
 function toggleWave(w) { document.getElementById(`wave-${w}`)?.classList.toggle('collapsed'); }
 function toggleSection(key) { document.getElementById('sec-' + key).classList.toggle('sec-collapsed'); }
+
+function jumpTo(key) {
+  const el = document.getElementById('sec-' + key);
+  if (!el) return;
+  el.classList.remove('sec-collapsed'); // expand if collapsed so the target is visible
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function toast(msg, err=false) {
   const el = document.getElementById('toast');
