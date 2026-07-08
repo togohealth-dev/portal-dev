@@ -1090,8 +1090,21 @@ function projectActions(p) {
     parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott that this is ready to deploy to production">Notify Scott</button>`);
     parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not actually ready — send back for revision, posts on PR and tags developer">Needs Revision</button>`);
   }
+  // Mark Complete is available on every active status (beta/ready-for-prod already
+  // have "Mark Done"). Lets you skip beta and send a shipped project straight to Completed.
+  if (!['beta','ready_for_prod'].includes(p.status)) {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped (incl. skipping beta) — mark complete and move to Completed">Mark Complete</button>`);
+  }
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
+}
+
+// First meaningful line of an issue body — a one-line "what's built" summary for
+// the Completed section (skips markdown headers and bold meta/guard lines).
+function buildSummary(p) {
+  const line = (p.body || '').split('\n').map(l => l.trim())
+    .find(l => l && !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('---'));
+  return line ? line.slice(0, 160) : '(no summary — open the issue for details)';
 }
 
 function renderFutureIdeas() {
@@ -1170,7 +1183,10 @@ function renderCompleted() {
   const rows = done.length
     ? done.map((p, idx) => `<tr>
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
-        <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a></td>
+        <td>
+          <span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <div class="proj-desc">${esc(buildSummary(p))}</div>
+        </td>
         <td><span class="badge ps-done" style="font-size:11px">✓ Done</span></td>
         <td>${dotsHtml(p.priority)}</td>
         <td>${assigneeHtml(p.assignees)}</td>
@@ -1180,6 +1196,7 @@ function renderCompleted() {
         <td><div class="actions">
           ${promptBtn(p.number, false)}
           ${editBtn(p.number)}
+          <button class="btn btn-primary btn-sm" onclick="addToCompleted(${p.number})" title="Keep this done, and start a NEW project that builds on what was shipped here">➕ Add to this</button>
           <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})" title="Reopen and move back to In Progress at 90%">↩ Revise</button>
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
         </div></td>
@@ -1513,6 +1530,51 @@ async function markProjectDone(number) {
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
     toast(`Marked done`);
   });
+}
+
+// Add to this: keep the completed project as-is, spin up a NEW project (in Current
+// or Future, user's choice) that builds on what was shipped. The new issue's body —
+// and therefore its Copy Prompt — combines the completed project's "what was built"
+// with the new work, plus an explicit "ask me for more details as needed."
+async function addToCompleted(number) {
+  const src = currentProjects.find(p => p.number === number);
+  if (!src) return;
+  const secRaw = prompt(`New work builds on "${src.title}".\n\nAdd the new project to which section? Type "current" or "future":`, 'current');
+  if (secRaw === null) return;
+  const mode = /^f/i.test(secRaw.trim()) ? 'future' : 'current';
+  const addition = prompt(`What are you adding or changing?\n(A sentence or two is fine — the Claude prompt will invite you to add more detail as you build.)`);
+  if (!addition || !addition.trim()) { toast('Add a short description of what you\'re adding.', true); return; }
+  const title = prompt('Title for the new project:', `${src.title} — follow-up`);
+  if (!title || !title.trim()) return;
+
+  const built = (src.body || '').trim() || '(no description was recorded on the completed project)';
+  const body =
+`Extends completed project #${src.number} — "${src.title}".
+Already built: ${buildSummary(src)}
+Adding: ${addition.trim()}
+Ask me (the requester) for more details as needed before/while building.
+
+## What was already built (context, from #${src.number})
+${built}
+
+## What we're adding now
+${addition.trim()}
+
+---
+*Spun off from completed #${src.number} via "Add to this".*`;
+
+  const labels = mode === 'future' ? ['future-idea'] : ['current-project', 'status:in-progress'];
+  try {
+    const issue = await ghFetch(`/repos/${REPO}/issues`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title: title.trim(), body, labels, assignees: mode === 'current' ? [currentUser.login] : [] })
+    });
+    // Build the combined Claude prompt and copy it so it's ready to paste.
+    const prompt2 = buildProjectPrompt({ number: issue.number, title: title.trim(), body, url: issue.html_url, oncRefs: src.oncRefs || [] });
+    copyToClipboard(prompt2);
+    toast(`Created #${issue.number} in ${mode === 'future' ? 'Future Ideas' : 'Current Projects'} · Claude prompt copied`);
+    await loadAll();
+  } catch(e) { toast(`Error: ${e.message}`, true); }
 }
 
 async function claimIdea(number) {
