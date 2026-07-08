@@ -1197,7 +1197,6 @@ function renderCompleted() {
           ${promptBtn(p.number, false)}
           ${editBtn(p.number)}
           <button class="btn btn-primary btn-sm" onclick="addToCompleted(${p.number})" title="Keep this done, and start a NEW project that builds on what was shipped here">➕ Add to this</button>
-          <button class="btn btn-outline btn-sm" onclick="reviseCompleted(${p.number})" title="Reopen and move back to In Progress at 90%">↩ Revise</button>
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
         </div></td>
       </tr>`).join('')
@@ -2166,18 +2165,6 @@ function revise(n) {
   });
 }
 
-function reviseCompleted(n) {
-  withLoading(n, async () => {
-    await postComment(n, `↩ **Revision requested by @${currentUser.login}** — reopening and moving back to in-progress at 90%.`);
-    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({state:'open'}) });
-    await removeLabel(n, 'status:done');
-    await addLabel(n, 'status:in-progress');
-    await addLabel(n, 'current-project');
-    await addLabel(n, 'progress-90');
-    await loadAll();
-    toast(`#${n} reopened — moved back to In Progress at 90%`);
-  });
-}
 
 function markDone(n) {
   withLoading(n, async()=>{
