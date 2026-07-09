@@ -222,7 +222,9 @@
   .ps-pr-ready   { background:#fef3c7; color:var(--amber); }
   .ps-needs-revision { background:#fee2e2; color:var(--red); }
   .ps-beta       { background:var(--green-bg); color:var(--green-atl); font-weight:700; }
+  .ps-alpha      { background:#ccfbf1; color:#0f766e; font-weight:700; }
   .ps-ready-prod { background:#e0e7ff; color:#4338ca; font-weight:700; }
+  .ps-beta-version { background:#efe4ff; color:#6b21a8; font-weight:700; }
   .ps-abandoned  { background:#f3f4f6; color:#9ca3af; }
   .ps-done       { background:#e5e7eb; color:#374151; }
 
@@ -286,11 +288,14 @@
 
 <nav class="section-nav">
   <span class="nav-label">Jump to</span>
-  <a onclick="jumpTo('cp')">Current</a>
+  <a onclick="jumpTo('cp-beta')" title="Beta-Version">🚀 Beta</a>
+  <a onclick="jumpTo('cp-alpha')" title="Alpha Testing">🧪 Alpha</a>
+  <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision">🛠️ In Progress</a>
+  <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('onc')">ONC</a>
   <a onclick="jumpTo('fp')">Facility</a>
   <a onclick="jumpTo('fi')">Future</a>
-  <a onclick="jumpTo('done')">Completed</a>
+  <a onclick="jumpTo('done')">Gamma Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
 </nav>
 
@@ -299,7 +304,7 @@
   <div class="section-block" id="sec-cp">
     <div class="section-hdr">
       <h2>Current Projects</h2>
-      <p>Active builds — every project checks ONC/MIPS impact before writing code</p>
+      <p>Rollout stages (top → bottom): 🚀 Beta-Version · 🧪 Alpha Testing · 🛠️ In Progress / Needs Revision. Completed = Gamma Production.</p>
       <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
       <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
@@ -370,8 +375,8 @@
   <!-- ── COMPLETED PROJECTS ── -->
   <div class="section-block" id="sec-done">
     <div class="section-hdr">
-      <h2>Completed Projects</h2>
-      <p>Closed and shipped</p>
+      <h2>Gamma Production</h2>
+      <p>Shipped to full production (closed)</p>
       <button class="sec-toggle" onclick="toggleSection('done')">▾</button>
     </div>
     <div class="sec-body">
@@ -498,19 +503,19 @@
 <!-- Mark Beta modal -->
 <div id="beta-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
   <div class="modal-card" style="width:480px">
-    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🚀 Mark as Beta</h3>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🧪 Mark as Alpha Testing</h3>
     <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
     <div class="modal-field">
-      <label>Beta URL <span style="color:var(--red);font-size:11px">required</span></label>
-      <input type="url" id="beta-url-input" placeholder="https://grab-md.pages.dev/…" required>
+      <label>Alpha deploy URL <span style="color:var(--red);font-size:11px">required</span></label>
+      <input type="url" id="beta-url-input" placeholder="https://grab-legacy--pr-…web.app/" required>
     </div>
     <div class="modal-field">
       <label>Note <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-      <input type="text" id="beta-note-input" placeholder="e.g. Both fall protocol and establish care are in this build">
+      <input type="text" id="beta-note-input" placeholder="e.g. what's in this alpha build / what to test">
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeBetaModal()">Cancel</button>
-      <button class="btn btn-green" id="beta-submit-btn" onclick="submitMarkBeta()">Mark Beta</button>
+      <button class="btn btn-green" id="beta-submit-btn" onclick="submitMarkAlpha()">Mark Alpha Testing</button>
     </div>
   </div>
 </div>
@@ -797,10 +802,22 @@ async function load() {
 
 // ── Current Projects ──────────────────────────────────────────────────────────
 
+const BETA_VERSION_CONFIG_ISSUE = 192; // 🔧 Tracker Config — holds the shared Beta-Version link
+let betaVersionUrl = null;
+
+async function loadBetaVersionUrl() {
+  try {
+    const cfg = await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`);
+    const m = (cfg.body || '').match(/BETA_VERSION_URL:\s*(https?:\/\/\S+)/i);
+    betaVersionUrl = m ? m[1].replace(/[.,)>*]+$/, '') : null;
+  } catch { betaVersionUrl = null; }
+}
+
 async function loadCurrentProjects() {
   document.getElementById('cp-loading').style.display = 'block';
   document.getElementById('cp-content').style.display = 'none';
   try {
+    await loadBetaVersionUrl();
     const raw = await ghFetch(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`);
     // Fetch latest comment for each open project (for Scott's feedback / beta URL)
     currentProjects = await Promise.all(raw.map(async issue => {
@@ -811,7 +828,7 @@ async function loadCurrentProjects() {
       return normalizeProject(issue, labels, comments);
     }));
     currentProjects.sort((a,b) => {
-      const order = {pr_ready:0, needs_revision:1, in_progress:2, planning:3, beta:4, ready_for_prod:5, done:6, abandoned:7};
+      const order = {beta_version:0, ready_beta:1, alpha_testing:2, needs_revision:3, pr_alpha_ready:4, in_progress:5, planning:6, done:7, abandoned:8};
       return (order[a.status]??9) - (order[b.status]??9);
     });
     renderCurrentProjects();
@@ -929,14 +946,17 @@ function fpBlurb(body) {
 }
 
 function normalizeProject(issue, labels, comments) {
-  let status = labels.includes('status:abandoned')       ? 'abandoned'
-    : issue.state === 'closed'                            ? 'done'
-    : labels.includes('status:ready-for-production')      ? 'ready_for_prod'
-    : labels.includes('status:beta')                      ? 'beta'
-    : labels.includes('status:needs-revision')            ? 'needs_revision'
-    : labels.includes('status:pr-ready')                  ? 'pr_ready'
-    : labels.includes('status:in-progress')               ? 'in_progress'
-    : (issue.assignees && issue.assignees.length)          ? 'in_progress'  // assigned = actively being worked
+  const has = n => labels.includes(n);
+  // Alpha → Beta → Gamma stages. Tolerant of the OLD label names during migration.
+  let status = has('status:abandoned')                                ? 'abandoned'
+    : issue.state === 'closed'                                        ? 'done'          // Gamma Production
+    : has('status:beta-version')                                      ? 'beta_version'
+    : has('status:ready-beta') || has('status:ready-for-production')  ? 'ready_beta'
+    : has('status:alpha-testing') || has('status:beta')               ? 'alpha_testing'
+    : has('status:needs-revision')                                    ? 'needs_revision'
+    : has('status:pr-alpha-ready') || has('status:pr-ready')          ? 'pr_alpha_ready'
+    : has('status:in-progress')                                       ? 'in_progress'
+    : (issue.assignees && issue.assignees.length)                     ? 'in_progress'  // assigned = actively being worked
     : 'planning';
 
   // Find PR or commit link from body or comments
@@ -948,14 +968,12 @@ function normalizeProject(issue, labels, comments) {
                 : null;
   const prNum   = prMatch ? prMatch[1] : null;
 
-  // Find beta URL from comments. Tolerant of markdown bold (**Beta:**) and the
-  // various phrasings people use: "🚀 Beta:", "Beta done:", "Beta deployed:",
-  // "Beta ready:", "live at", etc. The Mark Beta button writes "🚀 **Beta:** URL",
-  // so the closing ** between the label and the URL must be allowed.
-  let betaUrl = null;
+  // Per-project ALPHA deploy link from comments. Accepts "🚀 Alpha:" (new) and
+  // legacy "🚀 Beta:" (those URLs are now the alpha link), plus common phrasings.
+  let alphaUrl = null;
   for (const c of [...comments].reverse()) {
-    const m = (c.body||'').match(/(?:🚀\s*)?\*{0,2}\s*(?:beta(?:\s+(?:deploy(?:ed)?|done|ready|live|url|link|up))?|live\s+at|deployed\s+(?:to|at))\s*\*{0,2}\s*[:\-]?\s*\*{0,2}\s*(https?:\/\/\S+)/i);
-    if (m) { betaUrl = m[1].replace(/[.,)>*]+$/, ''); break; }
+    const m = (c.body||'').match(/(?:🚀\s*)?\*{0,2}\s*(?:(?:alpha|beta)(?:\s+(?:deploy(?:ed)?|done|ready|live|url|link|up|test(?:ing)?))?|live\s+at|deployed\s+(?:to|at))\s*\*{0,2}\s*[:\-]?\s*\*{0,2}\s*(https?:\/\/\S+)/i);
+    if (m) { alphaUrl = m[1].replace(/[.,)>*]+$/, ''); break; }
   }
 
   // Find latest Scott comment
@@ -971,7 +989,7 @@ function normalizeProject(issue, labels, comments) {
   const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0');
   const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
   const codingEst = estMatch ? estMatch[1] + 'h' : null;
-  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, betaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority, codingEst };
+  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, alphaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority, codingEst };
 }
 
 function extractOncRefs(text) {
@@ -979,21 +997,35 @@ function extractOncRefs(text) {
   return [...new Set(matches)];
 }
 
-const statusBadge = (s, betaUrl) => {
-  if (s === 'beta' && betaUrl) return `<a href="${betaUrl}" target="_blank" class="badge ps-beta" style="text-decoration:none" title="Click to test beta">🚀 Beta ↗</a>`;
-  if (s === 'ready_for_prod') return betaUrl
-    ? `<a href="${betaUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Ready for production — click to test the beta build">✅ Ready for Prod ↗</a>`
-    : `<span class="badge ps-ready-prod">✅ Ready for Prod</span>`;
+const statusBadge = (s, alphaUrl, betaVersionUrl) => {
+  // Alpha Testing → per-project alpha link. Ready-for-Beta stays on its alpha build.
+  if (s === 'alpha_testing') return alphaUrl
+    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="Click to open this project's alpha build">🧪 Alpha Testing ↗</a>`
+    : `<span class="badge ps-alpha" style="opacity:.7" title="No alpha link captured — use ⚠ Add alpha link">🧪 Alpha Testing ⚠</span>`;
+  if (s === 'ready_beta') return alphaUrl
+    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Alpha-tested, queued for Beta-Version — click to open the alpha build">✅ Ready for Beta ↗</a>`
+    : `<span class="badge ps-ready-prod">✅ Ready for Beta</span>`;
+  // Beta-Version → the single shared beta link (set by Scott via the config).
+  if (s === 'beta_version') return betaVersionUrl
+    ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version">🚀 Beta-Version ↗</a>`
+    : `<span class="badge ps-beta-version" style="opacity:.7" title="No Beta-Version link set yet — Scott sets it in the top of this section">🚀 Beta-Version ⚠</span>`;
   return ({
     planning:       `<span class="badge ps-planning">Planning</span>`,
     in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
-    pr_ready:       `<span class="badge ps-pr-ready">⏳ PR Ready</span>`,
+    pr_alpha_ready: `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
     needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-    beta:           `<span class="badge ps-beta" style="opacity:.7" title="No beta link captured — use ⚠ Add beta link to attach the deploy URL">🚀 Beta ⚠</span>`,
-    done:           `<span class="badge ps-done">✓ Done</span>`,
+    done:           `<span class="badge ps-done">✓ Gamma Production</span>`,
     abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
   }[s] || '');
 };
+
+// Current Projects renders three stacked sub-sections (top→bottom):
+// Beta-Version, Alpha Testing (alpha-testing + ready-beta), In Progress/Needs Revision.
+const CP_GROUPS = [
+  { key:'beta',     anchor:'cp-beta',     title:'🚀 Beta-Version',              statuses:['beta_version'] },
+  { key:'alpha',    anchor:'cp-alpha',    title:'🧪 Alpha Testing',             statuses:['alpha_testing','ready_beta'] },
+  { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision', statuses:['in_progress','needs_revision','pr_alpha_ready','planning'] },
+];
 
 function renderCurrentProjects() {
   const el = document.getElementById('cp-content');
@@ -1003,57 +1035,84 @@ function renderCurrentProjects() {
     return;
   }
 
-  // Assignee filter options built from whoever actually has active projects.
-  const logins = [...new Set(allActive.flatMap(p => p.assignees || []))]
-    .sort((a,b) => teamName(a).localeCompare(teamName(b)));
+  // Global assignee filter (applies across all three sub-sections).
+  const logins = [...new Set(allActive.flatMap(p => p.assignees || []))].sort((a,b)=>teamName(a).localeCompare(teamName(b)));
   const hasUnassigned = allActive.some(p => !p.assignees?.length);
-  // Drop a stale filter (e.g. person no longer has active projects) so we don't show an empty table with no way back.
   if (cpAssigneeFilter !== 'all' && cpAssigneeFilter !== '__unassigned__' && !logins.includes(cpAssigneeFilter)) cpAssigneeFilter = 'all';
   if (cpAssigneeFilter === '__unassigned__' && !hasUnassigned) cpAssigneeFilter = 'all';
-
-  const activeProjects = allActive.filter(p =>
+  const filtered = allActive.filter(p =>
       cpAssigneeFilter === 'all'            ? true
     : cpAssigneeFilter === '__unassigned__' ? !p.assignees?.length
     : (p.assignees || []).includes(cpAssigneeFilter));
-
   const opts = [`<option value="all"${cpAssigneeFilter==='all'?' selected':''}>All</option>`]
     .concat(logins.map(l => `<option value="${esc(l)}"${cpAssigneeFilter===l?' selected':''}>${esc(teamName(l))}</option>`))
     .concat(hasUnassigned ? [`<option value="__unassigned__"${cpAssigneeFilter==='__unassigned__'?' selected':''}>Unassigned</option>`] : [])
     .join('');
 
   const head = `<thead><tr>
-    <th style="width:28px">#</th>
-    <th>Build</th>
-    <th style="width:150px">Status</th>
-    <th style="width:72px">Priority</th>
-    <th style="width:120px">Assigned<br><select onchange="setCpAssignee(this.value)" style="margin-top:4px;font-size:11px;font-weight:500;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:108px;cursor:pointer">${opts}</select></th>
-    <th style="width:62px">PR</th>
-    <th style="width:68px">ONC/MIPS</th>
-    <th style="width:58px">Notes</th>
-    <th style="width:220px">Actions</th>
+    <th style="width:28px">#</th><th>Build</th><th style="width:150px">Status</th>
+    <th style="width:72px">Priority</th><th style="width:100px">Assigned</th>
+    <th style="width:62px">PR</th><th style="width:68px">ONC/MIPS</th>
+    <th style="width:58px">Notes</th><th style="width:240px">Actions</th>
   </tr></thead>`;
 
-  const rows = activeProjects.length
-    ? activeProjects.map((p, idx) => `<tr>
-        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
-        <td>
-          <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
-          <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
-        </td>
-        <td>${statusBadge(p.status, p.betaUrl)}</td>
-        <td>${dotsHtml(p.priority)}</td>
-        <td>${assigneeHtml(p.assignees)}</td>
-        <td>${prHtml(p.prUrl, p.prNum)}</td>
-        <td>${oncHtml(p.oncRefs)}</td>
-        <td>${notesHtml(p)}</td>
-        <td><div class="actions">${projectActions(p)}</div></td>
-      </tr>`).join('')
-    : `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:12px">No current projects assigned to ${esc(cpAssigneeFilter==='__unassigned__'?'Unassigned':teamName(cpAssigneeFilter))}. <a onclick="setCpAssignee('all')" style="color:var(--primary);cursor:pointer">Show all</a></td></tr>`;
+  const rowHtml = (p, idx) => `<tr>
+    <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+    <td>
+      <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+      <div class="proj-desc">${esc(p.body.split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+    </td>
+    <td>${statusBadge(p.status, p.alphaUrl, betaVersionUrl)}</td>
+    <td>${dotsHtml(p.priority)}</td>
+    <td>${assigneeHtml(p.assignees)}</td>
+    <td>${prHtml(p.prUrl, p.prNum)}</td>
+    <td>${oncHtml(p.oncRefs)}</td>
+    <td>${notesHtml(p)}</td>
+    <td><div class="actions">${projectActions(p)}</div></td>
+  </tr>`;
 
-  el.innerHTML = `
-  <div class="proj-table-wrap">
-    <table>${head}<tbody>${rows}</tbody></table>
-  </div>`;
+  const filterBar = `<div style="margin:2px 0 12px;font-size:12px;color:var(--text-muted)">Filter by assignee:
+    <select onchange="setCpAssignee(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;cursor:pointer;margin-left:4px">${opts}</select></div>`;
+
+  const sections = CP_GROUPS.map(g => {
+    const items = filtered.filter(p => g.statuses.includes(p.status));
+    let titleHtml = `<span style="font-weight:700;font-size:14px">${g.title}</span>
+      <span style="font-size:12px;color:var(--text-muted);font-weight:500">(${items.length})</span>`;
+    if (g.key === 'beta') {
+      titleHtml += betaVersionUrl
+        ? ` — <a href="${betaVersionUrl}" target="_blank" style="font-size:12px;color:var(--primary)">open the Beta-Version ↗</a>`
+        : ` — <span style="font-size:12px;color:var(--text-muted)">no link set yet</span>`;
+      titleHtml += ` <button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="setBetaVersionLink()" title="Set/update the single shared Beta-Version deploy link">Set link</button>`;
+    }
+    const rows = items.length ? items.map(rowHtml).join('')
+      : `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:10px">None${cpAssigneeFilter!=='all'?' for this assignee — <a onclick="setCpAssignee(\'all\')" style="color:var(--primary);cursor:pointer">show all</a>':''}.</td></tr>`;
+    return `<div id="${g.anchor}" style="scroll-margin-top:120px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px">${titleHtml}</div>
+      <div class="proj-table-wrap"><table>${head}<tbody>${rows}</tbody></table></div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = filterBar + sections;
+}
+
+function setBetaVersionLink() {
+  const url = prompt('Enter the shared Beta-Version deploy link (applies to ALL Beta-Version projects). Leave blank to clear:', betaVersionUrl || '');
+  if (url === null) return;
+  const clean = url.trim();
+  if (clean && !/^https?:\/\//i.test(clean)) { toast('Enter a full https:// URL (or blank to clear).', true); return; }
+  (async () => {
+    try {
+      const cfg = await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`);
+      const line = `BETA_VERSION_URL: ${clean || '(none yet)'}`;
+      const newBody = /BETA_VERSION_URL:.*/i.test(cfg.body||'')
+        ? (cfg.body||'').replace(/BETA_VERSION_URL:.*/i, line)
+        : `${cfg.body||''}\n\n${line}`;
+      await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ body: newBody }) });
+      betaVersionUrl = clean || null;
+      renderCurrentProjects();
+      toast(clean ? 'Beta-Version link set' : 'Beta-Version link cleared');
+    } catch(e) { toast(`Error: ${e.message}`, true); }
+  })();
 }
 
 function setCpAssignee(value) {
@@ -1066,35 +1125,34 @@ function projectActions(p) {
   const eb = editBtn(p.number);
   if (p.status === 'done' || p.status === 'abandoned') return `${pb} ${eb} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
   const parts = [pb, eb];
+  // Forward-only "advance to next stage" button per status (no back/skip buttons).
   if (p.status === 'planning' || p.status === 'in_progress') {
-    parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrReady(${p.number})" title="Mark PR ready and notify Scott">PR Ready</button>`);
+    parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrAlphaReady(${p.number})" title="Mark PR alpha-ready and notify Scott">PR Alpha Ready</button>`);
     if (p.prUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
   }
-  if (p.status === 'pr_ready') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
+  if (p.status === 'pr_alpha_ready') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openAlphaModal(${p.number})" title="Enter the alpha deploy link and move to Alpha Testing">Mark Alpha Testing</button>`);
     parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott again on this PR">Re-ping Scott</button>`);
     parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision — posts on PR and tags developer">Needs Revision</button>`);
   }
   if (p.status === 'needs_revision') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="openBetaModal(${p.number})" title="Enter beta URL and move to beta status">Mark Beta</button>`);
-    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrReady(${p.number})" title="Notify Scott that PR has been updated">PR Updated</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrAlphaReady(${p.number})" title="Fixed — mark PR alpha-ready again">PR Updated</button>`);
   }
-  if (p.status === 'beta') {
-    if (!p.betaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openBetaModal(${p.number})" title="No beta link captured — add the deploy URL so the Beta badge links to it">⚠ Add beta link</button>`);
-    parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyForProd(${p.number})" title="Beta tested — mark ready for Scott to deploy to production">Ready for Production</button>`);
-    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Mark as fully done and close issue">Mark Done</button>`);
-    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not ready for production — send back for revision, posts on PR and tags developer">Needs Revision</button>`);
+  if (p.status === 'alpha_testing') {
+    if (!p.alphaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openAlphaModal(${p.number})" title="No alpha link captured — add the deploy URL so the badge links to it">⚠ Add alpha link</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyBeta(${p.number})" title="Alpha-tested — queue for the next Beta-Version promotion">Ready for Beta</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not passing alpha — send back for revision">Needs Revision</button>`);
   }
-  if (p.status === 'ready_for_prod') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Deployed to production — mark done and close issue">Mark Done</button>`);
-    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott that this is ready to deploy to production">Notify Scott</button>`);
-    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not actually ready — send back for revision, posts on PR and tags developer">Needs Revision</button>`);
+  if (p.status === 'ready_beta') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="promoteBetaVersion(${p.number})" title="Promote into the shared Beta-Version (normally done every other Tuesday)">Promote to Beta-Version</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision">Needs Revision</button>`);
   }
-  // Mark Complete is available on every active status (beta/ready-for-prod already
-  // have "Mark Done"). Lets you skip beta and send a shipped project straight to Completed.
-  if (!['beta','ready_for_prod'].includes(p.status)) {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped (incl. skipping beta) — mark complete and move to Completed">Mark Complete</button>`);
+  if (p.status === 'beta_version') {
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Issue found in beta — send back for revision">Needs Revision</button>`);
   }
+  // Mark Gamma Production is available on every active status — closes the issue into
+  // the Gamma Production (Completed) section, incl. skipping stages when it ships early.
+  parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped to production — move to Gamma Production (Completed)">Mark Gamma</button>`);
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
 }
@@ -1399,7 +1457,7 @@ async function downloadAttachment(path, filename) {
 
 // ── Mark Beta modal ───────────────────────────────────────────────────────────
 let betaIssueNumber = null;
-function openBetaModal(number) {
+function openAlphaModal(number) {
   betaIssueNumber = number;
   const p = currentProjects.find(p => p.number === number);
   document.getElementById('beta-modal-title').textContent = p ? p.title : `Issue #${number}`;
@@ -1409,26 +1467,26 @@ function openBetaModal(number) {
   setTimeout(() => document.getElementById('beta-url-input').focus(), 50);
 }
 function closeBetaModal() { document.getElementById('beta-modal').style.display = 'none'; }
-async function submitMarkBeta() {
+async function submitMarkAlpha() {
   const url  = document.getElementById('beta-url-input').value.trim();
   const note = document.getElementById('beta-note-input').value.trim();
-  if (!url) { toast('Beta URL is required — paste the deploy link first.', true); return; }
+  if (!url) { toast('Alpha URL is required — paste the deploy link first.', true); return; }
   const btn  = document.getElementById('beta-submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const body = `🚀 **Beta:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
+    const body = `🚀 **Alpha:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
     await postComment(betaIssueNumber, body);
-    await removeLabel(betaIssueNumber, 'status:pr-ready');
+    await removeLabel(betaIssueNumber, 'status:pr-alpha-ready');
     await removeLabel(betaIssueNumber, 'status:needs-revision');
-    await addLabel(betaIssueNumber, 'status:beta');
+    await addLabel(betaIssueNumber, 'status:alpha-testing');
     closeBetaModal();
-    toast('Marked as beta');
+    toast('Moved to Alpha Testing');
     await loadAll();
   } catch(e) { toast(`Error: ${e.message}`, true); }
-  finally { btn.disabled = false; btn.textContent = 'Mark Beta'; }
+  finally { btn.disabled = false; btn.textContent = 'Mark Alpha Testing'; }
 }
 
-async function setPrReady(number) {
+async function setPrAlphaReady(number) {
   const p = currentProjects.find(p => p.number === number);
   // Always confirm the link — PRs get replaced (orphaned branch, re-opened PR),
   // so a stored prUrl can be stale. Prefill it: OK = same PR, or edit to the new one.
@@ -1453,7 +1511,7 @@ async function setPrReady(number) {
     await postComment(number, `🔔 **Ready for review — @${SCOTT}**\n\n${linkLabel}: ${prTrimmed}\n\n— @${currentUser.login}`);
     await removeLabel(number, 'status:in-progress');
     await removeLabel(number, 'status:needs-revision');
-    await addLabel(number, 'status:pr-ready');
+    await addLabel(number, 'status:pr-alpha-ready');
     // Update the issue body so the PR column shows the current link. The tracker
     // displays the FIRST PR link found in the body, so a replaced PR must be
     // swapped in place — appending would leave the stale link winning.
@@ -1495,10 +1553,8 @@ async function markNeedsRevision(number) {
     // Also log on the project issue
     await postComment(number, body);
     // Clear any forward-of-revision state so the project cleanly returns to
-    // needs-revision (status derivation checks beta/ready-for-prod first).
-    await removeLabel(number, 'status:pr-ready');
-    await removeLabel(number, 'status:beta');
-    await removeLabel(number, 'status:ready-for-production');
+    // needs-revision (status derivation checks the later stages first).
+    for (const l of ['status:pr-alpha-ready','status:alpha-testing','status:ready-beta','status:beta-version','status:pr-ready','status:beta','status:ready-for-production']) await removeLabel(number, l);
     await addLabel(number, 'status:needs-revision');
     toast(`#${number} marked Needs Revision`);
   });
@@ -1513,21 +1569,31 @@ async function abandonProject(number) {
   });
 }
 
-async function markReadyForProd(number) {
+async function markReadyBeta(number) {
   await withProjectLoading(number, async () => {
-    await postComment(number, `✅ **Ready for Production** — beta tested and cleared by @${currentUser.login}. Awaiting Scott's production deploy.`);
-    await removeLabel(number, 'status:beta');
-    await addLabel(number, 'status:ready-for-production');
-    toast(`Marked ready for production`);
+    await postComment(number, `✅ **Ready for Beta** — alpha-tested and cleared by @${currentUser.login}. Queued for the next Beta-Version promotion.`);
+    await removeLabel(number, 'status:alpha-testing');
+    await addLabel(number, 'status:ready-beta');
+    toast(`Marked Ready for Beta`);
+  });
+}
+
+async function promoteBetaVersion(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `🚀 **Promoted to Beta-Version** by @${currentUser.login}.`);
+    await removeLabel(number, 'status:ready-beta');
+    await removeLabel(number, 'status:alpha-testing');
+    await addLabel(number, 'status:beta-version');
+    toast(`Promoted to Beta-Version`);
   });
 }
 
 async function markProjectDone(number) {
   await withProjectLoading(number, async () => {
-    await postComment(number, `✅ **Marked done by @${currentUser.login}.**`);
-    await removeLabel(number, 'status:ready-for-production');
+    await postComment(number, `✅ **Shipped to Gamma Production by @${currentUser.login}.**`);
+    for (const l of ['status:beta-version','status:ready-beta','status:alpha-testing','status:pr-alpha-ready','status:ready-for-production']) await removeLabel(number, l);
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
-    toast(`Marked done`);
+    toast(`Moved to Gamma Production`);
   });
 }
 
@@ -2272,9 +2338,13 @@ function toggleWave(w) { document.getElementById(`wave-${w}`)?.classList.toggle(
 function toggleSection(key) { document.getElementById('sec-' + key).classList.toggle('sec-collapsed'); }
 
 function jumpTo(key) {
-  const el = document.getElementById('sec-' + key);
+  // Section blocks are id="sec-<key>"; the Current-Projects sub-sections are
+  // id="cp-beta|cp-alpha|cp-progress" (no prefix), so accept both.
+  const el = document.getElementById('sec-' + key) || document.getElementById(key);
   if (!el) return;
-  el.classList.remove('sec-collapsed'); // expand if collapsed so the target is visible
+  // Make sure the parent Current-Projects block is expanded when targeting a sub-section.
+  (document.getElementById('sec-cp') || el).classList.remove('sec-collapsed');
+  el.classList.remove('sec-collapsed');
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
