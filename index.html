@@ -225,6 +225,7 @@
   .ps-alpha      { background:#ccfbf1; color:#0f766e; font-weight:700; }
   .ps-ready-prod { background:#e0e7ff; color:#4338ca; font-weight:700; }
   .ps-beta-version { background:#efe4ff; color:#6b21a8; font-weight:700; }
+  .greek { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
   .ps-abandoned  { background:#f3f4f6; color:#9ca3af; }
   .ps-done       { background:#e5e7eb; color:#374151; }
 
@@ -288,14 +289,14 @@
 
 <nav class="section-nav">
   <span class="nav-label">Jump to</span>
-  <a onclick="jumpTo('cp-beta')" title="Beta-Version">🚀 Beta</a>
-  <a onclick="jumpTo('cp-alpha')" title="Alpha Testing">🧪 Alpha</a>
+  <a onclick="jumpTo('cp-beta')" title="Beta-Version"><span class="greek">β</span> Beta</a>
+  <a onclick="jumpTo('cp-alpha')" title="Alpha Testing"><span class="greek">α</span> Alpha</a>
   <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('onc')">ONC</a>
   <a onclick="jumpTo('fp')">Facility</a>
   <a onclick="jumpTo('fi')">Future</a>
-  <a onclick="jumpTo('done')">Gamma Production</a>
+  <a onclick="jumpTo('done')"><span class="greek">γ</span> Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
 </nav>
 
@@ -304,7 +305,7 @@
   <div class="section-block" id="sec-cp">
     <div class="section-hdr">
       <h2>Current Projects</h2>
-      <p>Rollout stages (top → bottom): 🚀 Beta-Version · 🧪 Alpha Testing · 🛠️ In Progress / Needs Revision. Completed = Gamma Production.</p>
+      <p>Rollout stages (top → bottom): <span class="greek">β</span> Beta-Version · <span class="greek">α</span> Alpha Testing · 🛠️ In Progress / Needs Revision. Completed = <span class="greek">γ</span> Production.</p>
       <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
       <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
@@ -375,7 +376,7 @@
   <!-- ── COMPLETED PROJECTS ── -->
   <div class="section-block" id="sec-done">
     <div class="section-hdr">
-      <h2>Gamma Production</h2>
+      <h2><span class="greek">γ</span> Production — Completed</h2>
       <p>Shipped to full production (closed)</p>
       <button class="sec-toggle" onclick="toggleSection('done')">▾</button>
     </div>
@@ -503,7 +504,7 @@
 <!-- Mark Beta modal -->
 <div id="beta-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
   <div class="modal-card" style="width:480px">
-    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🧪 Mark as Alpha Testing</h3>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px"><span class="greek">α</span> Mark as Alpha Testing</h3>
     <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
     <div class="modal-field">
       <label>Alpha deploy URL <span style="color:var(--red);font-size:11px">required</span></label>
@@ -1000,21 +1001,21 @@ function extractOncRefs(text) {
 const statusBadge = (s, alphaUrl, betaVersionUrl) => {
   // Alpha Testing → per-project alpha link. Ready-for-Beta stays on its alpha build.
   if (s === 'alpha_testing') return alphaUrl
-    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="Click to open this project's alpha build">🧪 Alpha Testing ↗</a>`
-    : `<span class="badge ps-alpha" style="opacity:.7" title="No alpha link captured — use ⚠ Add alpha link">🧪 Alpha Testing ⚠</span>`;
+    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="Click to open this project's alpha build"><span class="greek">α</span> Alpha Testing ↗</a>`
+    : `<span class="badge ps-alpha" style="opacity:.7" title="No alpha link captured — use ⚠ Add alpha link"><span class="greek">α</span> Alpha Testing ⚠</span>`;
   if (s === 'ready_beta') return alphaUrl
     ? `<a href="${alphaUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Alpha-tested, queued for Beta-Version — click to open the alpha build">✅ Ready for Beta ↗</a>`
     : `<span class="badge ps-ready-prod">✅ Ready for Beta</span>`;
   // Beta-Version → the single shared beta link (set by Scott via the config).
   if (s === 'beta_version') return betaVersionUrl
-    ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version">🚀 Beta-Version ↗</a>`
-    : `<span class="badge ps-beta-version" style="opacity:.7" title="No Beta-Version link set yet — Scott sets it in the top of this section">🚀 Beta-Version ⚠</span>`;
+    ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version"><span class="greek">β</span> Beta-Version ↗</a>`
+    : `<span class="badge ps-beta-version" style="opacity:.7" title="No Beta-Version link set yet — Scott sets it in the top of this section"><span class="greek">β</span> Beta-Version ⚠</span>`;
   return ({
     planning:       `<span class="badge ps-planning">Planning</span>`,
     in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
     pr_alpha_ready: `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
     needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-    done:           `<span class="badge ps-done">✓ Gamma Production</span>`,
+    done:           `<span class="badge ps-done">✓ <span class="greek">γ</span> Production</span>`,
     abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
   }[s] || '');
 };
@@ -1022,8 +1023,8 @@ const statusBadge = (s, alphaUrl, betaVersionUrl) => {
 // Current Projects renders three stacked sub-sections (top→bottom):
 // Beta-Version, Alpha Testing (alpha-testing + ready-beta), In Progress/Needs Revision.
 const CP_GROUPS = [
-  { key:'beta',     anchor:'cp-beta',     title:'🚀 Beta-Version',              statuses:['beta_version'] },
-  { key:'alpha',    anchor:'cp-alpha',    title:'🧪 Alpha Testing',             statuses:['alpha_testing','ready_beta'] },
+  { key:'beta',     anchor:'cp-beta',     title:'<span class="greek">β</span> Beta-Version',   statuses:['beta_version'] },
+  { key:'alpha',    anchor:'cp-alpha',    title:'<span class="greek">α</span> Alpha Testing',  statuses:['alpha_testing','ready_beta'] },
   { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision', statuses:['in_progress','needs_revision','pr_alpha_ready','planning'] },
 ];
 
@@ -1152,7 +1153,7 @@ function projectActions(p) {
   }
   // Mark Gamma Production is available on every active status — closes the issue into
   // the Gamma Production (Completed) section, incl. skipping stages when it ships early.
-  parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped to production — move to Gamma Production (Completed)">Mark Gamma</button>`);
+  parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped to production — move to γ Production (Completed)">Mark <span class="greek">γ</span></button>`);
   parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
   return parts.join('');
 }
@@ -1590,10 +1591,10 @@ async function promoteBetaVersion(number) {
 
 async function markProjectDone(number) {
   await withProjectLoading(number, async () => {
-    await postComment(number, `✅ **Shipped to Gamma Production by @${currentUser.login}.**`);
+    await postComment(number, `✅ **Shipped to γ Production (Gamma) by @${currentUser.login}.**`);
     for (const l of ['status:beta-version','status:ready-beta','status:alpha-testing','status:pr-alpha-ready','status:ready-for-production']) await removeLabel(number, l);
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
-    toast(`Moved to Gamma Production`);
+    toast(`Moved to γ Production`);
   });
 }
 
