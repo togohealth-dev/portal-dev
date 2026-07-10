@@ -1809,7 +1809,8 @@ ${activeProjects}
   If backend is needed, stop and get approval from Greg first.
 - PDF/exports: server-side only (Rust backend). Never browser-side (no jsPDF/html2canvas).
 - Frontend + backend changes ship in the same PR.
-- Deployment: localhost → beta → production. Never skip beta.
+- Deployment: localhost (sandbox DB) → alpha (per-feature, prod DB, tested one at a time) → beta (every 2 wks, all alphas combined) → gamma (full production, all users). Never skip a stage.
+- Before you commit / open a PR: run the MANUAL CHECKLIST in strategy-5-scott.md. A green build is NOT a passing check — manually click through every new path on localhost (against a migrated dev DB) before opening the PR.
 - PHI stays on Mac mini (192.168.1.190). No PHI in this chat.
 
 ─── FULL PLAN BEFORE CODING ─────────────────────────
