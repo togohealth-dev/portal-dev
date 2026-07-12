@@ -831,7 +831,8 @@ async function loadCurrentProjects() {
     }));
     currentProjects.sort((a,b) => {
       const order = {beta_version:0, ready_beta:1, alpha_testing:2, needs_revision:3, pr_alpha_ready:4, in_progress:5, planning:6, done:7, abandoned:8};
-      return (order[a.status]??9) - (order[b.status]??9);
+      return (order[a.status]??9) - (order[b.status]??9)
+          || (new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
     });
     renderCurrentProjects();
     renderCompleted();
@@ -991,7 +992,7 @@ function normalizeProject(issue, labels, comments) {
   const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0');
   const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
   const codingEst = estMatch ? estMatch[1] + 'h' : null;
-  return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, alphaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority, codingEst };
+  return { number: issue.number, updatedAt: issue.updated_at, title: issue.title, body: issue.body||'', url: issue.html_url, labels, status, prUrl, prNum, alphaUrl, latestScott, allComments: comments, oncRefs, typeLabel, assignees: (issue.assignees||[]).map(a=>a.login), priority, codingEst };
 }
 
 function extractOncRefs(text) {
