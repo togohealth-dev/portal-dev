@@ -294,6 +294,7 @@
   <a onclick="jumpTo('cp-alpha')" title="Alpha Testing"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</a>
   <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
+  <a onclick="jumpTo('ref')">📚 Reference</a>
   <a onclick="jumpTo('onc')">ONC</a>
   <a onclick="jumpTo('fp')">Facility</a>
   <a onclick="jumpTo('fi')">Future</a>
@@ -313,6 +314,21 @@
     <div class="sec-body">
       <div id="cp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
       <div id="cp-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── DEVELOPER REFERENCE PROJECTS ── -->
+  <div class="section-block" id="sec-ref">
+    <div class="section-hdr">
+      <h2>📚 Developer Reference Projects</h2>
+      <p>Onboarding & reference docs (e.g. new-hire machine setup). Flag any completed project into here with "📚 Reference."</p>
+      <button class="sec-toggle" onclick="toggleSection('ref')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="ref-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="ref-content" style="display:none"></div>
     </div>
   </div>
 
@@ -770,7 +786,7 @@ async function ghFetch(path, opts={}) {
 // ── Load ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
   if (!currentUser) currentUser = await ghFetch('/user');
-  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas(), loadFacilityPortal()]);
+  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas(), loadFacilityPortal(), loadReferenceProjects()]);
 }
 
 async function load() {
@@ -1200,8 +1216,62 @@ function renderFutureIdeas() {
   </div>`;
 }
 
+// ── Developer Reference Projects (issues labeled `reference`) ──────────────────
+let referenceProjects = [];
+async function loadReferenceProjects() {
+  const loading = document.getElementById('ref-loading');
+  const content = document.getElementById('ref-content');
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=reference&state=all&per_page=100`);
+    referenceProjects = raw.map(i => ({ number: i.number, title: i.title, body: i.body||'', url: i.html_url, labels: i.labels.map(l=>l.name) }));
+    renderReferenceProjects();
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'block';
+  } catch(e) { if (loading) loading.textContent = `Error: ${e.message}`; }
+}
+
+function renderReferenceProjects() {
+  const el = document.getElementById('ref-content');
+  if (!el) return;
+  if (!referenceProjects.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No reference docs yet. Flag a completed project with "📚 Reference," or add the <code>reference</code> label to any issue.</div>`;
+    return;
+  }
+  el.innerHTML = `
+  <div class="proj-table-wrap">
+    <table><thead><tr>
+      <th style="width:28px">#</th><th>Reference doc</th><th style="width:300px">Actions</th>
+    </tr></thead><tbody>
+      ${referenceProjects.map((p, idx) => `<tr>
+        <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
+        <td>
+          <span style="margin-right:5px">📚</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <div class="proj-desc">${esc(buildSummary(p))}</div>
+        </td>
+        <td><div class="actions">
+          ${promptBtn(p.number, false)}
+          ${editBtn(p.number)}
+          <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
+          <button class="btn btn-danger btn-sm" onclick="unflagReference(${p.number})" title="Remove the reference label">Unflag</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+async function flagReference(number) {
+  try { await addLabel(number, 'reference'); toast(`#${number} flagged as reference`); await loadAll(); }
+  catch(e) { toast(`Error: ${e.message}`, true); }
+}
+async function unflagReference(number) {
+  if (!confirm('Remove this from Developer Reference Projects?')) return;
+  try { await removeLabel(number, 'reference'); toast(`#${number} unflagged`); await loadAll(); }
+  catch(e) { toast(`Error: ${e.message}`, true); }
+}
+
 function renderCompleted() {
-  const allDone = currentProjects.filter(p => p.status === 'done');
+  // Exclude reference-flagged projects — they live in the Reference section instead.
+  const allDone = currentProjects.filter(p => p.status === 'done' && !(p.labels||[]).includes('reference'));
   const loading = document.getElementById('done-loading');
   const content = document.getElementById('done-content');
   if (!loading || !content) return;
@@ -1258,6 +1328,7 @@ function renderCompleted() {
           ${promptBtn(p.number, false)}
           ${editBtn(p.number)}
           <button class="btn btn-primary btn-sm" onclick="addToCompleted(${p.number})" title="Keep this done, and start a NEW project that builds on what was shipped here">➕ Add to this</button>
+          <button class="btn btn-outline btn-sm" onclick="flagReference(${p.number})" title="Move this into Developer Reference Projects">📚 Reference</button>
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
         </div></td>
       </tr>`).join('')
