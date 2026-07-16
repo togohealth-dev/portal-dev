@@ -581,6 +581,11 @@
 
 <footer><a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank">View all issues on GitHub</a> · Token stored in localStorage only · No PHI</footer>
 <div id="toast"></div>
+<div id="busy-chip" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:300;background:#1e293b;color:#fff;padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,0.25);align-items:center;gap:8px">
+  <span class="busy-spin" style="display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:busyspin 0.7s linear infinite"></span>
+  <span id="busy-text">Updating…</span>
+</div>
+<style>@keyframes busyspin{to{transform:rotate(360deg)}}</style>
 
 <script>
 const REPO = 'togohealth-dev/emr-beta';
@@ -785,9 +790,44 @@ async function ghFetch(path, opts={}) {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
+let _busy = 0;
+function setBusy(on, text) {
+  _busy = Math.max(0, _busy + (on ? 1 : -1));
+  const chip = document.getElementById('busy-chip');
+  const t = document.getElementById('busy-text');
+  if (t && text) t.textContent = text;
+  if (chip) chip.style.display = _busy > 0 ? 'inline-flex' : 'none';
+}
+
+// Run a set of loaders while (a) showing the busy indicator and (b) preserving
+// the user's scroll position — so a submit doesn't jump the page to Wave 1 and
+// the user always sees that something is happening / when it finishes.
+async function refresh(loaders, label) {
+  const y = window.scrollY;
+  setBusy(true, label || 'Updating…');
+  try {
+    if (!currentUser) currentUser = await ghFetch('/user');
+    await Promise.all(loaders.map(fn => fn()));
+  } finally {
+    setBusy(false);
+    // restore twice: now and after layout settles, so late renders don't steal scroll
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }
+}
+
+// Full reload (initial load, manual Refresh button).
 async function loadAll() {
-  if (!currentUser) currentUser = await ghFetch('/user');
-  await Promise.all([load(), loadCurrentProjects(), loadFutureIdeas(), loadFacilityPortal(), loadReferenceProjects()]);
+  await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadReferenceProjects]);
+}
+
+// Lighter reloads after a row action — skip sections that action can't change,
+// so feedback is far faster than a full 5-section reload.
+async function reloadProjects() { // project-row actions (current/completed/future/facility/reference)
+  await refresh([loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadReferenceProjects], 'Saving…');
+}
+async function reloadOnc() {       // ONC criterion actions only
+  await refresh([load], 'Saving…');
 }
 
 async function load() {
@@ -1264,13 +1304,13 @@ function renderReferenceProjects() {
 }
 
 async function flagReference(number) {
-  try { await addLabel(number, 'reference'); toast(`#${number} flagged as reference`); await loadAll(); }
-  catch(e) { toast(`Error: ${e.message}`, true); }
+  try { await addLabel(number, 'reference'); toast(`#${number} flagged as reference`); await reloadProjects(); }
+  catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
 }
 async function unflagReference(number) {
   if (!confirm('Remove this from Developer Reference Projects?')) return;
-  try { await removeLabel(number, 'reference'); toast(`#${number} unflagged`); await loadAll(); }
-  catch(e) { toast(`Error: ${e.message}`, true); }
+  try { await removeLabel(number, 'reference'); toast(`#${number} unflagged`); await reloadProjects(); }
+  catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
 }
 
 function renderCompleted() {
@@ -1567,8 +1607,8 @@ async function submitMarkAlpha() {
     await addLabel(betaIssueNumber, 'status:alpha-testing');
     closeBetaModal();
     toast('Moved to Alpha Testing');
-    await loadAll();
-  } catch(e) { toast(`Error: ${e.message}`, true); }
+    await reloadProjects();
+  } catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
   finally { btn.disabled = false; btn.textContent = 'Mark Alpha Testing'; }
 }
 
@@ -1741,8 +1781,8 @@ async function claimIdea(number) {
 }
 
 async function withProjectLoading(number, fn) {
-  try { await fn(); await loadAll(); }
-  catch(e) { toast(`Error: ${e.message}`, true); }
+  try { await fn(); await reloadProjects(); }
+  catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
 }
 
 // ── Add New Modal ─────────────────────────────────────────────────────────────
@@ -2237,8 +2277,8 @@ function buildActions(i) {
 async function withLoading(number, fn) {
   const btns = document.querySelectorAll(`#row-${number} button`);
   btns.forEach(b=>b.disabled=true);
-  try { await fn(); await loadAll(); }
-  catch(e) { toast(`Error: ${e.message}`, true); btns.forEach(b=>b.disabled=false); }
+  try { await fn(); await reloadOnc(); }
+  catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); btns.forEach(b=>b.disabled=false); }
 }
 
 async function postComment(number, body) {
