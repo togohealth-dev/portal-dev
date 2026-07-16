@@ -690,8 +690,9 @@ function prHtml(prUrl, prNum) {
   return `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open pull request">PR #${prNum} ↗</a>`;
 }
 function notesHtml(p) {
-  if (!p.allComments) return `<span style="color:var(--border);font-size:12px">—</span>`;
-  const count = p.allComments.length;
+  // Works for every section: uses prefetched comments if present, else the
+  // comment count captured at load. openNotes() fetches the thread on demand.
+  const count = p.allComments ? p.allComments.length : (p.commentCount ?? 0);
   return `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" title="View and add notes" style="font-size:11px">💬${count?` <strong>${count}</strong>`:''}</button>`;
 }
 function promptBtn(number, isFuture) {
@@ -871,7 +872,7 @@ async function loadFutureIdeas() {
       const oncRefs = extractOncRefs(issue.title + ' ' + (issue.body||''));
       const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
       const codingEst = estMatch ? estMatch[1] + 'h' : null;
-      return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login), codingEst };
+      return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login), codingEst, commentCount: issue.comments };
     }).sort((a,b) => b.priority - a.priority);
     renderFutureIdeas();
     document.getElementById('fi-loading').style.display = 'none';
@@ -898,7 +899,7 @@ async function loadFacilityPortal() {
       const codingEst = estMatch ? estMatch[1] + 'h' : null;
       const pctMatch = body.match(/Percent complete:\s*(\d+)\s*%/i);
       const pct = pctMatch ? +pctMatch[1] : 0;
-      return { number: issue.number, title: issue.title, body, url: issue.html_url, labels, priority, oncRefs, assignees:(issue.assignees||[]).map(a=>a.login), codingEst, pct };
+      return { number: issue.number, title: issue.title, body, url: issue.html_url, labels, priority, oncRefs, assignees:(issue.assignees||[]).map(a=>a.login), codingEst, pct, commentCount: issue.comments };
     }).sort((a,b) => b.priority - a.priority || b.pct - a.pct || a.number - b.number);
     renderFacilityPortal();
     document.getElementById('fp-loading').style.display = 'none';
@@ -937,6 +938,7 @@ function renderFacilityPortal() {
       <th style="width:72px">Priority</th>
       <th style="width:48px">Est</th>
       <th style="width:68px">ONC/MIPS</th>
+      <th style="width:58px">Notes</th>
       <th style="width:200px">Actions</th>
     </tr></thead><tbody>
       ${facilityPortal.map((p, idx) => `<tr>
@@ -949,6 +951,7 @@ function renderFacilityPortal() {
         <td>${dotsHtml(p.priority)}</td>
         <td style="font-size:12px;color:var(--text-muted);font-weight:600">${p.codingEst || '<span style="color:var(--border)">—</span>'}</td>
         <td>${oncHtml(p.oncRefs)}</td>
+        <td>${notesHtml(p)}</td>
         <td><div class="actions">
           ${promptBtn(p.number, true)}
           <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this build and move it to Current Projects">Claim</button>
@@ -1204,7 +1207,7 @@ function renderFutureIdeas() {
         <td>${assigneeHtml(p.assignees)}</td>
         <td style="font-size:12px;color:var(--text-muted);font-weight:600">${p.codingEst || '<span style="color:var(--border)">—</span>'}</td>
         <td>${oncHtml(p.oncRefs)}</td>
-        <td><span style="color:var(--border);font-size:12px">—</span></td>
+        <td>${notesHtml(p)}</td>
         <td><div class="actions">
           ${promptBtn(p.number, true)}
           ${editBtn(p.number)}
@@ -1223,7 +1226,7 @@ async function loadReferenceProjects() {
   const content = document.getElementById('ref-content');
   try {
     const raw = await ghFetch(`/repos/${REPO}/issues?labels=reference&state=all&per_page=100`);
-    referenceProjects = raw.map(i => ({ number: i.number, title: i.title, body: i.body||'', url: i.html_url, labels: i.labels.map(l=>l.name) }));
+    referenceProjects = raw.map(i => ({ number: i.number, title: i.title, body: i.body||'', url: i.html_url, labels: i.labels.map(l=>l.name), commentCount: i.comments }));
     renderReferenceProjects();
     if (loading) loading.style.display = 'none';
     if (content) content.style.display = 'block';
@@ -1240,7 +1243,7 @@ function renderReferenceProjects() {
   el.innerHTML = `
   <div class="proj-table-wrap">
     <table><thead><tr>
-      <th style="width:28px">#</th><th>Reference doc</th><th style="width:300px">Actions</th>
+      <th style="width:28px">#</th><th>Reference doc</th><th style="width:58px">Notes</th><th style="width:300px">Actions</th>
     </tr></thead><tbody>
       ${referenceProjects.map((p, idx) => `<tr>
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
@@ -1248,6 +1251,7 @@ function renderReferenceProjects() {
           <span style="margin-right:5px">📚</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
           <div class="proj-desc">${esc(buildSummary(p))}</div>
         </td>
+        <td>${notesHtml(p)}</td>
         <td><div class="actions">
           ${promptBtn(p.number, false)}
           ${editBtn(p.number)}
@@ -1459,16 +1463,24 @@ async function submitNote() {
 let pendingAttachments = []; // [{name, path, isImage}]
 const ATTACH_MARKER = 'portal-attach://';
 
-function openNotes(number) {
+async function openNotes(number) {
   notesIssueNumber = number;
   pendingAttachments = [];
   renderAttachmentPills();
-  const p = currentProjects.find(p => p.number === number);
-  document.getElementById('notes-modal-title').textContent = p ? p.title : `Issue #${number}`;
   document.getElementById('notes-text').value = '';
   document.getElementById('notes-file-input').value = '';
-  renderNotesHistory(p ? p.allComments : []);
+  // Find the item across ANY loaded section for the title + any cached comments.
+  const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
+  let known = null;
+  for (const L of lists) { const f = (L||[]).find(x => x.number === number); if (f) { known = f; break; } }
+  document.getElementById('notes-modal-title').textContent = known && known.title ? known.title : `Issue #${number}`;
   document.getElementById('notes-modal').style.display = 'flex';
+  renderNotesHistory((known && known.allComments) || []);
+  // ONC/facility/future/reference don't prefetch comments — fetch this thread on demand.
+  if (!(known && known.allComments)) {
+    try { renderNotesHistory(await ghFetch(`/repos/${REPO}/issues/${number}/comments?per_page=100`)); }
+    catch(e) { /* leave empty; user can still add a note */ }
+  }
   setTimeout(() => document.getElementById('notes-text').focus(), 50);
 }
 
@@ -2053,7 +2065,7 @@ function normalize(issue) {
   } else {
     pct = basePct;
   }
-  return { number:issue.number, title:issue.title, url:issue.html_url, labels, assignees, status, priority, wave, isOnc, isMips, pct, ackCount: (hasAck1?1:0)+(hasAck2?1:0), criterionId: cid, bodyHrs };
+  return { number:issue.number, title:issue.title, url:issue.html_url, labels, assignees, status, priority, wave, isOnc, isMips, pct, ackCount: (hasAck1?1:0)+(hasAck2?1:0), criterionId: cid, bodyHrs, commentCount: issue.comments };
 }
 
 // ── Stats ────────────────────────────────────────────────────────────────────
@@ -2148,6 +2160,7 @@ function renderContent() {
             <th style="width:60px">Type</th>
             <th style="width:50px">Est</th>
             <th style="width:90px">Assigned</th>
+            <th style="width:58px">Notes</th>
             <th style="width:280px">Actions</th>
           </tr></thead>
           <tbody>${g.items.map((item, idx) => row(item, rankStart + idx)).join('')}</tbody>
@@ -2189,6 +2202,7 @@ function row(i, rank) {
     <td>${types}</td>
     <td style="color:var(--text-muted);font-size:12px">${ctx?ctx.hours+'h':i.bodyHrs?i.bodyHrs+'h':'—'}</td>
     <td>${assignee}</td>
+    <td>${notesHtml(i)}</td>
     <td><div class="actions">${actions}</div></td>
   </tr>`;
 }
