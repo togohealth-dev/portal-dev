@@ -1927,6 +1927,7 @@ ${activeProjects}
 5. Does this touch medications, allergies, or orders? → RxNorm/LOINC, not free text.
 
 ─── CONSTRAINTS ──────────────────────────────────────
+- PR SCOPE — keep it small: 2–3 minor changes OR 1 major change per PR (Scott wants 1–2 features/PR). As you build, if it's growing past that (a 2nd/3rd feature, a big new surface, a migration + several endpoints), STOP and ask Greg: "this is getting to be a major change — split the rest into a new session/PR?" — offer BEFORE it balloons.
 - SQLX_OFFLINE=true. Runtime sqlx only — no query! macros.
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: confirm feature can't be done with existing API before adding backend.
@@ -2398,6 +2399,7 @@ ${en}
 ${ctx.scaffold}
 
 ─── CONSTRAINTS ──────────────────────────────────────
+- PR SCOPE — keep it small: 2–3 minor changes OR 1 major change per PR (Scott wants 1–2 features/PR). If the build grows past that, STOP and ask Greg: "this is getting to be a major change — split the rest into a new session/PR?" — offer BEFORE it balloons.
 - SQLX_OFFLINE=true. Runtime sqlx only, no query! macros.
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: get approval before touching backend.
