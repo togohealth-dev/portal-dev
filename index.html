@@ -1293,7 +1293,7 @@ function renderReferenceProjects() {
         </td>
         <td>${notesHtml(p)}</td>
         <td><div class="actions">
-          ${promptBtn(p.number, false)}
+          <button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyReferencePrompt(${p.number})" title="Copy the setup/reference prompt to paste into Claude">Copy Prompt</button>
           ${editBtn(p.number)}
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
           <button class="btn btn-danger btn-sm" onclick="unflagReference(${p.number})" title="Remove the reference label">Unflag</button>
@@ -1993,6 +1993,31 @@ Log overlap findings before writing a single line of code.
 ━━━ BUILD TASK ━━━
 ${promptCore}`;
   copyToClipboard(text);
+  const btn = document.getElementById(`cpbtn-${number}`);
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
+}
+
+// Reference/setup docs (e.g. the new-hire machine-setup prompt) are meant to be
+// pasted AS-IS. Copy the actual prompt from the body — the content after a
+// "PASTE FROM HERE" marker, else a "### Claude prompt" fenced block, else the
+// whole body — NOT the buildProjectPrompt feature wrapper.
+function extractPastePrompt(body) {
+  if (!body) return '';
+  const idx = body.search(/PASTE FROM HERE/i);
+  if (idx >= 0) {
+    return body.slice(idx)
+      .replace(/^PASTE FROM HERE[^\n]*\n/i, '')   // drop the marker line
+      .replace(/^(?:[═=\-\s]*\n)+/, '')           // drop leading border/blank lines
+      .trim();
+  }
+  const m = body.match(/###\s*Claude prompt\s*\n```[^\n]*\n([\s\S]*?)```/i);
+  if (m) return m[1].trim();
+  return body.trim();
+}
+function copyReferencePrompt(number) {
+  const p = referenceProjects.find(p => p.number === number);
+  if (!p) return;
+  copyToClipboard(extractPastePrompt(p.body));
   const btn = document.getElementById(`cpbtn-${number}`);
   if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
 }
