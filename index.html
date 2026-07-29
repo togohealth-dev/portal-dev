@@ -229,10 +229,22 @@
   tr.cp-tier-gap td { height:12px; padding:0; border:none; background:transparent; }
   tr.cp-tier-note td { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
     color:var(--text-muted); background:transparent; border:none; padding:2px 8px 4px; }
-  /* Notes "＠ Notify" user chips */
-  .notify-chip { font-size:11px; padding:3px 10px; border:1px solid var(--border); border-radius:999px;
-    background:var(--bg); color:var(--text); cursor:pointer; font-weight:600; line-height:1.6; }
-  .notify-chip.on { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; }
+  /* Notes "Notify" To:-style recipient field */
+  .notify-field { display:flex; flex-wrap:wrap; align-items:center; gap:6px; border:1px solid var(--border);
+    border-radius:6px; padding:6px 8px; cursor:text; }
+  .notify-field:focus-within { border-color:var(--primary); }
+  .notify-to { font-size:11px; font-weight:700; color:var(--text-muted); }
+  #notify-input { border:none; outline:none; font:inherit; font-size:13px; flex:1; min-width:120px; padding:2px; background:transparent; }
+  .mention-bubble { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600;
+    padding:2px 9px; border-radius:999px; line-height:1.7; }
+  .mention-bubble.ok  { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .mention-bubble.bad { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+  .mention-bubble .rm { cursor:pointer; opacity:.65; font-weight:700; }
+  .notify-suggest { border:1px solid var(--border); border-radius:6px; margin-top:4px; background:#fff;
+    box-shadow:0 6px 18px rgba(0,0,0,.10); overflow:hidden; max-height:180px; overflow-y:auto; }
+  .notify-suggest .opt { padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  .notify-suggest .opt.hi { background:#eff6ff; }
+  .notify-help { font-size:10.5px; color:var(--text-muted); margin-top:5px; }
   .ps-beta-version { background:#efe4ff; color:#6b21a8; font-weight:700; }
   .greek { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
   .stage-ico { height: 1.4em; width: auto; vertical-align: -0.32em; }
@@ -516,10 +528,15 @@
     </div>
     <div id="notes-history" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
-      <textarea id="notes-text" oninput="renderNotifyPicker()" placeholder="Add a note… (type @handle to email someone, or use ＠ Notify below)" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
+      <textarea id="notes-text" placeholder="Add a note…" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
       <div style="margin-top:8px">
-        <button type="button" class="btn btn-outline btn-sm" id="notes-notify-toggle" onclick="toggleNotifyPicker()" title="Email specific GitHub users this note — they get GitHub's @-mention email. (You can also just type @handle in the note; multiple are fine.)">＠ Notify someone <span id="notes-notify-count" style="font-weight:700"></span> <span style="opacity:.55">▾</span></button>
-        <div id="notes-notify-picker" style="display:none;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+        <div class="notify-field" id="notify-field" onclick="if(event.target===this||event.target.classList.contains('notify-to'))document.getElementById('notify-input').focus()" title="Email specific GitHub users this note. Type a name (e.g. scott → @msdrigg); Tab/Enter or click to add.">
+          <span class="notify-to">Notify:</span>
+          <span id="notify-tokens"></span>
+          <input id="notify-input" type="text" autocomplete="off" spellcheck="false" placeholder="type a name… (e.g. scott)" oninput="onNotifyInput()" onkeydown="onNotifyKey(event)" onblur="onNotifyBlur()">
+        </div>
+        <div id="notify-suggest" class="notify-suggest" style="display:none"></div>
+        <div class="notify-help">Green ✓ = real user (gets emailed). Red ✕ = not a known user. Type a name and Tab/Enter, or click a suggestion.</div>
       </div>
       <div id="notes-attachments" style="display:none;margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
       <input type="file" id="notes-file-input" style="display:none" onchange="handleNoteFile(event)">
@@ -1529,9 +1546,13 @@ async function submitNote() {
     const attachLines = pendingAttachments.map(a =>
       `📎 [${a.name}](${a.url})`
     ).join('\n');
-    // @-mentions live inline in the note text (chip picks insert them there), and
-    // GitHub emails whoever is @-mentioned — so the body is just the text + attachments.
-    const body = [text, attachLines].filter(Boolean).join('\n\n');
+    // Recipients come from the "Notify" To: field (valid green tokens). GitHub emails
+    // whoever is @-mentioned, so add a "🔔 @login" line for them — skipping any already
+    // @-typed in the note body to avoid double-mentions. Red (unknown) tokens are ignored.
+    const typed = typedMentions(text);
+    const pinged = notifyValidLogins().filter(l => !typed.has(l.toLowerCase()));
+    const mentionLine = pinged.length ? `🔔 ${pinged.map(l => '@' + l).join(' ')}` : '';
+    const body = [mentionLine, text, attachLines].filter(Boolean).join('\n\n');
     await postComment(notesIssueNumber, body);
     pendingAttachments = [];
     renderAttachmentPills();
@@ -1540,7 +1561,7 @@ async function submitNote() {
     const p = currentProjects.find(p => p.number === notesIssueNumber);
     if (p) { p.allComments = fresh; p.latestScott = fresh.filter(c=>c.user?.login===SCOTT).slice(-1)[0]||null; }
     document.getElementById('notes-text').value = '';
-    renderNotifyPicker();
+    resetNotify();
     renderNotesHistory(fresh);
     // Update the count badge in the table without full reload
     const countBtn = document.querySelector(`button[onclick="openNotes(${notesIssueNumber})"]`);
@@ -1554,54 +1575,110 @@ async function submitNote() {
 let pendingAttachments = []; // [{name, path, isImage}]
 const ATTACH_MARKER = 'portal-attach://';
 
-// ── Notes @-mention / notify ──────────────────────────────────────────────────
-// Selecting a chip INSERTS "@login" directly into the note text (deselecting removes
-// it). That inline @-mention is what GitHub emails on, so the note text is the single
-// source of truth — type "@handle" by hand and the chip lights up too. GitHub still
+// ── Notes "Notify" recipients (email To:-style field) ─────────────────────────
+// Each token is a chosen recipient: {login} = a real user (green ✓ bubble, gets
+// GitHub's @-mention email) or {raw} = unrecognized text (red ✕ bubble, ignored on
+// post). Type a name/alias/handle — "scott" resolves to @msdrigg. GitHub still
 // notifies the issue's own participants/watchers per their subscriptions (its model).
-let notifyPickerOpen = false;
-function toggleNotifyPicker() { notifyPickerOpen = !notifyPickerOpen; renderNotifyPicker(); }
-// GitHub logins in free text: @handle (alphanumeric + single hyphens).
+let notifyTokens = [];        // [{login} | {raw}]
+let notifySuggest = [];       // suggestion logins for the current query
+let notifySuggestIdx = -1;
+
+// Friendly aliases → GitHub login: the login itself, the full team name, and first name.
+const MENTION_ALIASES = (() => {
+  const m = {};
+  for (const [login, name] of Object.entries(TEAM)) {
+    m[login.toLowerCase()] = login;
+    m[name.toLowerCase()] = login;
+    m[name.toLowerCase().split(' ')[0]] = login;
+  }
+  return m;
+})();
+function resolveMention(raw) {
+  const k = String(raw||'').trim().replace(/^@+/, '').toLowerCase();
+  return k ? (MENTION_ALIASES[k] || null) : null;
+}
+// GitHub logins already @-typed in the note body (so we don't double-mention).
 function typedMentions(text) {
   return new Set((text.match(/@([A-Za-z0-9-]+)/g) || []).map(s => s.slice(1).toLowerCase()));
 }
-function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-function toggleNotifyUser(login) {
-  const ta = document.getElementById('notes-text');
-  if (!ta) return;
-  if (typedMentions(ta.value).has(login.toLowerCase())) {
-    // Deselect: strip every "@login" (case-insensitive) and tidy leftover spaces.
-    ta.value = ta.value.replace(new RegExp('@' + reEsc(login) + '\\b', 'gi'), '')
-                       .replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n').replace(/^\s+|\s+$/g, '');
-  } else {
-    // Select: append "@login " (add a separating space if needed).
-    ta.value = ta.value + (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + '@' + login + ' ';
-  }
-  renderNotifyPicker();
-  ta.focus();
+function notifyValidLogins() { return [...new Set(notifyTokens.filter(t => t.login).map(t => t.login))]; }
+
+function renderNotifyTokens() {
+  const el = document.getElementById('notify-tokens');
+  if (!el) return;
+  el.innerHTML = notifyTokens.map((t, i) => t.login
+    ? `<span class="mention-bubble ok" title="@${esc(t.login)} — will be emailed">✓ ${esc(teamName(t.login))} <span class="rm" onclick="removeNotifyToken(${i})">×</span></span>`
+    : `<span class="mention-bubble bad" title="not a known user — won't be emailed">✕ ${esc(t.raw)} <span class="rm" onclick="removeNotifyToken(${i})">×</span></span>`
+  ).join('');
 }
-function renderNotifyPicker() {
-  const ta = document.getElementById('notes-text');
-  const mentioned = ta ? typedMentions(ta.value) : new Set();
-  const picker = document.getElementById('notes-notify-picker');
-  if (picker) {
-    picker.style.display = notifyPickerOpen ? 'flex' : 'none';
-    picker.innerHTML = Object.keys(TEAM).map(login => {
-      const on = mentioned.has(login.toLowerCase());
-      return `<button type="button" class="notify-chip${on?' on':''}" onclick="toggleNotifyUser('${login}')" title="@${login}">${on?'✓ ':''}${esc(teamName(login))}</button>`;
-    }).join('');
+function removeNotifyToken(i) { notifyTokens.splice(i, 1); renderNotifyTokens(); const inp=document.getElementById('notify-input'); if(inp) inp.focus(); }
+function addNotifyToken(raw) {
+  const val = String(raw||'').trim().replace(/^@+/, '');
+  if (!val) return;
+  const login = resolveMention(val);
+  if (login) { if (!notifyTokens.some(t => t.login === login)) notifyTokens.push({ login }); }
+  else       { if (!notifyTokens.some(t => t.raw && t.raw.toLowerCase() === val.toLowerCase())) notifyTokens.push({ raw: val }); }
+  renderNotifyTokens();
+}
+function notifyMatches(q) {
+  q = String(q||'').replace(/^@+/, '').toLowerCase();
+  const chosen = new Set(notifyValidLogins());
+  return Object.keys(TEAM).filter(login =>
+    !chosen.has(login) && (!q || login.toLowerCase().includes(q) || TEAM[login].toLowerCase().includes(q)));
+}
+function renderNotifySuggest() {
+  const box = document.getElementById('notify-suggest');
+  if (!box) return;
+  if (!notifySuggest.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = notifySuggest.map((login, i) =>
+    `<div class="opt${i===notifySuggestIdx?' hi':''}" onmousedown="event.preventDefault();commitNotifySuggest(${i})">
+       <span class="mention-bubble ok" style="pointer-events:none">✓ ${esc(teamName(login))}</span>
+       <span style="color:var(--text-muted);font-size:11px">@${esc(login)}</span>
+     </div>`).join('');
+}
+function onNotifyInput() {
+  const q = document.getElementById('notify-input').value;
+  notifySuggest = q.trim() ? notifyMatches(q) : [];
+  notifySuggestIdx = notifySuggest.length ? 0 : -1;
+  renderNotifySuggest();
+}
+function commitNotifySuggest(i) {
+  const login = notifySuggest[i];
+  if (login) addNotifyToken(login);
+  const inp = document.getElementById('notify-input');
+  if (inp) inp.value = '';
+  notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest();
+  if (inp) inp.focus();
+}
+function onNotifyKey(e) {
+  const inp = document.getElementById('notify-input');
+  if (e.key === 'ArrowDown' && notifySuggest.length) { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx+1)%notifySuggest.length; renderNotifySuggest(); return; }
+  if (e.key === 'ArrowUp'   && notifySuggest.length) { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx-1+notifySuggest.length)%notifySuggest.length; renderNotifySuggest(); return; }
+  if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
+    if (notifySuggest.length && notifySuggestIdx >= 0) { e.preventDefault(); commitNotifySuggest(notifySuggestIdx); return; }
+    if (inp.value.trim()) { e.preventDefault(); addNotifyToken(inp.value); inp.value=''; notifySuggest=[]; notifySuggestIdx=-1; renderNotifySuggest(); return; }
   }
-  const c = document.getElementById('notes-notify-count');
-  if (c) { const n = Object.keys(TEAM).filter(l => mentioned.has(l.toLowerCase())).length; c.textContent = n ? `(${n})` : ''; }
+  if (e.key === 'Backspace' && !inp.value && notifyTokens.length) { notifyTokens.pop(); renderNotifyTokens(); }
+}
+function onNotifyBlur() {
+  const inp = document.getElementById('notify-input');
+  if (inp && inp.value.trim()) { addNotifyToken(inp.value); inp.value = ''; }   // stray text → a bubble (green if it resolves, red if not)
+  setTimeout(() => { notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest(); }, 150);
+}
+function resetNotify() {
+  notifyTokens = []; notifySuggest = []; notifySuggestIdx = -1;
+  const inp = document.getElementById('notify-input'); if (inp) inp.value = '';
+  renderNotifyTokens(); renderNotifySuggest();
 }
 
 async function openNotes(number) {
   notesIssueNumber = number;
   pendingAttachments = [];
   renderAttachmentPills();
-  notifyPickerOpen = false;
   document.getElementById('notes-text').value = '';
-  renderNotifyPicker();
+  resetNotify();
   document.getElementById('notes-file-input').value = '';
   // Find the item across ANY loaded section for the title + any cached comments.
   const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
