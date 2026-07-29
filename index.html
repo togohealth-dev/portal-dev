@@ -1937,6 +1937,7 @@ ${activeProjects}
 - Deployment: localhost (sandbox DB) → alpha (per-feature, prod DB, tested one at a time) → beta (every 2 wks, all alphas combined) → gamma (full production, all users). Never skip a stage.
 - Before you commit / open a PR: run the MANUAL CHECKLIST in strategy-5-scott.md. A green build is NOT a passing check — manually click through every new path on localhost (against a migrated dev DB) before opening the PR.
 - PHI stays on Mac mini (192.168.1.190). No PHI in this chat.
+- LOCALHOST STARTUP: don't rebuild/repoint the launchd-managed local backend or edit forceProd. Each worktree's gitignored portal/web/.env.local already routes the frontend to the LOCAL sandbox backend (never prod). To open localhost: verify the local backend port is up (:8085 on Greg's machine / :8080 default), start your worktree frontend on a FREE port (next dev --webpack -p PORT; rm -rf .next first if you changed .env.local on a running server), and confirm calls hit the local backend — a /auth/* 404 means a stale non-local_auth backend, STOP. Login is password-first then passkey (Touch ID) for MFA. Full routine in SESSION-STARTER.md and ~/.togohealth/greg-login/README.md.
 
 ─── FULL PLAN BEFORE CODING ─────────────────────────
 State out loud before writing a single line:
