@@ -516,7 +516,7 @@
     </div>
     <div id="notes-history" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
-      <textarea id="notes-text" placeholder="Add a note… (type @handle to email someone, or use ＠ Notify below)" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
+      <textarea id="notes-text" oninput="renderNotifyPicker()" placeholder="Add a note… (type @handle to email someone, or use ＠ Notify below)" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
       <div style="margin-top:8px">
         <button type="button" class="btn btn-outline btn-sm" id="notes-notify-toggle" onclick="toggleNotifyPicker()" title="Email specific GitHub users this note — they get GitHub's @-mention email. (You can also just type @handle in the note; multiple are fine.)">＠ Notify someone <span id="notes-notify-count" style="font-weight:700"></span> <span style="opacity:.55">▾</span></button>
         <div id="notes-notify-picker" style="display:none;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
@@ -1529,13 +1529,9 @@ async function submitNote() {
     const attachLines = pendingAttachments.map(a =>
       `📎 [${a.name}](${a.url})`
     ).join('\n');
-    // Notify: chip-picked users + anyone already @-typed in the note. GitHub emails
-    // whoever is @-mentioned in the comment, so add a "🔔 @handle" line for the picked
-    // users that weren't already typed (avoids double-mentions).
-    const alreadyTyped = typedMentions(text);
-    const toPing = [...notifyLogins].filter(l => !alreadyTyped.has(l.toLowerCase()));
-    const mentionLine = toPing.length ? `🔔 ${toPing.map(l => `@${l}`).join(' ')}` : '';
-    const body = [mentionLine, text, attachLines].filter(Boolean).join('\n\n');
+    // @-mentions live inline in the note text (chip picks insert them there), and
+    // GitHub emails whoever is @-mentioned — so the body is just the text + attachments.
+    const body = [text, attachLines].filter(Boolean).join('\n\n');
     await postComment(notesIssueNumber, body);
     pendingAttachments = [];
     renderAttachmentPills();
@@ -1544,8 +1540,6 @@ async function submitNote() {
     const p = currentProjects.find(p => p.number === notesIssueNumber);
     if (p) { p.allComments = fresh; p.latestScott = fresh.filter(c=>c.user?.login===SCOTT).slice(-1)[0]||null; }
     document.getElementById('notes-text').value = '';
-    notifyLogins = new Set();
-    notifyPickerOpen = false;
     renderNotifyPicker();
     renderNotesHistory(fresh);
     // Update the count badge in the table without full reload
@@ -1561,39 +1555,53 @@ let pendingAttachments = []; // [{name, path, isImage}]
 const ATTACH_MARKER = 'portal-attach://';
 
 // ── Notes @-mention / notify ──────────────────────────────────────────────────
-// Pick GitHub users to email this note. Posting a comment that @-mentions them
-// makes GitHub send THEM its notification email (on top of typing @handle directly
-// in the note — both are honored and de-duped). GitHub still notifies the issue's
-// own participants/watchers per their subscriptions; that's GitHub's model, not ours.
-let notifyLogins = new Set();
+// Selecting a chip INSERTS "@login" directly into the note text (deselecting removes
+// it). That inline @-mention is what GitHub emails on, so the note text is the single
+// source of truth — type "@handle" by hand and the chip lights up too. GitHub still
+// notifies the issue's own participants/watchers per their subscriptions (its model).
 let notifyPickerOpen = false;
 function toggleNotifyPicker() { notifyPickerOpen = !notifyPickerOpen; renderNotifyPicker(); }
-function toggleNotifyUser(login) { notifyLogins.has(login) ? notifyLogins.delete(login) : notifyLogins.add(login); renderNotifyPicker(); }
+// GitHub logins in free text: @handle (alphanumeric + single hyphens).
+function typedMentions(text) {
+  return new Set((text.match(/@([A-Za-z0-9-]+)/g) || []).map(s => s.slice(1).toLowerCase()));
+}
+function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function toggleNotifyUser(login) {
+  const ta = document.getElementById('notes-text');
+  if (!ta) return;
+  if (typedMentions(ta.value).has(login.toLowerCase())) {
+    // Deselect: strip every "@login" (case-insensitive) and tidy leftover spaces.
+    ta.value = ta.value.replace(new RegExp('@' + reEsc(login) + '\\b', 'gi'), '')
+                       .replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n').replace(/^\s+|\s+$/g, '');
+  } else {
+    // Select: append "@login " (add a separating space if needed).
+    ta.value = ta.value + (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + '@' + login + ' ';
+  }
+  renderNotifyPicker();
+  ta.focus();
+}
 function renderNotifyPicker() {
+  const ta = document.getElementById('notes-text');
+  const mentioned = ta ? typedMentions(ta.value) : new Set();
   const picker = document.getElementById('notes-notify-picker');
   if (picker) {
     picker.style.display = notifyPickerOpen ? 'flex' : 'none';
     picker.innerHTML = Object.keys(TEAM).map(login => {
-      const on = notifyLogins.has(login);
+      const on = mentioned.has(login.toLowerCase());
       return `<button type="button" class="notify-chip${on?' on':''}" onclick="toggleNotifyUser('${login}')" title="@${login}">${on?'✓ ':''}${esc(teamName(login))}</button>`;
     }).join('');
   }
   const c = document.getElementById('notes-notify-count');
-  if (c) c.textContent = notifyLogins.size ? `(${notifyLogins.size})` : '';
-}
-// GitHub logins in free text: @handle (1–39 chars, alphanumeric + single hyphens).
-function typedMentions(text) {
-  return new Set((text.match(/@([A-Za-z0-9-]+)/g) || []).map(s => s.slice(1).toLowerCase()));
+  if (c) { const n = Object.keys(TEAM).filter(l => mentioned.has(l.toLowerCase())).length; c.textContent = n ? `(${n})` : ''; }
 }
 
 async function openNotes(number) {
   notesIssueNumber = number;
   pendingAttachments = [];
   renderAttachmentPills();
-  notifyLogins = new Set();
   notifyPickerOpen = false;
-  renderNotifyPicker();
   document.getElementById('notes-text').value = '';
+  renderNotifyPicker();
   document.getElementById('notes-file-input').value = '';
   // Find the item across ANY loaded section for the title + any cached comments.
   const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
