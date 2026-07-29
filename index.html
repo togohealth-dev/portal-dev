@@ -2002,7 +2002,17 @@ State out loud before writing a single line:
 1. Which current projects does this overlap with, and how will you coordinate?
 2. Which ONC criteria does this touch? What shared infra should be built generically?
 3. Complete implementation plan (schema changes, endpoints, frontend, migrations).
-   Wait for explicit approval before executing.`;
+   Wait for explicit approval before executing.
+
+─── WHEN THE PR IS READY — MOVE THE TRACKER YOURSELF ───
+After the developer approves and you run gh pr create, move THIS project to the
+"PR Alpha Ready" step on their behalf (don't leave it as a manual tracker button):
+  gh issue edit ${proj.number} --repo togohealth-dev/emr-beta --add-label status:pr-alpha-ready --remove-label status:in-progress --remove-label status:needs-revision
+  gh issue comment ${proj.number} --repo togohealth-dev/emr-beta --body "Ready for review — @msdrigg · PR #<n>: <PR-URL> · @<your-gh-handle>"
+Clearing in-progress/needs-revision is required — needs-revision outranks pr-alpha-ready,
+so a leftover label keeps this out of the Alpha tier. This lands the project in
+Alpha Testing -> PR-alpha-ready and pings Scott. Do NOT deploy an alpha or mark Alpha
+Testing — Scott adds the alpha deploy link and closes the PR.`;
 }
 
 function copyNewProjectPrompt() {
