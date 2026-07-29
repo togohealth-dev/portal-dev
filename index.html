@@ -229,12 +229,11 @@
   tr.cp-tier-gap td { height:12px; padding:0; border:none; background:transparent; }
   tr.cp-tier-note td { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
     color:var(--text-muted); background:transparent; border:none; padding:2px 8px 4px; }
-  /* Notes "Notify" To:-style recipient field */
-  .notify-field { display:flex; flex-wrap:wrap; align-items:center; gap:6px; border:1px solid var(--border);
-    border-radius:6px; padding:6px 8px; cursor:text; }
-  .notify-field:focus-within { border-color:var(--primary); }
-  .notify-to { font-size:11px; font-weight:700; color:var(--text-muted); }
-  #notify-input { border:none; outline:none; font:inherit; font-size:13px; flex:1; min-width:120px; padding:2px; background:transparent; }
+  /* Notes rich field with inline @-mentions */
+  .notes-rich { min-height:72px; max-height:220px; overflow-y:auto; font-size:13px; line-height:1.9;
+    padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:inherit; outline:none; }
+  .notes-rich:focus { border-color:var(--primary); }
+  .notes-rich.is-empty:before { content:attr(data-placeholder); color:var(--text-muted); }
   .mention-bubble { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600;
     padding:2px 9px; border-radius:999px; line-height:1.7; }
   .mention-bubble.ok  { background:#dcfce7; color:#166534; border:1px solid #86efac; }
@@ -528,16 +527,9 @@
     </div>
     <div id="notes-history" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
-      <textarea id="notes-text" placeholder="Add a note…" style="width:100%;min-height:72px;resize:vertical;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box"></textarea>
-      <div style="margin-top:8px">
-        <div class="notify-field" id="notify-field" onclick="if(event.target===this||event.target.classList.contains('notify-to'))document.getElementById('notify-input').focus()" title="Email specific GitHub users this note. Type a name (e.g. scott → @msdrigg); Tab/Enter or click to add.">
-          <span class="notify-to">Notify:</span>
-          <span id="notify-tokens"></span>
-          <input id="notify-input" type="text" autocomplete="off" spellcheck="false" placeholder="type a name… (e.g. scott)" oninput="onNotifyInput()" onkeydown="onNotifyKey(event)" onblur="onNotifyBlur()">
-        </div>
-        <div id="notify-suggest" class="notify-suggest" style="display:none"></div>
-        <div class="notify-help">Green ✓ = real user (gets emailed). Red ✕ = not a known user. Type a name and Tab/Enter, or click a suggestion.</div>
-      </div>
+      <div id="notes-rich" contenteditable="true" class="notes-rich is-empty" data-placeholder="Add a note…  (type @ to mention someone — e.g. @scott)" oninput="onRichInput()" onkeydown="onRichKey(event)" onblur="onRichBlur()"></div>
+      <div id="notify-suggest" class="notify-suggest" style="display:none"></div>
+      <div class="notify-help">Type <b>@</b> then a name to mention someone — Tab/Enter or click a suggestion. Green ✓ = real user (gets emailed); red ✕ = not a known user (ignored).</div>
       <div id="notes-attachments" style="display:none;margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
       <input type="file" id="notes-file-input" style="display:none" onchange="handleNoteFile(event)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
@@ -1537,7 +1529,7 @@ function renderNotesHistory(comments) {
 }
 
 async function submitNote() {
-  const text = document.getElementById('notes-text').value.trim();
+  const text = richToText();
   if (!text && !pendingAttachments.length) return;
   if (!notesIssueNumber) return;
   const btn = document.getElementById('notes-submit-btn');
@@ -1546,13 +1538,9 @@ async function submitNote() {
     const attachLines = pendingAttachments.map(a =>
       `📎 [${a.name}](${a.url})`
     ).join('\n');
-    // Recipients come from the "Notify" To: field (valid green tokens). GitHub emails
-    // whoever is @-mentioned, so add a "🔔 @login" line for them — skipping any already
-    // @-typed in the note body to avoid double-mentions. Red (unknown) tokens are ignored.
-    const typed = typedMentions(text);
-    const pinged = notifyValidLogins().filter(l => !typed.has(l.toLowerCase()));
-    const mentionLine = pinged.length ? `🔔 ${pinged.map(l => '@' + l).join(' ')}` : '';
-    const body = [mentionLine, text, attachLines].filter(Boolean).join('\n\n');
+    // Green mentions are already inline as "@login" in the serialized text, so GitHub
+    // emails exactly those users. (Red/unknown handles are just plain text — no such user.)
+    const body = [text, attachLines].filter(Boolean).join('\n\n');
     await postComment(notesIssueNumber, body);
     pendingAttachments = [];
     renderAttachmentPills();
@@ -1560,7 +1548,6 @@ async function submitNote() {
     const fresh = await ghFetch(`/repos/${REPO}/issues/${notesIssueNumber}/comments?per_page=100`);
     const p = currentProjects.find(p => p.number === notesIssueNumber);
     if (p) { p.allComments = fresh; p.latestScott = fresh.filter(c=>c.user?.login===SCOTT).slice(-1)[0]||null; }
-    document.getElementById('notes-text').value = '';
     resetNotify();
     renderNotesHistory(fresh);
     // Update the count badge in the table without full reload
@@ -1575,14 +1562,16 @@ async function submitNote() {
 let pendingAttachments = []; // [{name, path, isImage}]
 const ATTACH_MARKER = 'portal-attach://';
 
-// ── Notes "Notify" recipients (email To:-style field) ─────────────────────────
-// Each token is a chosen recipient: {login} = a real user (green ✓ bubble, gets
-// GitHub's @-mention email) or {raw} = unrecognized text (red ✕ bubble, ignored on
-// post). Type a name/alias/handle — "scott" resolves to @msdrigg. GitHub still
-// notifies the issue's own participants/watchers per their subscriptions (its model).
-let notifyTokens = [];        // [{login} | {raw}]
-let notifySuggest = [];       // suggestion logins for the current query
+// ── Notes rich field: inline @-mentions with autocomplete + green/red bubbles ──
+// The note body (#notes-rich) is contenteditable. Type "@" then a name to mention
+// someone: a suggestion dropdown appears (Tab/Enter/click to pick) and the mention
+// becomes an INLINE bubble — green ✓ for a real user ("@scott" → @msdrigg, emailed on
+// post), red ✕ for an unknown handle (ignored). On post the field serializes to plain
+// text with "@login" in place of each green bubble, so GitHub emails exactly those users.
+// GitHub still notifies the issue's own participants/watchers per their subscriptions.
+let notifySuggest = [];        // suggestion logins for the current @query
 let notifySuggestIdx = -1;
+let activeMentionQuery = null; // {node, start, end, query} at the caret, or null
 
 // Friendly aliases → GitHub login: the login itself, the full team name, and first name.
 const MENTION_ALIASES = (() => {
@@ -1598,34 +1587,45 @@ function resolveMention(raw) {
   const k = String(raw||'').trim().replace(/^@+/, '').toLowerCase();
   return k ? (MENTION_ALIASES[k] || null) : null;
 }
-// GitHub logins already @-typed in the note body (so we don't double-mention).
-function typedMentions(text) {
-  return new Set((text.match(/@([A-Za-z0-9-]+)/g) || []).map(s => s.slice(1).toLowerCase()));
-}
-function notifyValidLogins() { return [...new Set(notifyTokens.filter(t => t.login).map(t => t.login))]; }
-
-function renderNotifyTokens() {
-  const el = document.getElementById('notify-tokens');
-  if (!el) return;
-  el.innerHTML = notifyTokens.map((t, i) => t.login
-    ? `<span class="mention-bubble ok" title="@${esc(t.login)} — will be emailed">✓ ${esc(teamName(t.login))} <span class="rm" onclick="removeNotifyToken(${i})">×</span></span>`
-    : `<span class="mention-bubble bad" title="not a known user — won't be emailed">✕ ${esc(t.raw)} <span class="rm" onclick="removeNotifyToken(${i})">×</span></span>`
-  ).join('');
-}
-function removeNotifyToken(i) { notifyTokens.splice(i, 1); renderNotifyTokens(); const inp=document.getElementById('notify-input'); if(inp) inp.focus(); }
-function addNotifyToken(raw) {
-  const val = String(raw||'').trim().replace(/^@+/, '');
-  if (!val) return;
-  const login = resolveMention(val);
-  if (login) { if (!notifyTokens.some(t => t.login === login)) notifyTokens.push({ login }); }
-  else       { if (!notifyTokens.some(t => t.raw && t.raw.toLowerCase() === val.toLowerCase())) notifyTokens.push({ raw: val }); }
-  renderNotifyTokens();
-}
 function notifyMatches(q) {
   q = String(q||'').replace(/^@+/, '').toLowerCase();
-  const chosen = new Set(notifyValidLogins());
   return Object.keys(TEAM).filter(login =>
-    !chosen.has(login) && (!q || login.toLowerCase().includes(q) || TEAM[login].toLowerCase().includes(q)));
+    !q || login.toLowerCase().includes(q) || TEAM[login].toLowerCase().includes(q));
+}
+
+// An inline mention bubble node (contentEditable=false so it deletes/moves as one unit).
+function mentionChip(login, raw) {
+  const s = document.createElement('span');
+  s.contentEditable = 'false';
+  if (login) { s.className = 'mention-bubble ok'; s.dataset.login = login; s.textContent = '✓ ' + teamName(login); s.title = '@' + login + ' — will be emailed'; }
+  else       { s.className = 'mention-bubble bad'; s.dataset.raw = raw;   s.textContent = '✕ ' + raw;             s.title = "not a known user — won't be emailed"; }
+  return s;
+}
+// Find an "@query" immediately before the caret (collapsed selection inside a text node).
+function currentMentionQuery() {
+  const rich = document.getElementById('notes-rich');
+  const sel = window.getSelection();
+  if (!rich || !sel || !sel.rangeCount) return null;
+  const r = sel.getRangeAt(0);
+  if (!r.collapsed || r.startContainer.nodeType !== Node.TEXT_NODE || !rich.contains(r.startContainer)) return null;
+  const upto = r.startContainer.textContent.slice(0, r.startOffset);
+  const m = upto.match(/@([A-Za-z0-9-]*)$/);
+  if (!m) return null;
+  if (/[A-Za-z0-9]$/.test(upto.slice(0, m.index))) return null;   // not mid-word / an email
+  return { node: r.startContainer, start: m.index, end: r.startOffset, query: m[1] };
+}
+// Replace the @query range with a chip + trailing space; put the caret after it.
+function insertMention(q, chip) {
+  const r = document.createRange();
+  r.setStart(q.node, q.start); r.setEnd(q.node, q.end);
+  r.deleteContents();
+  const space = document.createTextNode(' ');
+  const frag = document.createDocumentFragment();
+  frag.appendChild(chip); frag.appendChild(space);
+  r.insertNode(frag);
+  const sel = window.getSelection();
+  const nr = document.createRange(); nr.setStartAfter(space); nr.collapse(true);
+  sel.removeAllRanges(); sel.addRange(nr);
 }
 function renderNotifySuggest() {
   const box = document.getElementById('notify-suggest');
@@ -1633,51 +1633,80 @@ function renderNotifySuggest() {
   if (!notifySuggest.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'block';
   box.innerHTML = notifySuggest.map((login, i) =>
-    `<div class="opt${i===notifySuggestIdx?' hi':''}" onmousedown="event.preventDefault();commitNotifySuggest(${i})">
+    `<div class="opt${i===notifySuggestIdx?' hi':''}" onmousedown="event.preventDefault();pickMention(${i})">
        <span class="mention-bubble ok" style="pointer-events:none">✓ ${esc(teamName(login))}</span>
        <span style="color:var(--text-muted);font-size:11px">@${esc(login)}</span>
      </div>`).join('');
 }
-function onNotifyInput() {
-  const q = document.getElementById('notify-input').value;
-  notifySuggest = q.trim() ? notifyMatches(q) : [];
-  notifySuggestIdx = notifySuggest.length ? 0 : -1;
-  renderNotifySuggest();
-}
-function commitNotifySuggest(i) {
+function hideSuggest() { notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest(); }
+function pickMention(i) {
   const login = notifySuggest[i];
-  if (login) addNotifyToken(login);
-  const inp = document.getElementById('notify-input');
-  if (inp) inp.value = '';
-  notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest();
-  if (inp) inp.focus();
+  const q = activeMentionQuery;
+  if (login && q) insertMention(q, mentionChip(login, null));
+  hideSuggest(); activeMentionQuery = null; refreshRichEmpty();
+  document.getElementById('notes-rich').focus();
 }
-function onNotifyKey(e) {
-  const inp = document.getElementById('notify-input');
-  if (e.key === 'ArrowDown' && notifySuggest.length) { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx+1)%notifySuggest.length; renderNotifySuggest(); return; }
-  if (e.key === 'ArrowUp'   && notifySuggest.length) { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx-1+notifySuggest.length)%notifySuggest.length; renderNotifySuggest(); return; }
-  if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
-    if (notifySuggest.length && notifySuggestIdx >= 0) { e.preventDefault(); commitNotifySuggest(notifySuggestIdx); return; }
-    if (inp.value.trim()) { e.preventDefault(); addNotifyToken(inp.value); inp.value=''; notifySuggest=[]; notifySuggestIdx=-1; renderNotifySuggest(); return; }
+function onRichInput() {
+  refreshRichEmpty();
+  const q = currentMentionQuery();
+  activeMentionQuery = q;
+  if (q) { notifySuggest = notifyMatches(q.query); notifySuggestIdx = notifySuggest.length ? 0 : -1; renderNotifySuggest(); }
+  else hideSuggest();
+}
+// Space/Enter without picking a suggestion: turn the typed "@handle" into a bubble
+// (green if it resolves to a user, red if not).
+function commitTypedMention() {
+  const q = currentMentionQuery();
+  if (!q || !q.query) return false;
+  insertMention(q, mentionChip(resolveMention(q.query), q.query));
+  hideSuggest(); activeMentionQuery = null; refreshRichEmpty();
+  return true;
+}
+function onRichKey(e) {
+  if (notifySuggest.length) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx+1)%notifySuggest.length; renderNotifySuggest(); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx-1+notifySuggest.length)%notifySuggest.length; renderNotifySuggest(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickMention(notifySuggestIdx < 0 ? 0 : notifySuggestIdx); return; }
+    if (e.key === 'Escape') { e.preventDefault(); hideSuggest(); return; }
   }
-  if (e.key === 'Backspace' && !inp.value && notifyTokens.length) { notifyTokens.pop(); renderNotifyTokens(); }
+  if (e.key === ' ' || e.key === 'Enter') {
+    const q = currentMentionQuery();
+    if (q && q.query) { e.preventDefault(); commitTypedMention(); return; }
+  }
 }
-function onNotifyBlur() {
-  const inp = document.getElementById('notify-input');
-  if (inp && inp.value.trim()) { addNotifyToken(inp.value); inp.value = ''; }   // stray text → a bubble (green if it resolves, red if not)
-  setTimeout(() => { notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest(); }, 150);
+function onRichBlur() { setTimeout(hideSuggest, 150); }
+function refreshRichEmpty() {
+  const el = document.getElementById('notes-rich');
+  if (!el) return;
+  const empty = !el.querySelector('.mention-bubble') && !el.textContent.replace(/ /g,'').trim();
+  el.classList.toggle('is-empty', empty);
+}
+// Serialize the rich field to plain text: green bubble → "@login", red → "@raw",
+// block breaks → newlines. The inline "@login"s are what GitHub notifies on.
+function richToText() {
+  const src = document.getElementById('notes-rich');
+  if (!src) return '';
+  const clone = src.cloneNode(true);
+  clone.querySelectorAll('.mention-bubble').forEach(b => {
+    const t = b.dataset.login ? '@' + b.dataset.login : '@' + (b.dataset.raw || '');
+    b.replaceWith(document.createTextNode(t));
+  });
+  clone.style.position = 'absolute'; clone.style.left = '-9999px'; clone.style.whiteSpace = 'pre-wrap';
+  document.body.appendChild(clone);
+  const out = clone.innerText;
+  clone.remove();
+  return out.replace(/ /g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 function resetNotify() {
-  notifyTokens = []; notifySuggest = []; notifySuggestIdx = -1;
-  const inp = document.getElementById('notify-input'); if (inp) inp.value = '';
-  renderNotifyTokens(); renderNotifySuggest();
+  const el = document.getElementById('notes-rich');
+  if (el) { el.innerHTML = ''; el.classList.add('is-empty'); }
+  hideSuggest(); activeMentionQuery = null;
 }
 
 async function openNotes(number) {
   notesIssueNumber = number;
   pendingAttachments = [];
   renderAttachmentPills();
-  document.getElementById('notes-text').value = '';
   resetNotify();
   document.getElementById('notes-file-input').value = '';
   // Find the item across ANY loaded section for the title + any cached comments.
@@ -1692,7 +1721,7 @@ async function openNotes(number) {
     try { renderNotesHistory(await ghFetch(`/repos/${REPO}/issues/${number}/comments?per_page=100`)); }
     catch(e) { /* leave empty; user can still add a note */ }
   }
-  setTimeout(() => document.getElementById('notes-text').focus(), 50);
+  setTimeout(() => document.getElementById('notes-rich').focus(), 50);
 }
 
 async function handleNoteFile(event) {
