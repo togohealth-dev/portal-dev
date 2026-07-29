@@ -224,6 +224,11 @@
   .ps-beta       { background:var(--green-bg); color:var(--green-atl); font-weight:700; }
   .ps-alpha      { background:#ccfbf1; color:#0f766e; font-weight:700; }
   .ps-ready-prod { background:#e0e7ff; color:#4338ca; font-weight:700; }
+  /* Tiered sub-sections inside a Current-Projects group: a small gap + a quiet label
+     separate the "live" tier (deploy link / in the shared build) from the "queued" tier. */
+  tr.cp-tier-gap td { height:12px; padding:0; border:none; background:transparent; }
+  tr.cp-tier-note td { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-muted); background:transparent; border:none; padding:2px 8px 4px; }
   .ps-beta-version { background:#efe4ff; color:#6b21a8; font-weight:700; }
   .greek { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
   .stage-ico { height: 1.4em; width: auto; vertical-align: -0.32em; }
@@ -292,7 +297,7 @@
   <span class="nav-label">Jump to</span>
   <a onclick="jumpTo('cp-beta')" title="Beta-Version"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta</a>
   <a onclick="jumpTo('cp-alpha')" title="Alpha Testing"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</a>
-  <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision">🛠️ In Progress</a>
+  <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision / Drafts">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('ref')">📚 Reference</a>
   <a onclick="jumpTo('onc')">ONC</a>
@@ -307,7 +312,7 @@
   <div class="section-block" id="sec-cp">
     <div class="section-hdr">
       <h2>Current Projects</h2>
-      <p>Rollout flow: 🛠️ In Progress / Needs Revision → <img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing → <img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version → <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production (Completed). <span style="color:var(--text-muted)">Newest stage sits at the top of Current Projects.</span></p>
+      <p>Rollout flow: 🛠️ Drafts / In Progress / Needs Revision → <img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing (PR alpha-ready → live alpha build on prod DB) → <img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version (Ready for Beta → combined build) → <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production (Completed). <span style="color:var(--text-muted)">Newest stage sits at the top of Current Projects; within a stage, live builds sit above queued ones.</span></p>
       <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
       <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
@@ -887,7 +892,7 @@ async function loadCurrentProjects() {
       return normalizeProject(issue, labels, comments);
     }));
     currentProjects.sort((a,b) => {
-      const order = {beta_version:0, ready_beta:1, alpha_testing:2, needs_revision:3, pr_alpha_ready:4, in_progress:5, planning:6, done:7, abandoned:8};
+      const order = {beta_version:0, ready_beta:1, alpha_testing:2, pr_alpha_ready:3, in_progress:4, needs_revision:5, draft:6, planning:7, done:8, abandoned:9};
       return (order[a.status]??9) - (order[b.status]??9)
           || (new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
     });
@@ -1017,6 +1022,7 @@ function normalizeProject(issue, labels, comments) {
     : has('status:alpha-testing') || has('status:beta')               ? 'alpha_testing'
     : has('status:needs-revision')                                    ? 'needs_revision'
     : has('status:pr-alpha-ready') || has('status:pr-ready')          ? 'pr_alpha_ready'
+    : has('status:draft')                                             ? 'draft'
     : has('status:in-progress')                                       ? 'in_progress'
     : (issue.assignees && issue.assignees.length)                     ? 'in_progress'  // assigned = actively being worked
     : 'planning';
@@ -1072,7 +1078,8 @@ const statusBadge = (s, alphaUrl, betaVersionUrl) => {
     ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version ↗</a>`
     : `<span class="badge ps-beta-version" style="opacity:.7" title="No Beta-Version link set yet — Scott sets it in the top of this section"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version ⚠</span>`;
   return ({
-    planning:       `<span class="badge ps-planning">Planning</span>`,
+    planning:       `<span class="badge ps-planning">📝 Draft</span>`,
+    draft:          `<span class="badge ps-planning">📝 Draft</span>`,
     in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
     pr_alpha_ready: `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
     needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
@@ -1081,12 +1088,28 @@ const statusBadge = (s, alphaUrl, betaVersionUrl) => {
   }[s] || '');
 };
 
-// Current Projects renders three stacked sub-sections (top→bottom):
-// Beta-Version, Alpha Testing (alpha-testing + ready-beta), In Progress/Needs Revision.
+// Current Projects renders three stacked sub-sections (top→bottom). Each section has
+// TIERS separated by a small gap: the top tier is "live" (has a deploy link / is in the
+// shared build), the lower tier is "queued" (ready but not yet deployed/promoted).
+//  • Beta-Version: [in the combined Beta-Version] — gap — [Ready for Beta, queued]
+//  • Alpha Testing: [live alpha builds on prod DB] — gap — [PR alpha-ready, awaiting deploy]
+//  • In Progress / Needs Revision / Drafts: [in progress + needs revision] — gap — [drafts]
 const CP_GROUPS = [
-  { key:'beta',     anchor:'cp-beta',     title:'<img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version',   statuses:['beta_version'] },
-  { key:'alpha',    anchor:'cp-alpha',    title:'<img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing',  statuses:['alpha_testing','ready_beta'] },
-  { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision', statuses:['in_progress','needs_revision','pr_alpha_ready','planning'] },
+  { key:'beta', anchor:'cp-beta', title:'<img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version',
+    tiers:[
+      { statuses:['beta_version'], note:'In the combined Beta-Version (shared beta build)' },
+      { statuses:['ready_beta'],   note:'Ready for Beta — alpha-tested, queued for the next promotion' },
+    ] },
+  { key:'alpha', anchor:'cp-alpha', title:'<img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing',
+    tiers:[
+      { statuses:['alpha_testing'],  note:'Live alpha builds — each on the production database' },
+      { statuses:['pr_alpha_ready'], note:'PR alpha-ready — awaiting Scott’s alpha deploy' },
+    ] },
+  { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision / Drafts',
+    tiers:[
+      { statuses:['in_progress','needs_revision'], note:null },
+      { statuses:['draft','planning'],             note:'Drafts — not started yet' },
+    ] },
 ];
 
 function renderCurrentProjects() {
@@ -1137,20 +1160,31 @@ function renderCurrentProjects() {
     <select onchange="setCpAssignee(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;cursor:pointer;margin-left:4px">${opts}</select></div>`;
 
   const sections = CP_GROUPS.map(g => {
-    const items = filtered.filter(p => g.statuses.includes(p.status));
+    const groupCount = filtered.filter(p => g.tiers.some(t => t.statuses.includes(p.status))).length;
     let titleHtml = `<span style="font-weight:700;font-size:14px">${g.title}</span>
-      <span style="font-size:12px;color:var(--text-muted);font-weight:500">(${items.length})</span>`;
+      <span style="font-size:12px;color:var(--text-muted);font-weight:500">(${groupCount})</span>`;
     if (g.key === 'beta') {
       titleHtml += betaVersionUrl
         ? ` — <a href="${betaVersionUrl}" target="_blank" style="font-size:12px;color:var(--primary)">open the Beta-Version ↗</a>`
         : ` — <span style="font-size:12px;color:var(--text-muted)">no link set yet</span>`;
       titleHtml += ` <button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="setBetaVersionLink()" title="Set/update the single shared Beta-Version deploy link">Set link</button>`;
     }
-    const rows = items.length ? items.map(rowHtml).join('')
-      : `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:10px">None${cpAssigneeFilter!=='all'?' for this assignee — <a onclick="setCpAssignee(\'all\')" style="color:var(--primary);cursor:pointer">show all</a>':''}.</td></tr>`;
+    // Render each tier top→bottom. A small gap (spacer row) + a tier note separate the
+    // "live" tier from the "queued" tier whenever both have rows. Row numbers run
+    // continuously across the whole section.
+    let bodyRows = ''; let n = 0; let renderedTier = false;
+    g.tiers.forEach(t => {
+      const items = filtered.filter(p => t.statuses.includes(p.status));
+      if (!items.length) return;
+      if (renderedTier) bodyRows += `<tr class="cp-tier-gap"><td colspan="9"></td></tr>`;
+      if (t.note) bodyRows += `<tr class="cp-tier-note"><td colspan="9">${t.note}</td></tr>`;
+      bodyRows += items.map(p => rowHtml(p, n++)).join('');
+      renderedTier = true;
+    });
+    if (!bodyRows) bodyRows = `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:10px">None${cpAssigneeFilter!=='all'?' for this assignee — <a onclick="setCpAssignee(\'all\')" style="color:var(--primary);cursor:pointer">show all</a>':''}.</td></tr>`;
     return `<div id="${g.anchor}" style="scroll-margin-top:120px;margin-bottom:20px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px">${titleHtml}</div>
-      <div class="proj-table-wrap"><table>${head}<tbody>${rows}</tbody></table></div>
+      <div class="proj-table-wrap"><table>${head}<tbody>${bodyRows}</tbody></table></div>
     </div>`;
   }).join('');
 
@@ -1188,7 +1222,13 @@ function projectActions(p) {
   if (p.status === 'done' || p.status === 'abandoned') return `${pb} ${eb} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
   const parts = [pb, eb];
   // Forward-only "advance to next stage" button per status (no back/skip buttons).
-  if (p.status === 'planning' || p.status === 'in_progress') {
+  if (p.status === 'draft' || p.status === 'planning') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setInProgress(${p.number})" title="Start work — move to In Progress">Start</button>`);
+  }
+  if (p.status === 'in_progress') {
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="setDraft(${p.number})" title="Park as a Draft (not actively being worked)">→ Draft</button>`);
+  }
+  if (p.status === 'planning' || p.status === 'in_progress' || p.status === 'draft') {
     parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrAlphaReady(${p.number})" title="Mark PR alpha-ready and notify Scott">PR Alpha Ready</button>`);
     if (p.prUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
   }
@@ -1652,6 +1692,24 @@ async function setPrAlphaReady(number) {
       await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
     }
     toast(`${linkLabel} saved · @${SCOTT} pinged`);
+  });
+}
+
+// Draft ⇄ In Progress (the earliest stage — before any PR). Drafts are current
+// projects being spec'd/written up but not yet actively coded.
+async function setInProgress(number) {
+  await withProjectLoading(number, async () => {
+    await removeLabel(number, 'status:draft');
+    await removeLabel(number, 'status:needs-revision');
+    await addLabel(number, 'status:in-progress');
+    toast(`#${number} moved to In Progress`);
+  });
+}
+async function setDraft(number) {
+  await withProjectLoading(number, async () => {
+    for (const l of ['status:in-progress','status:pr-alpha-ready','status:pr-ready','status:needs-revision']) await removeLabel(number, l);
+    await addLabel(number, 'status:draft');
+    toast(`#${number} moved to Draft`);
   });
 }
 
