@@ -318,6 +318,7 @@
   <a onclick="jumpTo('onc')">ONC</a>
   <a onclick="jumpTo('fp')">Facility</a>
   <a onclick="jumpTo('fi')">Future</a>
+  <a onclick="jumpTo('int')">Integrations</a>
   <a onclick="jumpTo('done')"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
 </nav>
@@ -405,6 +406,21 @@
     <div class="sec-body">
       <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
       <div id="fi-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── INTEGRATIONS ── -->
+  <div class="section-block" id="sec-int">
+    <div class="section-hdr">
+      <h2>Integrations</h2>
+      <p>External systems Togo connects to — planned/queued. Claim any to move it into Current Projects. Active builds live in Current Projects: PCC #128, DrFirst/iPrescribe #127, cHIE/UHIN #173.</p>
+      <button class="sec-toggle" onclick="toggleSection('int')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="int-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="int-content" style="display:none"></div>
     </div>
   </div>
 
@@ -840,13 +856,13 @@ async function refresh(loaders, label) {
 
 // Full reload (initial load, manual Refresh button).
 async function loadAll() {
-  await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadReferenceProjects]);
+  await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadIntegrations, loadReferenceProjects]);
 }
 
 // Lighter reloads after a row action — skip sections that action can't change,
 // so feedback is far faster than a full 5-section reload.
 async function reloadProjects() { // project-row actions (current/completed/future/facility/reference)
-  await refresh([loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadReferenceProjects], 'Saving…');
+  await refresh([loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadIntegrations, loadReferenceProjects], 'Saving…');
 }
 async function reloadOnc() {       // ONC criterion actions only
   await refresh([load], 'Saving…');
@@ -1284,6 +1300,69 @@ function buildSummary(p) {
   return line ? line.slice(0, 160) : '(no summary — open the issue for details)';
 }
 
+// ── Integrations ──────────────────────────────────────────────────────────────
+// External systems Togo connects to (label `integrations`). Items also labeled
+// `integration:not-yet` are exploratory / long-horizon and render in a lower tier.
+let integrations = [];
+async function loadIntegrations() {
+  const load = document.getElementById('int-loading'), cont = document.getElementById('int-content');
+  if (!load || !cont) return;
+  load.style.display = 'block'; cont.style.display = 'none';
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=integrations&state=open&per_page=100`);
+    integrations = raw.map(issue => {
+      const labels = issue.labels.map(l => l.name);
+      const body = issue.body || '';
+      return { number: issue.number, title: issue.title, body, url: issue.html_url, labels,
+        priority: +(labels.find(l=>l.startsWith('priority-'))?.slice(9) || '3'),
+        oncRefs: extractOncRefs(issue.title + ' ' + body),
+        assignees: (issue.assignees||[]).map(a=>a.login),
+        notYet: labels.includes('integration:not-yet'), commentCount: issue.comments };
+    }).sort((a,b) => a.priority - b.priority || a.number - b.number);
+    renderIntegrations();
+    load.style.display = 'none'; cont.style.display = 'block';
+  } catch(e) { load.textContent = `Error: ${e.message}`; }
+}
+function integrationRow(p, idx, notYet) {
+  return `<tr>
+    <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx}</td>
+    <td>
+      <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+      <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
+    </td>
+    <td>${dotsHtml(p.priority)}</td>
+    <td>${oncHtml(p.oncRefs)}</td>
+    <td>${notesHtml(p)}</td>
+    <td><div class="actions">
+      ${promptBtn(p.number, true)}
+      ${notYet
+        ? `<span class="badge" style="background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:2px 8px">Not yet</span>`
+        : `<button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim and move to Current Projects">Claim</button>`}
+    </div></td>
+  </tr>`;
+}
+function renderIntegrations() {
+  const el = document.getElementById('int-content');
+  if (!el) return;
+  if (!integrations.length) { el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No integrations yet.</div>`; return; }
+  const active = integrations.filter(p => !p.notYet);
+  const notYet = integrations.filter(p => p.notYet);
+  const head = `<thead><tr><th style="width:28px">#</th><th>Integration</th><th style="width:72px">Priority</th><th style="width:68px">ONC/MIPS</th><th style="width:58px">Notes</th><th style="width:190px">Actions</th></tr></thead>`;
+  let n = 0;
+  const activeRows = active.length ? active.map(p => integrationRow(p, ++n, false)).join('')
+    : `<tr><td colspan="6" style="color:var(--text-muted);font-size:13px;padding:10px">None planned yet.</td></tr>`;
+  let notYetBlock = '';
+  if (notYet.length) {
+    let m = 0;
+    notYetBlock = `<tr class="cp-tier-gap"><td colspan="6"></td></tr>`
+      + `<tr class="cp-tier-note"><td colspan="6">Not yet — exploratory / long-horizon (not scheduled)</td></tr>`
+      + notYet.map(p => integrationRow(p, ++m, true)).join('');
+  }
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">${active.length} planned · ${notYet.length} not yet · active builds in Current Projects: PCC #128, DrFirst/iPrescribe #127, cHIE/UHIN #173</div>
+    <div class="proj-table-wrap"><table>${head}<tbody>${activeRows}${notYetBlock}</tbody></table></div>`;
+}
+
 function renderFutureIdeas() {
   const el = document.getElementById('fi-content');
   if (!futureIdeas.length) {
@@ -1710,7 +1789,7 @@ async function openNotes(number) {
   resetNotify();
   document.getElementById('notes-file-input').value = '';
   // Find the item across ANY loaded section for the title + any cached comments.
-  const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
+  const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof integrations!=='undefined'?integrations:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
   let known = null;
   for (const L of lists) { const f = (L||[]).find(x => x.number === number); if (f) { known = f; break; } }
   document.getElementById('notes-modal-title').textContent = known && known.title ? known.title : `Issue #${number}`;
@@ -1992,6 +2071,8 @@ async function claimIdea(number) {
     await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects.`);
     await removeLabel(number, 'future-idea');
     await removeLabel(number, 'facility-portal');
+    await removeLabel(number, 'integrations');
+    await removeLabel(number, 'integration:not-yet');
     await addLabel(number, 'current-project');
     await addLabel(number, 'status:in-progress');
     toast(`Idea claimed — moved to Current Projects`);
@@ -2193,7 +2274,7 @@ function copyProjectPrompt(number) {
 }
 
 function copyFuturePrompt(number) {
-  const p = futureIdeas.find(p => p.number === number) || facilityPortal.find(p => p.number === number);
+  const p = futureIdeas.find(p => p.number === number) || facilityPortal.find(p => p.number === number) || (typeof integrations!=='undefined' ? integrations.find(p => p.number === number) : null);
   if (!p) return;
   const body = p.body || '';
   // Extract the claude prompt code block from the issue body
