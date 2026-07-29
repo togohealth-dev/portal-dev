@@ -415,7 +415,7 @@
   <div class="section-block" id="sec-int">
     <div class="section-hdr">
       <h2>Integrations</h2>
-      <p>External systems Togo connects to — planned/queued. Claim any to move it into Current Projects. Active builds live in Current Projects: PCC #128, DrFirst/iPrescribe #127, cHIE/UHIN #173.</p>
+      <p>External systems Togo connects to — planned/queued (not yet in progress; starting soon). Each vendor is broken into small, PR-sized projects with the vendor name as the first word of the title. Claim any to move it into Current Projects.</p>
       <button class="sec-toggle" onclick="toggleSection('int')">▾</button>
     </div>
     <div class="sec-body">
@@ -1359,7 +1359,7 @@ function renderIntegrations() {
       + notYet.map(p => integrationRow(p, ++m, true)).join('');
   }
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">${active.length} planned · ${notYet.length} not yet · active builds in Current Projects: PCC #128, DrFirst/iPrescribe #127, cHIE/UHIN #173</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">${active.length} planned · ${notYet.length} not yet</div>
     <div class="proj-table-wrap"><table>${head}<tbody>${activeRows}${notYetBlock}</tbody></table></div>`;
 }
 
