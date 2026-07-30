@@ -1305,6 +1305,12 @@ function buildSummary(p) {
 // External systems Togo connects to (label `integrations`). Items also labeled
 // `integration:not-yet` are exploratory / long-horizon and render in a lower tier.
 let integrations = [];
+// Section order (Greg): DrFirst → PCC → cHIE/UHIN → the rest (then priority, then #).
+function intVendorRank(t){ t=(t||'').toLowerCase();
+  if(t.startsWith('drfirst')) return 1;
+  if(t.startsWith('pcc')) return 2;
+  if(t.includes('chie')||t.includes('uhin')) return 3;
+  return 9; }
 async function loadIntegrations() {
   const load = document.getElementById('int-loading'), cont = document.getElementById('int-content');
   if (!load || !cont) return;
@@ -1319,7 +1325,7 @@ async function loadIntegrations() {
         oncRefs: extractOncRefs(issue.title + ' ' + body),
         assignees: (issue.assignees||[]).map(a=>a.login),
         notYet: labels.includes('integration:not-yet'), commentCount: issue.comments };
-    }).sort((a,b) => a.priority - b.priority || a.number - b.number);
+    }).sort((a,b) => intVendorRank(a.title) - intVendorRank(b.title) || a.priority - b.priority || a.number - b.number);
     renderIntegrations();
     load.style.display = 'none'; cont.style.display = 'block';
   } catch(e) { load.textContent = `Error: ${e.message}`; }
