@@ -229,6 +229,9 @@
   tr.cp-tier-gap td { height:12px; padding:0; border:none; background:transparent; }
   tr.cp-tier-note td { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
     color:var(--text-muted); background:transparent; border:none; padding:2px 8px 4px; }
+  /* Integrations vendor group header (jump-bar anchors) */
+  tr.int-vgroup td { background:#eef2fb; font-weight:700; font-size:12px; color:var(--text);
+    padding:7px 8px; border-top:2px solid var(--border); scroll-margin-top:96px; }
   /* Notes rich field with inline @-mentions */
   .notes-rich { min-height:72px; max-height:220px; overflow-y:auto; font-size:13px; line-height:1.9;
     padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:inherit; outline:none; }
@@ -1348,6 +1351,25 @@ function integrationRow(p, idx, notYet) {
     </div></td>
   </tr>`;
 }
+// Group projects by vendor from the title (for the jump bar + section headers).
+function intVendorKey(title){
+  let t = (title||'').split(' — ')[0].split(' – ')[0];
+  t = t.replace(/\s+integration.*$/i,'').replace(/\s*\([^)]*\)\s*/g,' ').trim();
+  const low = t.toLowerCase();
+  if(low.includes('chie')||low.includes('uhin')) return 'cHIE/UHIN';
+  if(low.startsWith('health gorilla')) return 'Health Gorilla';
+  if(low.startsWith('cms')) return 'CMS Blue Button';
+  if(low.startsWith('state')||low.includes('pdmp')) return 'State CSD/PDMP';
+  if(low.startsWith('claims')) return 'Claims History';
+  if(low.includes('pacs')) return 'PACS';
+  if(low.startsWith('drfirst')) return 'DrFirst';
+  if(low.startsWith('pcc')) return 'PCC';
+  if(low.startsWith('matrix')) return 'Matrix';
+  const w = t.split(/\s+/).filter(Boolean);
+  return (w.length>1 && w[1].length>2 ? w.slice(0,2) : w.slice(0,1)).join(' ') || t;
+}
+function intVendorSlug(k){ return 'int-v-' + k.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
 function renderIntegrations() {
   const el = document.getElementById('int-content');
   if (!el) return;
@@ -1355,19 +1377,37 @@ function renderIntegrations() {
   const active = integrations.filter(p => !p.notYet);
   const notYet = integrations.filter(p => p.notYet);
   const head = `<thead><tr><th style="width:28px">#</th><th>Integration</th><th style="width:72px">Priority</th><th style="width:68px">ONC/MIPS</th><th style="width:58px">Notes</th><th style="width:190px">Actions</th></tr></thead>`;
-  let n = 0;
-  const activeRows = active.length ? active.map(p => integrationRow(p, ++n, false)).join('')
-    : `<tr><td colspan="6" style="color:var(--text-muted);font-size:13px;padding:10px">None planned yet.</td></tr>`;
-  let notYetBlock = '';
+
+  // Group active projects by vendor; order groups by importance (DrFirst→PCC→cHIE→…) then first #.
+  const groups = {};
+  active.forEach(p => { const k = intVendorKey(p.title); (groups[k] = groups[k] || []).push(p); });
+  const order = Object.keys(groups).sort((a,b) =>
+    intVendorRank(a+' —') - intVendorRank(b+' —')
+    || Math.min(...groups[a].map(p=>p.number)) - Math.min(...groups[b].map(p=>p.number)));
+
+  // Jump bar (in the section title area).
+  const jump = order.map(k =>
+    `<button class="btn btn-outline btn-sm" onclick="document.getElementById('${intVendorSlug(k)}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(k)} <span style="color:var(--text-muted)">${groups[k].length}</span></button>`
+  ).join('') + (notYet.length ? `<button class="btn btn-outline btn-sm" style="opacity:.7" onclick="document.getElementById('int-v-not-yet').scrollIntoView({behavior:'smooth',block:'start'})">Not yet <span style="color:var(--text-muted)">${notYet.length}</span></button>` : '');
+
+  // Body: per-vendor header rows (anchors) + that vendor's rows.
+  let n = 0, bodyRows = '';
+  order.forEach(k => {
+    bodyRows += `<tr class="int-vgroup" id="${intVendorSlug(k)}"><td colspan="6">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length})</span></td></tr>`;
+    bodyRows += groups[k].map(p => integrationRow(p, ++n, false)).join('');
+  });
+  if (!bodyRows) bodyRows = `<tr><td colspan="6" style="color:var(--text-muted);font-size:13px;padding:10px">None planned yet.</td></tr>`;
   if (notYet.length) {
     let m = 0;
-    notYetBlock = `<tr class="cp-tier-gap"><td colspan="6"></td></tr>`
-      + `<tr class="cp-tier-note"><td colspan="6">Not yet — exploratory / long-horizon (not scheduled)</td></tr>`
+    bodyRows += `<tr class="cp-tier-gap"><td colspan="6"></td></tr>`
+      + `<tr class="cp-tier-note" id="int-v-not-yet"><td colspan="6">Not yet — exploratory / long-horizon (not scheduled)</td></tr>`
       + notYet.map(p => integrationRow(p, ++m, true)).join('');
   }
+
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">${active.length} planned · ${notYet.length} not yet</div>
-    <div class="proj-table-wrap"><table>${head}<tbody>${activeRows}${notYetBlock}</tbody></table></div>`;
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 8px">${active.length} planned · ${notYet.length} not yet · jump to a vendor:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${jump}</div>
+    <div class="proj-table-wrap"><table>${head}<tbody>${bodyRows}</tbody></table></div>`;
 }
 
 function renderFutureIdeas() {
