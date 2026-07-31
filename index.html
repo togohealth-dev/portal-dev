@@ -778,11 +778,16 @@ const CONTRIB = {
   229: { "(a)(1)":5 },
   234: { "(b)(2)":2 },
   259: { "(a)(9)":10 },
-  282: { "(a)(1)":5, "(a)(4)":30, "(b)(3)":22 },
-  284: { "(b)(2)":18 },
+  282: { "(a)(1)":8, "(a)(4)":30, "(a)(7)":18, "(a)(8)":10, "(a)(9)":12, "(b)(3)":22 },
+  284: { "(a)(7)":22, "(b)(2)":18 },
+  291: { "(a)(2)":2 },
+  293: { "(a)(2)":8 },
   294: { "(a)(2)":40 },
   295: { "(a)(2)":3, "(a)(3)":50 },
+  296: { "(a)(3)":5 },
+  297: { "(a)(2)":2 },
   304: { "(d)(13)":10 },
+  332: { "(a)(1)":8, "(a)(4)":22, "(a)(7)":15, "(a)(8)":15, "(a)(9)":15, "(b)(3)":12 },
 };
 
 // Live project stage → fraction of its weight that counts as delivered.
@@ -1616,11 +1621,11 @@ function intVendorKey(title){
   if(low.startsWith('health gorilla')) return 'Health Gorilla';
   // Labs that route through the Health Gorilla aggregator live in its group (#296).
   if(low.startsWith('labcorp')||low.startsWith('ihc')||low.startsWith('solaris')||low.startsWith('express')) return 'Health Gorilla';
-  // Net Health is the parent of RehabOptima — combine them into one NetHealth group.
-  if(low.startsWith('rehaboptima')||low.startsWith('rehab optima')||low.startsWith('nethealth')||low.startsWith('net health')) return 'NetHealth';
+  // Net Health scope: parent of RehabOptima; CliniSign grouped here too.
+  if(low.startsWith('rehaboptima')||low.startsWith('rehab optima')||low.startsWith('nethealth')||low.startsWith('net health')||low.startsWith('clinisign')) return 'NetHealth';
   if(low.startsWith('cms')) return 'CMS Blue Button';
   if(low.startsWith('state')||low.includes('pdmp')) return 'State CSD/PDMP';
-  if(low.startsWith('claims')) return 'Claims History';
+  if(low.startsWith('claims')) return 'CMS Blue Button';
   if(low.includes('pacs')) return 'PACS';
   if(low.startsWith('drfirst')) return 'DrFirst';
   if(low.startsWith('pcc')) return 'PCC';
