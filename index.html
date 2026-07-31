@@ -2276,6 +2276,7 @@ ${activeProjects}
 - PR SCOPE — keep it small: 2–3 minor changes OR 1 major change per PR (Scott wants 1–2 features/PR). As you build, if it's growing past that (a 2nd/3rd feature, a big new surface, a migration + several endpoints), STOP and ask Greg: "this is getting to be a major change — split the rest into a new session/PR?" — offer BEFORE it balloons.
 - SQLX_OFFLINE=true. Runtime sqlx only — no query! macros.
 - BACKEND BUILD (Rust): before touching the Rust backend, READ portal/backend/CLAUDE.md. Build with CURRENT STABLE Rust — the team is on 1.96 and the backend is edition 2024 (needs Rust >= 1.85). Run "rustup update stable"; do NOT pin an old toolchain (there is no rust-toolchain.toml). Then source ~/.cargo/env and run: SQLX_OFFLINE=true cargo check -p grab-legacy-backend (offline sqlx validates against .sqlx/). Compile errors about edition 2024 / unknown syntax = your toolchain is too old -> update stable, don't downgrade.
+- INTEGRATIONS + ONC: external-data integrations usually touch ONC §170.315 — identify which and build cert-safe from line 1 (read strategy-1-morgan.md ONC map). Map: e-prescribing -> (b)(3) [meds must carry RxNorm / (a)(1)]; drug-interaction & allergy checks -> (a)(4)+(a)(8); formulary/benefit -> (a)(10); lab orders -> (a)(2) LOINC; imaging orders -> (a)(3) LOINC; results + med/allergy/problem reconciliation -> (b)(2) coded; HIE / transitions of care -> (b)(1) C-CDA R2.1 + (g)(10) FHIR US Core; predictive/AI clinical alerts -> (a)(9) CDS (cite evidence, allow accept/modify/reject, LOG the decision — a dismissable popup is NOT cert-compliant). Use standard vocab (RxNorm/LOINC/SNOMED/ICD-10) + audit-log hooks so nothing needs retrofitting under ATL review.
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: confirm feature can't be done with existing API before adding backend.
   If backend is needed, stop and get approval from Greg first.
@@ -2786,6 +2787,7 @@ ${ctx.scaffold}
 - PR SCOPE — keep it small: 2–3 minor changes OR 1 major change per PR (Scott wants 1–2 features/PR). If the build grows past that, STOP and ask Greg: "this is getting to be a major change — split the rest into a new session/PR?" — offer BEFORE it balloons.
 - SQLX_OFFLINE=true. Runtime sqlx only, no query! macros.
 - BACKEND BUILD (Rust): read portal/backend/CLAUDE.md first. Use CURRENT STABLE Rust (team is on 1.96; backend is edition 2024 → needs >= 1.85). Run "rustup update stable" (do NOT pin an old toolchain); then SQLX_OFFLINE=true cargo check -p grab-legacy-backend. Edition-2024 compile errors = toolchain too old → update stable.
+- INTEGRATIONS + ONC: most external integrations touch ONC §170.315 — identify which (strategy-1-morgan.md ONC map) and build cert-safe: e-prescribing (b)(3)+RxNorm, interactions (a)(4), formulary (a)(10), lab/imaging orders (a)(2)/(a)(3) LOINC, reconciliation (b)(2), transitions/HIE (b)(1) C-CDA + (g)(10) FHIR, AI clinical alerts (a)(9) CDS w/ logged decision.
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: get approval before touching backend.
 - Deployment: localhost → beta → production. Never skip beta.
