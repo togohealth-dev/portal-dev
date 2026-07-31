@@ -702,61 +702,64 @@ const STATUS_PCT = { beta_testing:85, beta_complete:90, ready_for_eval:95, ready
 const PROGRESS_LABELS = { 'progress-25':25, 'progress-50':50, 'progress-75':75 };
 
 // ── ONC contribution engine ───────────────────────────────────────────────────
-// Each project contributes a static WEIGHT (% of a criterion) — a first-pass analysis,
-// tune the numbers below. Its LIVE stage (from issue labels) decides how much of that
-// weight counts as delivered:  pre-alpha 0% · alpha 50% · beta 75% · gamma(done) 100%.
-// criterion% = builtPct baseline + Σ(weight × stageFrac), capped at 100.
-// Auto-generated (equal share of each criterion's remaining gap, capped at 40% per
-// project) — umbrella/overview issues excluded. Edit freely; nothing else depends on it.
+// The percentage reflects PROJECT PROGRESS ONLY — it starts at 0 and rises solely as
+// the projects that advance a criterion move through stages. No pre-existing-code
+// "baseline" is counted.
+// Each project has a static WEIGHT (% of a criterion) — a first-pass analysis, tune below.
+// Its LIVE stage (from issue labels) decides how much of that weight counts as delivered:
+//   pre-alpha 0% · alpha 50% · beta 75% · gamma(done) 100%.
+// criterion% = Σ(weight × stageFrac), capped at 100.
+// Auto-generated (each criterion's contributing projects split 100%, capped at 40% per
+// project) — umbrella/overview + the criterion issues themselves excluded. Edit freely.
 const CONTRIB = {
-  50: { "(a)(16)":1, "(g)(3)":40 },
+  50: { "(a)(16)":20, "(g)(3)":40 },
   52: { "(g)(3)":40 },
   54: { "(e)(1)":40 },
-  57: { "(a)(16)":1, "(a)(4)":33 },
+  57: { "(a)(16)":20, "(a)(4)":33 },
   58: { "(a)(4)":33, "(a)(5)":40 },
   73: { "(e)(1)":40 },
   83: { "(b)(3)":20 },
   115: { "(b)(2)":33 },
-  139: { "(d)(1)":5 },
-  141: { "(d)(1)":5 },
-  152: { "(a)(1)":18, "(d)(2)":4 },
-  153: { "(a)(6)":1 },
-  154: { "(a)(6)":1 },
-  155: { "(d)(1)":5, "(d)(13)":11 },
-  156: { "(d)(1)":5, "(d)(2)":4 },
-  157: { "(a)(16)":1 },
-  158: { "(a)(11)":37 },
-  159: { "(a)(16)":1 },
-  160: { "(a)(16)":1 },
-  164: { "(a)(11)":37 },
+  139: { "(d)(1)":11 },
+  141: { "(d)(1)":11 },
+  152: { "(a)(1)":25, "(d)(2)":17 },
+  153: { "(a)(6)":40 },
+  154: { "(a)(6)":40 },
+  155: { "(d)(1)":11, "(d)(13)":14 },
+  156: { "(d)(1)":11, "(d)(2)":17 },
+  157: { "(a)(16)":20 },
+  158: { "(a)(11)":40 },
+  159: { "(a)(16)":20 },
+  160: { "(a)(16)":20 },
+  164: { "(a)(11)":40 },
   166: { "(c)(1)":40, "(g)(2)":40 },
-  167: { "(a)(2)":18, "(b)(1)":20 },
+  167: { "(a)(2)":25, "(b)(1)":20 },
   168: { "(b)(3)":20 },
   169: { "(b)(3)":20 },
   170: { "(b)(1)":20 },
-  174: { "(a)(9)":40, "(d)(2)":4 },
-  178: { "(d)(1)":5, "(d)(2)":4 },
-  180: { "(d)(1)":5 },
-  196: { "(d)(2)":4 },
-  197: { "(d)(1)":5, "(d)(2)":4 },
-  200: { "(d)(1)":5 },
-  205: { "(d)(13)":11 },
-  211: { "(d)(13)":11 },
-  212: { "(d)(13)":11 },
+  174: { "(a)(9)":40, "(d)(2)":17 },
+  178: { "(d)(1)":11, "(d)(2)":17 },
+  180: { "(d)(1)":11 },
+  196: { "(d)(2)":17 },
+  197: { "(d)(1)":11, "(d)(2)":17 },
+  200: { "(d)(1)":11 },
+  205: { "(d)(13)":14 },
+  211: { "(d)(13)":14 },
+  212: { "(d)(13)":14 },
   215: { "(b)(1)":20, "(g)(10)":40 },
-  221: { "(d)(13)":11 },
-  224: { "(d)(1)":5, "(d)(13)":11 },
-  226: { "(a)(1)":18, "(a)(2)":18, "(a)(3)":37, "(b)(1)":20 },
+  221: { "(d)(13)":14 },
+  224: { "(d)(1)":11, "(d)(13)":14 },
+  226: { "(a)(1)":25, "(a)(2)":25, "(a)(3)":40, "(b)(1)":20 },
   227: { "(b)(1)":20, "(b)(3)":20 },
-  229: { "(a)(1)":18 },
+  229: { "(a)(1)":25 },
   234: { "(b)(2)":33 },
   259: { "(a)(9)":40 },
-  282: { "(a)(1)":18, "(a)(4)":33, "(a)(8)":40, "(b)(3)":20 },
+  282: { "(a)(1)":25, "(a)(4)":33, "(a)(8)":40, "(b)(3)":20 },
   284: { "(b)(2)":33 },
   285: { "(a)(10)":40 },
-  294: { "(a)(2)":18 },
-  295: { "(a)(2)":18, "(a)(3)":37 },
-  304: { "(d)(13)":11 },
+  294: { "(a)(2)":25 },
+  295: { "(a)(2)":25, "(a)(3)":40 },
+  304: { "(d)(13)":14 },
 };
 
 // Live project stage → fraction of its weight that counts as delivered.
@@ -783,25 +786,23 @@ function buildOncContribLive(){
   }
 }
 
-// Criterion total % = max(its own tracked pct, baseline + weighted contributions), capped.
+// Criterion % = Σ(weight × stageFrac) from contributing projects only. No baseline. Capped.
 function criterionTotalPct(i){
-  const base = (i.criterionId && CTX[i.criterionId]) ? CTX[i.criterionId].builtPct : 0;
   const slices = (i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || [];
   const add = slices.reduce((s,x)=> s + x.weight * x.frac, 0);
-  return Math.min(100, Math.round(Math.max(i.pct || 0, base + add)));
+  return Math.min(100, Math.round(add));
 }
 
-// Segmented bar: grey baseline segment + one slice per contributing project (fills by stage).
+// Segmented bar: one slice per contributing project, each filling by its live stage.
 function oncBarHtml(i){
-  const base = (i.criterionId && CTX[i.criterionId]) ? CTX[i.criterionId].builtPct : 0;
   const slices = ((i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || []).slice().sort((a,b)=>b.weight-a.weight);
   const total = criterionTotalPct(i);
   const color = s => s==='done' ? 'prog-green' : s==='beta_version' ? 'prog-blue' : (s==='alpha_testing'||s==='ready_beta') ? 'prog-orange' : 'prog-idle';
-  const stage = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha';
-  let segs = base>0 ? `<div class="onc-seg seg-base" style="width:${base}%" title="Baseline already built: ${base}%"></div>` : '';
+  const stage = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha (0%)';
+  let segs = '';
   for (const s of slices){
     const fill = Math.round(s.frac*100);
-    segs += `<div class="onc-seg" style="width:${s.weight}%" title="#${s.num} — ${i.criterionId} weight ${s.weight}% · ${stage(s.status)} (${fill}% filled)"><div class="onc-seg-fill ${color(s.status)}" style="width:${fill}%"></div></div>`;
+    segs += `<div class="onc-seg" style="width:${s.weight}%" title="#${s.num} — ${i.criterionId} weight ${s.weight}% · ${stage(s.status)} (${fill}% of slice filled)"><div class="onc-seg-fill ${color(s.status)}" style="width:${fill}%"></div></div>`;
   }
   return `<div class="progress-wrap"><div class="onc-bar">${segs}</div><span class="progress-pct">${total}%</span></div>`;
 }
@@ -2706,7 +2707,7 @@ function renderContent() {
     const rankStart = rank; rank += g.items.length;
     const doneCount = g.items.filter(i=>['ready_for_atl','done'].includes(i.status)).length;
     const atlCount  = g.items.filter(i=>i.status==='ready_for_atl').length;
-    const avgPct    = g.items.length ? Math.round(g.items.reduce((s,i)=>s+i.pct,0)/g.items.length) : 0;
+    const avgPct    = g.items.length ? Math.round(g.items.reduce((s,i)=>s+criterionTotalPct(i),0)/g.items.length) : 0;
     return `
     <div class="wave-group wave-${g.wave}" id="wave-${g.wave}">
       <div class="wave-header" onclick="toggleWave(${g.wave})">
@@ -2715,7 +2716,7 @@ function renderContent() {
         <div class="wave-meta">
           <span>${g.items.length} criteria</span>
           <span style="color:var(--green-atl)">${doneCount} complete${atlCount?' ('+atlCount+' ATL-ready)':''}</span>
-          <span>avg ${avgPct}% built</span>
+          <span>avg ${avgPct}% (project progress)</span>
         </div>
       </div>
       <div class="wave-table-wrap">
