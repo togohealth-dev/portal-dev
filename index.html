@@ -694,38 +694,38 @@ const API  = 'https://api.github.com';
 // builtPct = % already in codebase before dev starts (from June 2026 code eval of emr-beta main)
 const CTX = {
   "(d)(2)":  { builtPct:75, existing:"audit.record_version table + INSERT/UPDATE/DELETE triggers on 5 tables. visit_events table (20251117). No read logging. Tracking not enabled on medication/observation/diagnosis/allergy/visit_orders tables. No filterable report.", upstream:["(d)(1) RBAC — user identity must be resolvable in middleware context"], enables:["(d)(3) audit reports reads from the same audit_log table","(d)(6) emergency access writes a break-glass entry to the same table","Every EHI route needs this middleware — build it drop-in attachable"], scaffold:"Enable audit.enable_tracking() on all remaining EHI tables. Add read-event logging middleware. Build filterable /admin/access-log. (d)(3) queries the same table.", hours:8 },
-  "(d)(5)":  { builtPct:75, existing:"SecurityPopup in AppRoot.tsx: warns at 20min, auto-logs out at 40min. Resets on any click. Needs: (1) adjust to 30-min ONC threshold, (2) require Firebase re-auth on resume (not just click-to-dismiss).", upstream:["Firebase Auth (exists)"], enables:["(d)(13) MFA session management extends this idle timer pattern"], scaffold:"Fix timeout to 30min configurable. Add Firebase re-authentication on resume. (d)(13) adds TOTP prompt to the same resume flow.", hours:3 },
-  "(d)(1)":  { builtPct:50, existing:"Firebase Auth + JWT verified on every request (AuthUser extractor). Facility-scoped RBAC exists. ProfessionalRole enum has GAdmin/GDoctor/GApp/GNurse. Most admin routes check is_admin(). Clinical routes (medications, observations) check patient-facility authorization but NOT role. No systematic role enforcement matrix.", upstream:[], enables:["(d)(6) emergency access needs role context in middleware","(d)(13) MFA enforcement is per-route via same role middleware"], scaffold:"Build reusable Axum role middleware extractor. Apply to all clinical routes. Every route attaches it with one line.", hours:5 },
+  "(d)(5)":  { builtPct:80, existing:"SecurityPopup in AppRoot.tsx: warns at 20min, auto-logs out at 40min. Resets on any click. Needs: (1) adjust to 30-min ONC threshold, (2) require Firebase re-auth on resume (not just click-to-dismiss).", upstream:["Firebase Auth (exists)"], enables:["(d)(13) MFA session management extends this idle timer pattern"], scaffold:"Fix timeout to 30min configurable. Add Firebase re-authentication on resume. (d)(13) adds TOTP prompt to the same resume flow.", hours:3 },
+  "(d)(1)":  { builtPct:65, existing:"Firebase Auth + JWT verified on every request (AuthUser extractor). Facility-scoped RBAC exists. ProfessionalRole enum has GAdmin/GDoctor/GApp/GNurse. Most admin routes check is_admin(). Clinical routes (medications, observations) check patient-facility authorization but NOT role. No systematic role enforcement matrix.", upstream:[], enables:["(d)(6) emergency access needs role context in middleware","(d)(13) MFA enforcement is per-route via same role middleware"], scaffold:"Build reusable Axum role middleware extractor. Apply to all clinical routes. Every route attaches it with one line.", hours:5 },
   "(a)(8)":  { builtPct:25, existing:"allergy table exists with allergy_id, patient_id, narrative (free text only). CRUD in patient/other_medical.rs. No RxNorm coding, no allergy type, no reaction/severity fields.", upstream:["RxNorm lookup (same NLM API as (a)(1))"], enables:["(a)(9) CDS drug-allergy check queries patient_allergy","(b)(1) C-CDA allergy section reads patient_allergy","(b)(3) eRx safety check needs allergy list"], scaffold:"Add RxNorm coding, allergy type, reaction, severity to allergy table. Add RxNorm lookup UI.", hours:6 },
   "(a)(5)":  { builtPct:25, existing:"Patient table has sex, dob, address, email, phone, gender (added 20240627). metadata jsonb column exists. No race, ethnicity, preferred_language, gender_identity, or pronouns columns. USCDI v3 fields not captured.", upstream:[], enables:["(b)(1) C-CDA demographics section reads these same columns","(g)(10) FHIR US Core Patient profile requires all USCDI v3 fields"], scaffold:"DB migration: add race, ethnicity, preferred_language, gender_identity, pronouns columns. Add to PatientUpdate/PatientCreate API types.", hours:4 },
   "(d)(13)": { builtPct:10, existing:"MFA forms exist in Flutter mobile apps (mfa_page.dart). Portal/web (Next.js) has NO MFA — no TOTP enrollment, no Firebase MFA setup, no MFA requirement check in AuthProvider.tsx. Clinical portal is unprotected by MFA.", upstream:["(d)(1) RBAC — MFA enforcement per-route via same middleware","(d)(5) session management — MFA re-prompt on idle resume"], enables:[], scaffold:"Firebase TOTP enrollment flow in settings page. MFA enforcement in same role middleware as (d)(1). (d)(5) idle resume: TOTP prompt before unlocking.", hours:5 },
   "(g)(4)":  { builtPct:0,  existing:"No QMS documentation anywhere in the repository. No Quality Policy, Change Control Procedure, Incident Response Plan, Test Plans, or CAPA log.", upstream:[], enables:[], scaffold:"~40 hrs documentation. Deliverables: Quality Policy, Change Control Procedure, Incident Response Plan, Test Plans per criterion, CAPA log. Start with Change Control — ATL asks for it first.", hours:40 },
-  "(a)(9)":  { builtPct:10, existing:"14 MIPS measures as SQL queries (retrospective reporting). No real-time CDS framework. No drug-allergy or drug-drug interaction alerts at order entry. No provider decision logging.", upstream:["(a)(8) allergy list","(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"CDS response schema: {criterion_id, evidence_source, alert_text, provider_decision, decision_reason, logged_at}. NLM RxNav API. Build as Rust service function, not inline in route handler.", hours:10 },
-  "(a)(1)":  { builtPct:25, existing:"Medication table + visit_orders OrderType::Medication exist. Free-text 'narrative' field. No rxnorm_code column, no dose/route/frequency structure. coding table supports code+system but medications not linked.", upstream:[], enables:["(a)(9) CDS drug-allergy needs rxnorm_code column","(b)(3) eRx needs RxNorm first","(b)(1) C-CDA medication section requires RxNorm"], scaffold:"Add rxnorm_code VARCHAR to medication table. Add RxNorm lookup UI (NLM RxNav API — free). Structured dose/route/frequency fields.", hours:8 },
-  "(a)(2)":  { builtPct:25, existing:"visit_orders OrderType::Lab exists. Free-text order_text. No loinc_code column. coding table can store LOINC but lab orders not linked.", upstream:[], enables:["(a)(9) CDS needs LOINC-coded lab orders","(c)(1) CQM needs computable lab data","(b)(1) C-CDA results needs LOINC"], scaffold:"Add loinc_code VARCHAR to visit_orders. LOINC lookup UI reused with (a)(3).", hours:6 },
-  "(a)(3)":  { builtPct:25, existing:"visit_orders OrderType::Imaging exists. Free-text order_text. No LOINC coding.", upstream:[], enables:["(b)(1) C-CDA imaging needs LOINC"], scaffold:"Same LOINC column + lookup as (a)(2). Reuse the order entry UI component.", hours:5 },
+  "(a)(9)":  { builtPct:20, existing:"14 MIPS measures as SQL queries (retrospective reporting). No real-time CDS framework. No drug-allergy or drug-drug interaction alerts at order entry. No provider decision logging.", upstream:["(a)(8) allergy list","(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"CDS response schema: {criterion_id, evidence_source, alert_text, provider_decision, decision_reason, logged_at}. NLM RxNav API. Build as Rust service function, not inline in route handler.", hours:10 },
+  "(a)(1)":  { builtPct:60, existing:"Medication table + visit_orders OrderType::Medication exist. Free-text 'narrative' field. No rxnorm_code column, no dose/route/frequency structure. coding table supports code+system but medications not linked.", upstream:[], enables:["(a)(9) CDS drug-allergy needs rxnorm_code column","(b)(3) eRx needs RxNorm first","(b)(1) C-CDA medication section requires RxNorm"], scaffold:"Add rxnorm_code VARCHAR to medication table. Add RxNorm lookup UI (NLM RxNav API — free). Structured dose/route/frequency fields.", hours:8 },
+  "(a)(2)":  { builtPct:30, existing:"visit_orders OrderType::Lab exists. Free-text order_text. No loinc_code column. coding table can store LOINC but lab orders not linked.", upstream:[], enables:["(a)(9) CDS needs LOINC-coded lab orders","(c)(1) CQM needs computable lab data","(b)(1) C-CDA results needs LOINC"], scaffold:"Add loinc_code VARCHAR to visit_orders. LOINC lookup UI reused with (a)(3).", hours:6 },
+  "(a)(3)":  { builtPct:30, existing:"visit_orders OrderType::Imaging exists. Free-text order_text. No LOINC coding.", upstream:[], enables:["(b)(1) C-CDA imaging needs LOINC"], scaffold:"Same LOINC column + lookup as (a)(2). Reuse the order entry UI component.", hours:5 },
   "(a)(11)": { builtPct:25, existing:"observation table exists with observation_type referencing coding table (LOINC-capable). Clinical data types user-configurable. No evidence LOINC 72166-2 (smoking status) is specifically loaded or required.", upstream:[], enables:["(b)(1) C-CDA social history reads smoking status with LOINC"], scaffold:"Seed LOINC 72166-2 into coding table. Enforce smoking status as a required structured observation. Not free text or boolean.", hours:2 },
-  "(b)(3)":  { builtPct:0,  existing:"Pharmacy table added (20250610) with name/phone/address. Medications are free-text. iPrescribe/Rcopia is an external manual workflow outside the EMR codebase. No NCPDP SCRIPT generation, no Surescripts connectivity.", upstream:["(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"Structure medication orders for NCPDP SCRIPT NewRx format. Vendor options: Prescryptive, NewCrop, DrFirst Rcopia (already paying for iPrescribe).", hours:12 },
+  "(b)(3)":  { builtPct:3,  existing:"Pharmacy table added (20250610) with name/phone/address. Medications are free-text. iPrescribe/Rcopia is an external manual workflow outside the EMR codebase. No NCPDP SCRIPT generation, no Surescripts connectivity.", upstream:["(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"Structure medication orders for NCPDP SCRIPT NewRx format. Vendor options: Prescryptive, NewCrop, DrFirst Rcopia (already paying for iPrescribe).", hours:12 },
   "(c)(1)":  { builtPct:10, existing:"14 MIPS measures as custom SQL queries. /admin/mips CSV/JSON download. No QRDA III XML. No eMeasure CQL evaluation. No VSAC value set binding. Measures compute from ICD-10/CPT but are not ONC-compliant CQM submissions.", upstream:["(a)(1) coded meds","(a)(2) coded labs"], enables:["(g)(2) reuses QRDA III generator"], scaffold:"QRDA III XML via quick-xml. Standalone Rust module (qrda::generate). (g)(2) extends this same generator.", hours:10 },
-  "(b)(1)":  { builtPct:0,  existing:"patient_export exports CSV + visit note ZIP. No C-CDA R2.1 XML generation. No HL7 CDA library in Cargo.toml. Not started.", upstream:["(a)(5) USCDI v3 demographics","(a)(8) allergy list with RxNorm","(a)(1)/(a)(2) coded orders"], enables:["(e)(1) patient portal transmit reuses C-CDA XML generator"], scaffold:"C-CDA R2.1 XML via quick-xml in Rust. Standalone module (ccda::generate). (e)(1) calls same function.", hours:10 },
+  "(b)(1)":  { builtPct:3,  existing:"patient_export exports CSV + visit note ZIP. No C-CDA R2.1 XML generation. No HL7 CDA library in Cargo.toml. Not started.", upstream:["(a)(5) USCDI v3 demographics","(a)(8) allergy list with RxNorm","(a)(1)/(a)(2) coded orders"], enables:["(e)(1) patient portal transmit reuses C-CDA XML generator"], scaffold:"C-CDA R2.1 XML via quick-xml in Rust. Standalone module (ccda::generate). (e)(1) calls same function.", hours:10 },
   "(d)(3)":  { builtPct:25, existing:"/audit page + AuditGrid exists but shows visit/scheduling audit, not user EHI access log. audit.rs provides get_audit_events_multi by patient record. No filterable admin report by user + date range + data element accessed.", upstream:["(d)(2) audit_log table must exist first"], enables:[], scaffold:"Filterable query on audit_log by user/patient/date/action. Export reuses patient-export pattern.", hours:4 },
   "(d)(6)":  { builtPct:0,  existing:"No break-glass/emergency access mechanism. No special route, UI, or database flag. No break-glass audit trail. Not started.", upstream:["(d)(1) RBAC","(d)(2) audit log"], enables:[], scaffold:"Break-glass session flag granting elevated read access. On flag set: write to audit_log with action='emergency_access'. Alert admin via ctx.send_mail.", hours:5 },
   "(d)(7)":  { builtPct:80, existing:"Cloud Run enforces HTTPS/TLS on all external connections (data in transit ✓). Firebase JWT in memory only — not in localStorage (confirmed). SWR caches API response data in IndexedDB (6h maxAge) — contains PHI, not encrypted at app layer. Gap: no sign-out hook clears IDB cache. ONC (d)(7) test typically satisfied by OS-level disk encryption policy + app-layer session termination.", upstream:[], enables:[], scaffold:"(1) Add clear() on sign-out to flush swr-idb-cache. (2) Write policy doc: all end-user devices must have OS disk encryption (FileVault/BitLocker). (3) Tighten CORS from AllowOrigin::any(). 2h code + 3h docs.", hours:3 },
-  "(d)(8)":  { builtPct:0,  existing:"No SHA-256 hash columns on any EHI tables. audit.record_version stores JSON snapshots but no cryptographic integrity hashes. Not started.", upstream:[], enables:[], scaffold:"Add hash column to key EHI tables. SHA-256 of clinical fields on write. Recompute and compare on read. Rust utility function.", hours:4 },
-  "(d)(12)": { builtPct:95, existing:"READY FOR ATL — Firebase JWT transmitted over TLS only (Cloud Run). Token retrieved via getIdToken() — in-memory, NOT in localStorage (confirmed). Not logged server-side (Rust backend does not log raw token). Not in URL params. Firebase credentials in firebase.json are public API keys (by design, not secrets). Only action: write 1-page attestation doc for ATL.", upstream:[], enables:[], scaffold:"Write docs/atl/d12-credential-encryption-attestation.md. Include: Firebase JWT flow, HTTPS enforcement, no localStorage/URL param storage, no server-side logging. Zero code changes required.", hours:2 },
+  "(d)(8)":  { builtPct:5,  existing:"No SHA-256 hash columns on any EHI tables. audit.record_version stores JSON snapshots but no cryptographic integrity hashes. Not started.", upstream:[], enables:[], scaffold:"Add hash column to key EHI tables. SHA-256 of clinical fields on write. Recompute and compare on read. Rust utility function.", hours:4 },
+  "(d)(12)": { builtPct:88, existing:"READY FOR ATL — Firebase JWT transmitted over TLS only (Cloud Run). Token retrieved via getIdToken() — in-memory, NOT in localStorage (confirmed). Not logged server-side (Rust backend does not log raw token). Not in URL params. Firebase credentials in firebase.json are public API keys (by design, not secrets). Only action: write 1-page attestation doc for ATL.", upstream:[], enables:[], scaffold:"Write docs/atl/d12-credential-encryption-attestation.md. Include: Firebase JWT flow, HTTPS enforcement, no localStorage/URL param storage, no server-side logging. Zero code changes required.", hours:2 },
   "(e)(2)":  { builtPct:10, existing:"messaging_tables migration (20260112): member, chat, conversation tables exist. No messaging route in api_router. No frontend messaging UI. chat.text is plain text (not encrypted). Schema exists but feature not implemented.", upstream:["(d)(1) RBAC","(d)(2) audit log"], enables:[], scaffold:"Expose messaging routes. Build messaging UI. Encrypt chat.text. Every message write emits audit_log entry.", hours:8 },
   "(g)(2)":  { builtPct:10, existing:"14 MIPS measures auto-computed from SQL + CSV download. Not QRDA III. No automated submission pipeline. No CMS/payer connectivity.", upstream:["(c)(1) CQM — QRDA III generator must exist first"], enables:[], scaffold:"Extends (c)(1) QRDA III generator with automated measure computation. Same module.", hours:8 },
   "(g)(5)":  { builtPct:60, existing:"Headless UI v2 throughout — fully WCAG 2.1 AA compliant by design (ARIA roles, keyboard nav, focus trapping). Standard HTML form elements. RISK: @glideapps/glide-data-grid (canvas-based, not screen-reader accessible) used in clinical scheduling grid — but ATL tests specific clinical workflows, not the whole app. If ATL tests patient chart, medication entry, note signing (all Headless UI), these workflows can pass today.", upstream:[], enables:[], scaffold:"Commission targeted WCAG 2.0 AA audit of 5 core ATL-tested workflows: patient lookup, demographics entry, medication entry, note creation, problem list. Fix keyboard/ARIA gaps found. 8-16h depending on audit results.", hours:8 },
   "(g)(10)": { builtPct:0,  existing:"No FHIR R4 server, no US Core profiles, no SMART App Launch. Search for 'fhir' in portal/ returns zero results. Not started.", upstream:["(a)(5) USCDI v3","(a)(8) allergies","(a)(1)/(a)(2) coded orders"], enables:[], scaffold:"FHIR R4 server in Rust. US Core R4 profiles from existing Postgres columns. SMART App Launch 2.0 extends (d)(1) RBAC. Test with ONC Inferno.", hours:20 },
-  "(e)(1)":  { builtPct:10, existing:"patient-portal/ has questionnaire intake form only. No patient login, no record view, no C-CDA download, no transmit. patient_export module exports provider-side CSV. No patient VDT capability.", upstream:["(b)(1) C-CDA generator"], enables:[], scaffold:"View/download/transmit. Download calls ccda::generate (same as (b)(1)). Transmit via ctx.send_mail with C-CDA attachment.", hours:10 },
+  "(e)(1)":  { builtPct:4, existing:"patient-portal/ has questionnaire intake form only. No patient login, no record view, no C-CDA download, no transmit. patient_export module exports provider-side CSV. No patient VDT capability.", upstream:["(b)(1) C-CDA generator"], enables:[], scaffold:"View/download/transmit. Download calls ccda::generate (same as (b)(1)). Transmit via ctx.send_mail with C-CDA attachment.", hours:10 },
   // New criteria discovered in June 2026 audit
   "(d)(9)":  { builtPct:100, existing:"DONE — Cloud Run enforces TLS on all external connections. HTTPS everywhere. Firebase JWT verified against Google public keys over HTTPS. Zero code changes needed. Write attestation doc only.", upstream:[], enables:[], scaffold:"docs/atl/d9-trusted-connection-attestation.md — describe Cloud Run TLS enforcement. 1 hour documentation.", hours:1 },
-  "(a)(6)":  { builtPct:100, existing:"DONE — ICD-10 coded diagnosis list fully built. diagnosis table with icd10_code_id FK to coding table. Full CRUD in patient/diagnosis.rs. ICD-10 lookup UI. Linked to visit workflow.", upstream:[], enables:["(a)(4) drug-allergy CDS queries the problem list"], scaffold:"Write docs/atl/a6-problem-list-attestation.md. Verify ICD-10 codes are displayed (not free text) in the patient chart.", hours:1 },
-  "(a)(16)": { builtPct:100, existing:"DONE — Visit notes with structured sections (subjective, objective, assessment, plan), note signing with provider signature, note history and access. All built.", upstream:[], enables:[], scaffold:"Write docs/atl/a16-electronic-notes-attestation.md. Demonstrate create/edit/sign flow to ATL.", hours:1 },
-  "(a)(7)":  { builtPct:25, existing:"Medication table + visit_orders exist in production. Free-text 'narrative' field. No rxnorm_code column. coding table can hold RxNorm but medications not linked. ONC requires RxNorm-coded medications.", upstream:[], enables:["(a)(4) drug interactions need RxNorm on meds","(b)(3) eRx needs RxNorm","(b)(1) C-CDA medication section"], scaffold:"Add rxnorm_code VARCHAR to medication table. RxNorm lookup UI (NLM RxNav API — free). Build lookup component generically — shared with (a)(1) CPOE.", hours:6 },
+  "(a)(6)":  { builtPct:95, existing:"DONE — ICD-10 coded diagnosis list fully built. diagnosis table with icd10_code_id FK to coding table. Full CRUD in patient/diagnosis.rs. ICD-10 lookup UI. Linked to visit workflow.", upstream:[], enables:["(a)(4) drug-allergy CDS queries the problem list"], scaffold:"Write docs/atl/a6-problem-list-attestation.md. Verify ICD-10 codes are displayed (not free text) in the patient chart.", hours:1 },
+  "(a)(16)": { builtPct:95, existing:"DONE — Visit notes with structured sections (subjective, objective, assessment, plan), note signing with provider signature, note history and access. All built.", upstream:[], enables:[], scaffold:"Write docs/atl/a16-electronic-notes-attestation.md. Demonstrate create/edit/sign flow to ATL.", hours:1 },
+  "(a)(7)":  { builtPct:30, existing:"Medication table + visit_orders exist in production. Free-text 'narrative' field. No rxnorm_code column. coding table can hold RxNorm but medications not linked. ONC requires RxNorm-coded medications.", upstream:[], enables:["(a)(4) drug interactions need RxNorm on meds","(b)(3) eRx needs RxNorm","(b)(1) C-CDA medication section"], scaffold:"Add rxnorm_code VARCHAR to medication table. RxNorm lookup UI (NLM RxNav API — free). Build lookup component generically — shared with (a)(1) CPOE.", hours:6 },
   "(a)(4)":  { builtPct:0,  existing:"No CDS for drug-drug or drug-allergy interactions. Requires (a)(8) allergy with RxNorm + (a)(1)/(a)(7) meds with RxNorm first.", upstream:["(a)(8) allergy list with RxNorm","(a)(1)/(a)(7) medications with RxNorm codes"], enables:[], scaffold:"NLM RxNav interaction API. Drug-allergy check: compare new rxnorm_code against patient_allergy.rxnorm_code. Alert at order entry. Provider must log decision + reason.", hours:10 },
   "(g)(3)":  { builtPct:0,  existing:"No User-Centered Design process documentation. No summative usability testing report. No problem severity ratings. Pure documentation — no code required. ~40h of documentation work.", upstream:[], enables:[], scaffold:"(1) UCD Process doc. (2) Summative usability testing report (actual sessions with clinical staff required). (3) Problem log + how addressed. ONC guidance: healthit.gov/test-method/safety-enhanced-design", hours:40 },
-  "(d)(10)": { builtPct:25, existing:"audit.record_version captures data changes (INSERT/UPDATE/DELETE on 5 tables). Missing: login/logout/failed-login events — not captured anywhere. ONC (d)(10) requires detecting these security-relevant events explicitly.", upstream:["(d)(2) audit infrastructure"], enables:["(d)(3) security audit report includes auth events"], scaffold:"Add auth_events table: (id, professional_id, event_type, ip_address, user_agent, ts). Log in AuthUser extractor or post-auth middleware. Include in (d)(3) filterable report.", hours:6 },
+  "(d)(10)": { builtPct:35, existing:"audit.record_version captures data changes (INSERT/UPDATE/DELETE on 5 tables). Missing: login/logout/failed-login events — not captured anywhere. ONC (d)(10) requires detecting these security-relevant events explicitly.", upstream:["(d)(2) audit infrastructure"], enables:["(d)(3) security audit report includes auth events"], scaffold:"Add auth_events table: (id, professional_id, event_type, ip_address, user_agent, ts). Log in AuthUser extractor or post-auth middleware. Include in (d)(3) filterable report.", hours:6 },
   "(b)(2)":  { builtPct:0,  existing:"No C-CDA import or reconciliation workflow. Cannot be built until (b)(1) C-CDA generation exists.", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"C-CDA parser (XML → Rust types). Reconciliation UI: side-by-side comparison of incoming vs existing meds/allergies/problems. Provider selects which to incorporate.", hours:16 },
   "(h)(1)":  { builtPct:0,  existing:"No Direct protocol implementation. No Direct address provisioning. Downstream of (b)(1). Requires vendor selection (Surescripts, Kno2, CommonWell).", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"Direct address provisioning via vendor. Send C-CDA via Direct SMTP. Receive incoming Direct messages. Vendor selection is the first step.", hours:20 },
 };
@@ -746,49 +746,43 @@ const PROGRESS_LABELS = { 'progress-25':25, 'progress-50':50, 'progress-75':75 }
 // across the projects that advance it (umbrella/overview + criterion issues excluded), so
 // baseline + Σ values ≈ 100. A sole project owns the entire gap. Edit freely to tune.
 const CONTRIB = {
-  50: { "(g)(3)":50 },
-  52: { "(g)(3)":50 },
-  54: { "(e)(1)":45 },
-  57: { "(a)(4)":33 },
-  58: { "(a)(4)":33, "(a)(5)":75 },
-  73: { "(e)(1)":45 },
-  83: { "(b)(3)":20 },
-  115: { "(b)(2)":33 },
-  139: { "(d)(1)":6 },
-  141: { "(d)(1)":6 },
-  152: { "(a)(1)":19, "(d)(2)":4 },
-  155: { "(d)(1)":6, "(d)(13)":13 },
-  156: { "(d)(1)":6, "(d)(2)":4 },
-  158: { "(a)(11)":38 },
-  164: { "(a)(11)":38 },
-  166: { "(c)(1)":90, "(g)(2)":90 },
-  167: { "(a)(2)":19, "(b)(1)":20 },
-  168: { "(b)(3)":20 },
-  169: { "(b)(3)":20 },
-  170: { "(b)(1)":20 },
-  174: { "(a)(9)":45, "(d)(2)":4 },
-  178: { "(d)(1)":6, "(d)(2)":4 },
-  180: { "(d)(1)":6 },
-  196: { "(d)(2)":4 },
-  197: { "(d)(1)":6, "(d)(2)":4 },
-  200: { "(d)(1)":6 },
-  205: { "(d)(13)":13 },
-  211: { "(d)(13)":13 },
-  212: { "(d)(13)":13 },
-  215: { "(b)(1)":20, "(g)(10)":100 },
-  221: { "(d)(13)":13 },
-  224: { "(d)(1)":6, "(d)(13)":13 },
-  226: { "(a)(1)":19, "(a)(2)":19, "(a)(3)":38, "(b)(1)":20 },
-  227: { "(b)(1)":20, "(b)(3)":20 },
-  229: { "(a)(1)":19 },
-  234: { "(b)(2)":33 },
-  259: { "(a)(9)":45 },
-  282: { "(a)(1)":19, "(a)(4)":33, "(a)(8)":75, "(b)(3)":20 },
-  284: { "(b)(2)":33 },
-  285: { "(a)(10)":100 },
-  294: { "(a)(2)":19 },
-  295: { "(a)(2)":19, "(a)(3)":38 },
-  304: { "(d)(13)":13 },
+  50: { "(a)(16)":5, "(g)(3)":3 },
+  52: { "(g)(3)":2 },
+  54: { "(e)(1)":3 },
+  57: { "(a)(4)":3 },
+  58: { "(a)(4)":15 },
+  73: { "(e)(1)":3 },
+  83: { "(b)(3)":5 },
+  115: { "(b)(2)":5 },
+  141: { "(d)(1)":3 },
+  152: { "(a)(1)":10, "(d)(2)":2 },
+  155: { "(d)(1)":5, "(d)(13)":5 },
+  156: { "(d)(1)":4, "(d)(2)":1 },
+  166: { "(c)(1)":5, "(g)(2)":5 },
+  167: { "(a)(2)":13, "(b)(1)":3 },
+  168: { "(b)(3)":5 },
+  169: { "(b)(3)":9 },
+  170: { "(b)(1)":5 },
+  174: { "(a)(9)":5 },
+  180: { "(d)(1)":12 },
+  196: { "(d)(2)":1 },
+  197: { "(d)(1)":2, "(d)(2)":1 },
+  205: { "(d)(13)":2 },
+  211: { "(d)(13)":1 },
+  212: { "(d)(13)":2 },
+  215: { "(b)(1)":12, "(g)(10)":5 },
+  221: { "(d)(13)":60 },
+  224: { "(d)(1)":5, "(d)(13)":5 },
+  226: { "(a)(1)":2, "(a)(2)":2, "(a)(3)":2, "(b)(1)":3 },
+  227: { "(b)(1)":4, "(b)(3)":1 },
+  229: { "(a)(1)":5 },
+  234: { "(b)(2)":2 },
+  259: { "(a)(9)":10 },
+  282: { "(a)(1)":5, "(a)(4)":30, "(b)(3)":22 },
+  284: { "(b)(2)":18 },
+  294: { "(a)(2)":40 },
+  295: { "(a)(2)":3, "(a)(3)":50 },
+  304: { "(d)(13)":10 },
 };
 
 // Live project stage → fraction of its weight that counts as delivered.
@@ -818,8 +812,9 @@ function buildOncContribLive(){
 // Criterion % = baseline (already-built) + Σ(projectValue × stageMult). Capped at 100.
 function oncBaseline(cid){ return (cid && CTX[cid]) ? (CTX[cid].builtPct||0) : 0; }
 function criterionTotalPct(i){
+  if (!i.criterionId) return Math.min(100, Math.round(i.pct||0)); // non-criterion issue (e.g. scaffolding) keeps its own %
   const base = oncBaseline(i.criterionId);
-  const slices = (i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || [];
+  const slices = ONC_CONTRIB_LIVE[i.criterionId] || [];
   const add = slices.reduce((s,x)=> s + x.weight * x.frac, 0);
   return Math.min(100, Math.round(base + add));
 }
@@ -839,8 +834,12 @@ function oncSlices(cid){ return ((cid && ONC_CONTRIB_LIVE[cid]) || []).slice().s
 
 // Small segmented bar in each row. Click to expand.
 function oncBarHtml(i){
-  const base = oncBaseline(i.criterionId);
   const total = criterionTotalPct(i);
+  if (!i.criterionId){ // scaffolding / non-criterion issue: plain bar of its own tracked %
+    const col = total>=100?'prog-green':total>=50?'prog-blue':total>0?'prog-orange':'prog-gray';
+    return `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill ${col}" style="width:${total}%"></div></div><span class="progress-pct">${total}%</span></div>`;
+  }
+  const base = oncBaseline(i.criterionId);
   const atl = total>=100 ? '<span class="onc-atl-tag" title="Reaches 100% — ready for ATL">✓ ATL</span>' : '';
   return `<div class="progress-wrap onc-bar-click" onclick="openOncDetail('${i.criterionId}')" title="Click to expand the breakdown"><div class="onc-bar">${oncSegmentsHtml(i.criterionId, base, oncSlices(i.criterionId))}</div><span class="progress-pct">${total}%</span>${atl}</div>`;
 }
