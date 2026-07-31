@@ -328,9 +328,10 @@
   <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision / Drafts">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('ref')">📚 Reference</a>
-  <a onclick="jumpTo('fi')">Future</a>
+  <a onclick="jumpTo('fb')">Future Builds</a>
+  <a onclick="jumpTo('int')">↳ Integrations</a>
   <a onclick="jumpTo('fp')">↳ Facility</a>
-  <a onclick="jumpTo('int')">Integrations</a>
+  <a onclick="jumpTo('fi')">↳ Other</a>
   <a onclick="jumpTo('onc')" title="Certification progress, weighted by each project's live stage">ONC<span id="onc-nav-pct"></span></a>
   <a onclick="jumpTo('done')"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
@@ -368,26 +369,35 @@
 
   <hr class="section-divider">
 
-  <!-- ── FUTURE IDEAS ── -->
-  <div class="section-block" id="sec-fi">
+  <!-- ── FUTURE BUILDS (parent group: Integrations · Facility · Other) ── -->
+  <div class="section-block" id="sec-fb">
     <div class="section-hdr">
-      <h2>Future Ideas</h2>
-      <p>Priority 1–5 · Claim any idea to move it into Current Projects</p>
-      <button class="btn btn-outline" onclick="openAddModal('future')">+ Add Idea</button>
-      <button class="sec-toggle" onclick="toggleSection('fi')">▾</button>
-    </div>
-    <div class="sec-body">
-      <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="fi-content" style="display:none"></div>
+      <h2>Future Builds</h2>
+      <p>Planned build tracks not yet started — Integrations, Facility tools, and other ideas. Claim any to move it into Current Projects.</p>
     </div>
   </div>
 
   <hr class="section-divider">
 
-  <!-- ── FACILITY PORTAL BUILDOUT (future buildout, nested under Future Ideas) ── -->
+  <!-- ── INTEGRATIONS (nested under Future Builds) ── -->
+  <div class="section-block" id="sec-int">
+    <div class="section-hdr">
+      <h2>↳ Integrations</h2>
+      <p>External systems Togo connects to — planned/queued (not yet in progress; starting soon). Each vendor is broken into small, PR-sized projects with the vendor name as the first word of the title. Claim any to move it into Current Projects.</p>
+      <button class="sec-toggle" onclick="toggleSection('int')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="int-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="int-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── FACILITY PORTAL BUILDOUT (nested under Future Builds) ── -->
   <div class="section-block" id="sec-fp">
     <div class="section-hdr">
-      <h2>↳ Facility Portal Buildout <span style="font-size:12px;font-weight:500;color:var(--text-muted)">— future buildout</span></h2>
+      <h2>↳ Facility <span style="font-size:12px;font-weight:500;color:var(--text-muted)">— facility-staff tools</span></h2>
       <p>Unclaimed facility-staff tools · % reflects code already in the branch · claim any to move it into Current Projects</p>
       <button class="sec-toggle" onclick="toggleSection('fp')">▾</button>
     </div>
@@ -399,16 +409,17 @@
 
   <hr class="section-divider">
 
-  <!-- ── INTEGRATIONS ── -->
-  <div class="section-block" id="sec-int">
+  <!-- ── OTHER (future ideas, nested under Future Builds) ── -->
+  <div class="section-block" id="sec-fi">
     <div class="section-hdr">
-      <h2>Integrations</h2>
-      <p>External systems Togo connects to — planned/queued (not yet in progress; starting soon). Each vendor is broken into small, PR-sized projects with the vendor name as the first word of the title. Claim any to move it into Current Projects.</p>
-      <button class="sec-toggle" onclick="toggleSection('int')">▾</button>
+      <h2>↳ Other</h2>
+      <p>Priority 1–5 ideas · Claim any to move it into Current Projects</p>
+      <button class="btn btn-outline" onclick="openAddModal('future')">+ Add Idea</button>
+      <button class="sec-toggle" onclick="toggleSection('fi')">▾</button>
     </div>
     <div class="sec-body">
-      <div id="int-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="int-content" style="display:none"></div>
+      <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="fi-content" style="display:none"></div>
     </div>
   </div>
 
