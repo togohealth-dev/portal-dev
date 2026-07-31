@@ -1568,6 +1568,8 @@ function intVendorRank(t){ t=(t||'').toLowerCase();
   if(t.startsWith('pcc')) return 2;
   if(t.includes('chie')||t.includes('uhin')) return 3;
   return 9; }
+// Umbrella/parent issue first within a vendor group (e.g. NetHealth parent above RehabOptima).
+function intUmbrellaRank(t){ return /umbrella|overview|parent of/i.test(t||'') ? 0 : 1; }
 async function loadIntegrations() {
   const load = document.getElementById('int-loading'), cont = document.getElementById('int-content');
   if (!load || !cont) return;
@@ -1582,7 +1584,7 @@ async function loadIntegrations() {
         oncRefs: extractOncRefs(issue.title + ' ' + body),
         assignees: (issue.assignees||[]).map(a=>a.login),
         notYet: labels.includes('integration:not-yet'), commentCount: issue.comments };
-    }).sort((a,b) => intVendorRank(a.title) - intVendorRank(b.title) || a.priority - b.priority || a.number - b.number);
+    }).sort((a,b) => intVendorRank(a.title) - intVendorRank(b.title) || intUmbrellaRank(a.title) - intUmbrellaRank(b.title) || a.priority - b.priority || a.number - b.number);
     renderIntegrations();
     load.style.display = 'none'; cont.style.display = 'block';
   } catch(e) { load.textContent = `Error: ${e.message}`; }
@@ -1612,6 +1614,10 @@ function intVendorKey(title){
   const low = t.toLowerCase();
   if(low.includes('chie')||low.includes('uhin')) return 'cHIE/UHIN';
   if(low.startsWith('health gorilla')) return 'Health Gorilla';
+  // Labs that route through the Health Gorilla aggregator live in its group (#296).
+  if(low.startsWith('labcorp')||low.startsWith('ihc')||low.startsWith('solaris')||low.startsWith('express')) return 'Health Gorilla';
+  // Net Health is the parent of RehabOptima — combine them into one NetHealth group.
+  if(low.startsWith('rehaboptima')||low.startsWith('rehab optima')||low.startsWith('nethealth')||low.startsWith('net health')) return 'NetHealth';
   if(low.startsWith('cms')) return 'CMS Blue Button';
   if(low.startsWith('state')||low.includes('pdmp')) return 'State CSD/PDMP';
   if(low.startsWith('claims')) return 'Claims History';
