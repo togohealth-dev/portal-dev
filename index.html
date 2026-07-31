@@ -164,6 +164,15 @@
   .prog-green { background: var(--green-atl); }
   .prog-gray  { background: var(--gray); }
   .progress-pct { font-size: 11px; color: var(--text-muted); width: 28px; text-align: right; }
+  /* ONC segmented contribution bar: grey baseline + one slice per contributing project */
+  .onc-bar { flex:1; display:flex; height:7px; background:var(--border); border-radius:3px; overflow:hidden; min-width:70px; }
+  .onc-seg { height:100%; position:relative; border-right:1px solid rgba(255,255,255,.75); background:#e5e9f2; }
+  .onc-seg:last-child { border-right:none; }
+  .onc-seg.seg-base { background:var(--gray); }
+  .onc-seg-fill { position:absolute; left:0; top:0; height:100%; transition:width .4s; }
+  .prog-idle { background:transparent; }
+  .onc-total-badge { margin-left:10px; font-size:12px; font-weight:700; color:var(--green-atl); background:var(--green-bg); padding:2px 9px; border-radius:10px; vertical-align:middle; white-space:nowrap; }
+  #onc-nav-pct { color:var(--green-atl); font-weight:700; }
 
   /* ── Priority dots ── */
   .priority { display: flex; gap: 2px; }
@@ -319,10 +328,10 @@
   <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision / Drafts">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('ref')">📚 Reference</a>
-  <a onclick="jumpTo('onc')">ONC</a>
-  <a onclick="jumpTo('fp')">Facility</a>
   <a onclick="jumpTo('fi')">Future</a>
+  <a onclick="jumpTo('fp')">↳ Facility</a>
   <a onclick="jumpTo('int')">Integrations</a>
+  <a onclick="jumpTo('onc')" title="Certification progress, weighted by each project's live stage">ONC<span id="onc-nav-pct"></span></a>
   <a onclick="jumpTo('done')"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
 </nav>
@@ -359,21 +368,6 @@
 
   <hr class="section-divider">
 
-  <!-- ── FACILITY PORTAL BUILDOUT ── -->
-  <div class="section-block" id="sec-fp">
-    <div class="section-hdr">
-      <h2>Facility Portal Buildout</h2>
-      <p>Unclaimed facility-staff tools · % reflects code already in the branch · claim any to move it into Current Projects</p>
-      <button class="sec-toggle" onclick="toggleSection('fp')">▾</button>
-    </div>
-    <div class="sec-body">
-      <div id="fp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="fp-content" style="display:none"></div>
-    </div>
-  </div>
-
-  <hr class="section-divider">
-
   <!-- ── FUTURE IDEAS ── -->
   <div class="section-block" id="sec-fi">
     <div class="section-hdr">
@@ -385,6 +379,21 @@
     <div class="sec-body">
       <div id="fi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
       <div id="fi-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── FACILITY PORTAL BUILDOUT (future buildout, nested under Future Ideas) ── -->
+  <div class="section-block" id="sec-fp">
+    <div class="section-hdr">
+      <h2>↳ Facility Portal Buildout <span style="font-size:12px;font-weight:500;color:var(--text-muted)">— future buildout</span></h2>
+      <p>Unclaimed facility-staff tools · % reflects code already in the branch · claim any to move it into Current Projects</p>
+      <button class="sec-toggle" onclick="toggleSection('fp')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="fp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="fp-content" style="display:none"></div>
     </div>
   </div>
 
@@ -408,8 +417,8 @@
   <!-- ── ONC / MIPS CERTIFICATION ── -->
   <div class="section-block" id="sec-onc">
     <div class="section-hdr">
-      <h2>ONC §170.315 Certification Requirements</h2>
-      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
+      <h2>ONC §170.315 Certification Requirements <span id="onc-title-pct" class="onc-total-badge"></span></h2>
+      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL · <strong>bars fill as contributing projects advance</strong> (α 50% · β 75% · γ 100% of each project's weighted slice)</p>
       <div class="filters" id="filters">
         <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
         <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
@@ -681,6 +690,128 @@ const CTX = {
 const STATUS_PCT = { beta_testing:85, beta_complete:90, ready_for_eval:95, ready_for_atl:100, done:100 };
 const PROGRESS_LABELS = { 'progress-25':25, 'progress-50':50, 'progress-75':75 };
 
+// ── ONC contribution engine ───────────────────────────────────────────────────
+// Each project contributes a static WEIGHT (% of a criterion) — a first-pass analysis,
+// tune the numbers below. Its LIVE stage (from issue labels) decides how much of that
+// weight counts as delivered:  pre-alpha 0% · alpha 50% · beta 75% · gamma(done) 100%.
+// criterion% = builtPct baseline + Σ(weight × stageFrac), capped at 100.
+// Auto-generated (equal share of each criterion's remaining gap, capped at 40% per
+// project) — umbrella/overview issues excluded. Edit freely; nothing else depends on it.
+const CONTRIB = {
+  50: { "(a)(16)":1, "(g)(3)":40 },
+  52: { "(g)(3)":40 },
+  54: { "(e)(1)":40 },
+  57: { "(a)(16)":1, "(a)(4)":33 },
+  58: { "(a)(4)":33, "(a)(5)":40 },
+  73: { "(e)(1)":40 },
+  83: { "(b)(3)":20 },
+  115: { "(b)(2)":33 },
+  139: { "(d)(1)":5 },
+  141: { "(d)(1)":5 },
+  152: { "(a)(1)":18, "(d)(2)":4 },
+  153: { "(a)(6)":1 },
+  154: { "(a)(6)":1 },
+  155: { "(d)(1)":5, "(d)(13)":11 },
+  156: { "(d)(1)":5, "(d)(2)":4 },
+  157: { "(a)(16)":1 },
+  158: { "(a)(11)":37 },
+  159: { "(a)(16)":1 },
+  160: { "(a)(16)":1 },
+  164: { "(a)(11)":37 },
+  166: { "(c)(1)":40, "(g)(2)":40 },
+  167: { "(a)(2)":18, "(b)(1)":20 },
+  168: { "(b)(3)":20 },
+  169: { "(b)(3)":20 },
+  170: { "(b)(1)":20 },
+  174: { "(a)(9)":40, "(d)(2)":4 },
+  178: { "(d)(1)":5, "(d)(2)":4 },
+  180: { "(d)(1)":5 },
+  196: { "(d)(2)":4 },
+  197: { "(d)(1)":5, "(d)(2)":4 },
+  200: { "(d)(1)":5 },
+  205: { "(d)(13)":11 },
+  211: { "(d)(13)":11 },
+  212: { "(d)(13)":11 },
+  215: { "(b)(1)":20, "(g)(10)":40 },
+  221: { "(d)(13)":11 },
+  224: { "(d)(1)":5, "(d)(13)":11 },
+  226: { "(a)(1)":18, "(a)(2)":18, "(a)(3)":37, "(b)(1)":20 },
+  227: { "(b)(1)":20, "(b)(3)":20 },
+  229: { "(a)(1)":18 },
+  234: { "(b)(2)":33 },
+  259: { "(a)(9)":40 },
+  282: { "(a)(1)":18, "(a)(4)":33, "(a)(8)":40, "(b)(3)":20 },
+  284: { "(b)(2)":33 },
+  285: { "(a)(10)":40 },
+  294: { "(a)(2)":18 },
+  295: { "(a)(2)":18, "(a)(3)":37 },
+  304: { "(d)(13)":11 },
+};
+
+// Live project stage → fraction of its weight that counts as delivered.
+const PROJ_STAGE_FRAC = { alpha_testing:0.5, ready_beta:0.5, beta_version:0.75, done:1 };
+function projStageFrac(status){ return PROJ_STAGE_FRAC[status] || 0; }
+
+// Look up a project's live status by issue number across every loaded section.
+function projStatusByNum(num){
+  for (const arr of [currentProjects, futureIdeas, facilityPortal, integrations, referenceProjects]){
+    const p = (arr || []).find(x => x && x.number === num);
+    if (p) return p.status;
+  }
+  return null; // section not loaded yet / issue not found → treated as pre-alpha (0%)
+}
+
+// Rebuilt on every refresh: criterionId -> [{num, weight, frac, status}]
+let ONC_CONTRIB_LIVE = {};
+function buildOncContribLive(){
+  ONC_CONTRIB_LIVE = {};
+  for (const num of Object.keys(CONTRIB)){
+    const n = +num, status = projStatusByNum(n), frac = projStageFrac(status);
+    for (const [cid, weight] of Object.entries(CONTRIB[num]))
+      (ONC_CONTRIB_LIVE[cid] = ONC_CONTRIB_LIVE[cid] || []).push({ num:n, weight, frac, status });
+  }
+}
+
+// Criterion total % = max(its own tracked pct, baseline + weighted contributions), capped.
+function criterionTotalPct(i){
+  const base = (i.criterionId && CTX[i.criterionId]) ? CTX[i.criterionId].builtPct : 0;
+  const slices = (i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || [];
+  const add = slices.reduce((s,x)=> s + x.weight * x.frac, 0);
+  return Math.min(100, Math.round(Math.max(i.pct || 0, base + add)));
+}
+
+// Segmented bar: grey baseline segment + one slice per contributing project (fills by stage).
+function oncBarHtml(i){
+  const base = (i.criterionId && CTX[i.criterionId]) ? CTX[i.criterionId].builtPct : 0;
+  const slices = ((i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || []).slice().sort((a,b)=>b.weight-a.weight);
+  const total = criterionTotalPct(i);
+  const color = s => s==='done' ? 'prog-green' : s==='beta_version' ? 'prog-blue' : (s==='alpha_testing'||s==='ready_beta') ? 'prog-orange' : 'prog-idle';
+  const stage = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha';
+  let segs = base>0 ? `<div class="onc-seg seg-base" style="width:${base}%" title="Baseline already built: ${base}%"></div>` : '';
+  for (const s of slices){
+    const fill = Math.round(s.frac*100);
+    segs += `<div class="onc-seg" style="width:${s.weight}%" title="#${s.num} — ${i.criterionId} weight ${s.weight}% · ${stage(s.status)} (${fill}% filled)"><div class="onc-seg-fill ${color(s.status)}" style="width:${fill}%"></div></div>`;
+  }
+  return `<div class="progress-wrap"><div class="onc-bar">${segs}</div><span class="progress-pct">${total}%</span></div>`;
+}
+
+// %ONC / %MIPS rollups (weighted by project stage) → nav link + section-title badge.
+function updateOncTotals(){
+  const onc = issues.filter(i=>i.isOnc), mips = issues.filter(i=>i.isMips);
+  const avg = arr => arr.length ? Math.round(arr.reduce((s,i)=>s+criterionTotalPct(i),0)/arr.length) : 0;
+  const o = avg(onc), m = avg(mips);
+  const nav = document.getElementById('onc-nav-pct');
+  if (nav) nav.textContent = onc.length ? ` ${o}% · MIPS ${m}%` : '';
+  const badge = document.getElementById('onc-title-pct');
+  if (badge) badge.textContent = onc.length ? `ONC ${o}% · MIPS ${m}%` : '';
+}
+
+// Recompute contributions from whatever sections are loaded, then re-render the ONC section.
+function refreshOncProgress(){
+  buildOncContribLive();
+  if (issues && issues.length){ renderContent(); updateOncTotals(); }
+}
+
 const SCOTT = 'msdrigg';
 const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg' };
 const teamName = login => TEAM[login] || login;
@@ -850,6 +981,7 @@ async function refresh(loaders, label) {
   try {
     if (!currentUser) currentUser = await ghFetch('/user');
     await Promise.all(loaders.map(fn => fn()));
+    try { refreshOncProgress(); } catch(e){ console.warn('ONC progress refresh failed', e); }
   } finally {
     setBusy(false);
     // restore twice: now and after layout settles, so late renders don't steal scroll
@@ -2610,8 +2742,7 @@ function row(i, rank) {
     done:           `<span class="badge s-done">✓ Submitted</span>`,
   }[i.status] || '';
 
-  const progColor = { not_started:'prog-gray', in_progress:'prog-blue', beta_testing:'prog-orange', beta_complete:'prog-amber', ready_for_eval:'prog-purple', ready_for_atl:'prog-green', done:'prog-green' }[i.status];
-  const progressHtml = `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill ${progColor}" style="width:${i.pct}%"></div></div><span class="progress-pct">${i.pct}%</span></div>`;
+  const progressHtml = oncBarHtml(i); // segmented: baseline + weighted project contributions by stage
 
   const dots = [1,2,3,4,5].map(n=>`<div class="dot${n<=i.priority?' on':''}"></div>`).join('');
   const types = [i.isOnc?'<span class="badge badge-onc" style="font-size:10px;padding:1px 6px">ONC</span>':'', i.isMips?'<span class="badge badge-mips" style="font-size:10px;padding:1px 6px">MIPS</span>':''].join(' ');
