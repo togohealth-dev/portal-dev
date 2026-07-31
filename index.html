@@ -184,8 +184,8 @@
   .onc-detail-crit { font-size:13px; font-weight:700; color:var(--primary); }
   .onc-detail-title { font-size:16px; font-weight:700; max-width:460px; line-height:1.3; }
   .onc-detail-total { font-size:28px; font-weight:800; white-space:nowrap; }
-  .onc-key-bar { display:flex; height:16px; border-radius:4px; overflow:hidden; background:var(--border); margin-bottom:9px; }
-  .onc-key-bar .onc-seg, .onc-key-bar .onc-seg-fill { position:static; height:100%; border:none; }
+  .onc-bar-lg { height:20px; border-radius:5px; margin-bottom:10px; }
+  .onc-bar-lg .onc-seg { border-right:2px solid #fff; }
   .onc-key-legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--text-muted); margin-bottom:16px; }
   .onc-key-legend .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
   .sw.sw-empty { background:var(--border); }
@@ -826,18 +826,23 @@ function criterionTotalPct(i){
 const stageColorClass = s => s==='done' ? 'prog-green' : s==='beta_version' ? 'prog-blue' : (s==='alpha_testing'||s==='ready_beta') ? 'prog-orange' : 'prog-idle';
 const stageLabel = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha (not counted)';
 
-// Segmented bar: grey baseline + one slice per project (fills by stage). Click to expand.
-function oncBarHtml(i){
-  const base = oncBaseline(i.criterionId);
-  const slices = ((i.criterionId && ONC_CONTRIB_LIVE[i.criterionId]) || []).slice().sort((a,b)=>b.weight-a.weight);
-  const total = criterionTotalPct(i);
+// Shared segment builder: grey baseline + one slice per project (each fills by its stage).
+function oncSegmentsHtml(cid, base, slices){
   let segs = base>0 ? `<div class="onc-seg seg-base" style="width:${base}%" title="Already built (baseline): ${base}%"></div>` : '';
   for (const s of slices){
     const fill = Math.round(s.frac*100);
-    segs += `<div class="onc-seg" style="width:${s.weight}%" title="#${s.num} — ${i.criterionId} owns ${s.weight}% · ${stageLabel(s.status)} (${fill}% of slice)"><div class="onc-seg-fill ${stageColorClass(s.status)}" style="width:${fill}%"></div></div>`;
+    segs += `<div class="onc-seg" style="width:${s.weight}%" title="#${s.num} — ${cid} owns ${s.weight}% · ${stageLabel(s.status)} (${fill}% of slice)"><div class="onc-seg-fill ${stageColorClass(s.status)}" style="width:${fill}%"></div></div>`;
   }
+  return segs;
+}
+function oncSlices(cid){ return ((cid && ONC_CONTRIB_LIVE[cid]) || []).slice().sort((a,b)=>b.weight-a.weight); }
+
+// Small segmented bar in each row. Click to expand.
+function oncBarHtml(i){
+  const base = oncBaseline(i.criterionId);
+  const total = criterionTotalPct(i);
   const atl = total>=100 ? '<span class="onc-atl-tag" title="Reaches 100% — ready for ATL">✓ ATL</span>' : '';
-  return `<div class="progress-wrap onc-bar-click" onclick="openOncDetail('${i.criterionId}')" title="Click to expand the breakdown"><div class="onc-bar">${segs}</div><span class="progress-pct">${total}%</span>${atl}</div>`;
+  return `<div class="progress-wrap onc-bar-click" onclick="openOncDetail('${i.criterionId}')" title="Click to expand the breakdown"><div class="onc-bar">${oncSegmentsHtml(i.criterionId, base, oncSlices(i.criterionId))}</div><span class="progress-pct">${total}%</span>${atl}</div>`;
 }
 
 // %ONC / %MIPS rollups (weighted by project stage) → nav link + section-title badge.
@@ -881,14 +886,9 @@ function openOncDetail(cid){
     else if (s.status==='alpha_testing'||s.status==='ready_beta') buck.alpha += d; });
   const remaining = Math.max(0, 100 - total);
   const R = x => Math.round(x);
-  // colour-key summary row
+  // Segmented bar (same per-project segments as the small row bar, just taller) + legend.
   const keyBar = `
-    <div class="onc-key-bar">
-      ${base>0?`<div class="onc-seg seg-base" style="width:${base}%" title="Baseline ${base}%"></div>`:''}
-      ${buck.gamma>0?`<div class="onc-seg-fill prog-green" style="width:${buck.gamma}%"></div>`:''}
-      ${buck.beta>0?`<div class="onc-seg-fill prog-blue" style="width:${buck.beta}%"></div>`:''}
-      ${buck.alpha>0?`<div class="onc-seg-fill prog-orange" style="width:${buck.alpha}%"></div>`:''}
-    </div>
+    <div class="onc-bar onc-bar-lg">${oncSegmentsHtml(cid, base, slices)}</div>
     <div class="onc-key-legend">
       <span><i class="sw seg-base"></i> Already built ${base}%</span>
       <span><i class="sw prog-green"></i> γ gamma ${R(buck.gamma)}%</span>
