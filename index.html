@@ -359,31 +359,6 @@
 
   <hr class="section-divider">
 
-  <!-- ── ONC / MIPS CERTIFICATION ── -->
-  <div class="section-block" id="sec-onc">
-    <div class="section-hdr">
-      <h2>ONC §170.315 Certification Requirements</h2>
-      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
-      <div class="filters" id="filters">
-        <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
-        <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
-        <button class="filter-btn"        data-filter="mips" onclick="setFilter('mips',this)">MIPS</button>
-        <span class="filter-sep">|</span>
-        <button class="filter-btn"        data-filter="done" onclick="toggleDone(this)">Show Done</button>
-      </div>
-      <button class="sec-toggle" onclick="toggleSection('onc')">▾</button>
-    </div>
-    <div class="sec-body">
-      <div class="stats" id="stats"></div>
-      <div id="eval-alerts"></div>
-      <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
-      <div id="error-msg" style="display:none"></div>
-      <div id="content" style="display:none"></div>
-    </div>
-  </div>
-
-  <hr class="section-divider">
-
   <!-- ── FACILITY PORTAL BUILDOUT ── -->
   <div class="section-block" id="sec-fp">
     <div class="section-hdr">
@@ -425,6 +400,31 @@
     <div class="sec-body">
       <div id="int-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
       <div id="int-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── ONC / MIPS CERTIFICATION ── -->
+  <div class="section-block" id="sec-onc">
+    <div class="section-hdr">
+      <h2>ONC §170.315 Certification Requirements</h2>
+      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL</p>
+      <div class="filters" id="filters">
+        <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
+        <button class="filter-btn"        data-filter="mips" onclick="setFilter('mips',this)">MIPS</button>
+        <span class="filter-sep">|</span>
+        <button class="filter-btn"        data-filter="done" onclick="toggleDone(this)">Show Done</button>
+      </div>
+      <button class="sec-toggle" onclick="toggleSection('onc')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div class="stats" id="stats"></div>
+      <div id="eval-alerts"></div>
+      <div id="loading"><div class="spinner"></div>Loading issues from GitHub…</div>
+      <div id="error-msg" style="display:none"></div>
+      <div id="content" style="display:none"></div>
     </div>
   </div>
 
