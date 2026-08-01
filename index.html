@@ -455,7 +455,7 @@
   <div class="section-block" id="sec-onc">
     <div class="section-hdr">
       <h2>ONC §170.315 Certification Requirements <span id="onc-title-pct" class="onc-total-badge"></span></h2>
-      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL · <strong>bars fill as contributing projects advance</strong> (α 50% · β 75% · γ 100% of each project's weighted slice)</p>
+      <p>GitHub Issues are the source of truth · Claim, beta-test, and submit criteria for ATL · <strong>bars fill automatically as contributing projects advance</strong> (α PR-alpha-ready/alpha 50% · β beta 75% · γ gamma 100% of each project's weighted slice) — driven by each issue's status label, never edited by hand</p>
       <div class="filters" id="filters">
         <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
         <button class="filter-btn"        data-filter="onc"  onclick="setFilter('onc',this)">ONC</button>
@@ -791,7 +791,10 @@ const CONTRIB = {
 };
 
 // Live project stage → fraction of its weight that counts as delivered.
-const PROJ_STAGE_FRAC = { alpha_testing:0.5, ready_beta:0.5, beta_version:0.75, done:1 };
+// Stage → how much of a project's ONC/MIPS slice counts as delivered. Driven by the issue's
+// status label, so the bars move automatically the moment a card is re-labeled — never by hand.
+// PR opened + marked PR-Alpha-Ready counts as alpha (50%), same as a deployed alpha.
+const PROJ_STAGE_FRAC = { pr_alpha_ready:0.5, alpha_testing:0.5, ready_beta:0.5, beta_version:0.75, done:1 };
 function projStageFrac(status){ return PROJ_STAGE_FRAC[status] || 0; }
 
 // Look up a project's live status by issue number across every loaded section.
@@ -823,8 +826,8 @@ function criterionTotalPct(i){
   const add = slices.reduce((s,x)=> s + x.weight * x.frac, 0);
   return Math.min(100, Math.round(base + add));
 }
-const stageColorClass = s => s==='done' ? 'prog-green' : s==='beta_version' ? 'prog-blue' : (s==='alpha_testing'||s==='ready_beta') ? 'prog-orange' : 'prog-idle';
-const stageLabel = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha (not counted)';
+const stageColorClass = s => s==='done' ? 'prog-green' : s==='beta_version' ? 'prog-blue' : (s==='alpha_testing'||s==='ready_beta'||s==='pr_alpha_ready') ? 'prog-orange' : 'prog-idle';
+const stageLabel = s => s==='done' ? 'γ gamma' : s==='beta_version' ? 'β beta' : s==='pr_alpha_ready' ? 'α PR alpha-ready' : (s==='alpha_testing'||s==='ready_beta') ? 'α alpha' : 'pre-alpha (not counted)';
 
 // Shared segment builder: grey baseline + one slice per project (each fills by its stage).
 function oncSegmentsHtml(cid, base, slices){
@@ -2542,6 +2545,7 @@ ${activeProjects}
 - SQLX_OFFLINE=true. Runtime sqlx only — no query! macros.
 - BACKEND BUILD (Rust): before touching the Rust backend, READ portal/backend/CLAUDE.md. Build with CURRENT STABLE Rust — the team is on 1.96 and the backend is edition 2024 (needs Rust >= 1.85). Run "rustup update stable"; do NOT pin an old toolchain (there is no rust-toolchain.toml). Then source ~/.cargo/env and run: SQLX_OFFLINE=true cargo check -p grab-legacy-backend (offline sqlx validates against .sqlx/). Compile errors about edition 2024 / unknown syntax = your toolchain is too old -> update stable, don't downgrade.
 - INTEGRATIONS + ONC: external-data integrations usually touch ONC §170.315 — identify which and build cert-safe from line 1 (read strategy-1-morgan.md ONC map). Map: e-prescribing -> (b)(3) [meds must carry RxNorm / (a)(1)]; drug-interaction & allergy checks -> (a)(4)+(a)(8); formulary/benefit -> (a)(10); lab orders -> (a)(2) LOINC; imaging orders -> (a)(3) LOINC; results + med/allergy/problem reconciliation -> (b)(2) coded; HIE / transitions of care -> (b)(1) C-CDA R2.1 + (g)(10) FHIR US Core; predictive/AI clinical alerts -> (a)(9) CDS (cite evidence, allow accept/modify/reject, LOG the decision — a dismissable popup is NOT cert-compliant). Use standard vocab (RxNorm/LOINC/SNOMED/ICD-10) + audit-log hooks so nothing needs retrofitting under ATL review.
+- ONC/MIPS % IS AUTOMATIC — KEEP THE STATUS LABEL ACCURATE. Each project owns a weighted slice of the ONC/MIPS criteria it advances, and the tracker fills that slice straight from the issue's status label: PR opened + status:pr-alpha-ready (or alpha-testing) = 50%, status:beta-version = 75%, closed/gamma = 100%. So the certification bars move the moment the card is re-labeled at each stage — you never hand-edit a percentage, and there is no separate 'update the ONC number' step. What you MUST do: when you open the PR, move the card to PR Alpha Ready (add status:pr-alpha-ready, remove status:in-progress and status:needs-revision) — that is what lifts the bar; Scott's beta/gamma promotions do the rest. If this project advances an ONC/MIPS criterion that isn't already listed on the issue, say so in the PR description so its weight can be added.
 - AI / PHI (BAA): TogoHealth has a signed BAA with **OpenAI** — it is the approved model provider for PHI-touching AI features (this unblocks AI work formerly gated on the Anthropic BAA #265). Key = OPENAI_API_KEY, already set in the gitignored portal/backend/.env (Secret Manager for deployed envs) — read it from there, or ASK Greg; never hardcode it, never commit it, never paste it into an issue/PR/comment. Call the model SERVER-SIDE from the Rust backend only (never from the browser). Send minimum-necessary PHI (only the text being parsed — no name/MRN/DOB, and do the matching against chart data locally in our code). Require zero-data-retention / no-training on the PHI account. AI output is assistive only: the clinician confirms every write, and log the decision (see (a)(9) CDS above).
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: confirm feature can't be done with existing API before adding backend.
@@ -3055,6 +3059,7 @@ ${ctx.scaffold}
 - SQLX_OFFLINE=true. Runtime sqlx only, no query! macros.
 - BACKEND BUILD (Rust): read portal/backend/CLAUDE.md first. Use CURRENT STABLE Rust (team is on 1.96; backend is edition 2024 → needs >= 1.85). Run "rustup update stable" (do NOT pin an old toolchain); then SQLX_OFFLINE=true cargo check -p grab-legacy-backend. Edition-2024 compile errors = toolchain too old → update stable.
 - INTEGRATIONS + ONC: most external integrations touch ONC §170.315 — identify which (strategy-1-morgan.md ONC map) and build cert-safe: e-prescribing (b)(3)+RxNorm, interactions (a)(4), formulary (a)(10), lab/imaging orders (a)(2)/(a)(3) LOINC, reconciliation (b)(2), transitions/HIE (b)(1) C-CDA + (g)(10) FHIR, AI clinical alerts (a)(9) CDS w/ logged decision.
+- ONC/MIPS % IS AUTOMATIC: each project owns a weighted slice of the criteria it advances, filled from the issue's status label — pr-alpha-ready/alpha 50%, beta 75%, gamma(closed) 100%. Never hand-edit a percentage; just keep the label right (on PR open: add status:pr-alpha-ready, drop in-progress/needs-revision). Flag any ONC/MIPS criterion this project advances that isn't already on the issue.
 - AI / PHI (BAA): OpenAI is BAA-covered = the approved provider for PHI AI features (#265 no longer a blocker). OPENAI_API_KEY is in the gitignored portal/backend/.env (Secret Manager when deployed) — read it there or ASK Greg; never hardcode/commit/paste it. Server-side (Rust backend) only, minimum-necessary PHI, zero-retention, clinician confirms + decision logged.
 - No Firebase/Firestore for new data — Postgres only.
 - Frontend-first: get approval before touching backend.
