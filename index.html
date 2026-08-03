@@ -635,8 +635,8 @@
     <h3 style="font-size:16px;font-weight:700;margin-bottom:4px"><img class="stage-ico" src="icons/alpha.png" alt="α"> Mark as Alpha Testing</h3>
     <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
     <div class="modal-field">
-      <label>Alpha deploy URL <span style="color:var(--red);font-size:11px">required</span></label>
-      <input type="url" id="beta-url-input" placeholder="https://grab-legacy--pr-…web.app/" required>
+      <label>Alpha deploy URL <span style="color:var(--text-muted);font-weight:400;font-size:11px">— defaults to the shared alpha; change only if this build has its own URL</span></label>
+      <input type="url" id="beta-url-input" placeholder="https://alpha.portal.togohealth.com/">
     </div>
     <div class="modal-field">
       <label>Note <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
@@ -1406,6 +1406,9 @@ async function load() {
 // ── Current Projects ──────────────────────────────────────────────────────────
 
 const BETA_VERSION_CONFIG_ISSUE = 192; // 🔧 Tracker Config — holds the shared Beta-Version link
+// Alpha now deploys to ONE shared environment. A per-project link (a "🚀 Alpha: <url>"
+// comment) still wins when Scott posts one for a specific build; otherwise use this.
+const ALPHA_DEFAULT_URL = 'https://alpha.portal.togohealth.com/';
 let betaVersionUrl = null;
 
 async function loadBetaVersionUrl() {
@@ -1605,13 +1608,11 @@ function extractOncRefs(text) {
 }
 
 const statusBadge = (s, alphaUrl, betaVersionUrl) => {
-  // Alpha Testing → per-project alpha link. Ready-for-Beta stays on its alpha build.
-  if (s === 'alpha_testing') return alphaUrl
-    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="Click to open this project's alpha build"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing ↗</a>`
-    : `<span class="badge ps-alpha" style="opacity:.7" title="No alpha link captured — use ⚠ Add alpha link"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing ⚠</span>`;
-  if (s === 'ready_beta') return alphaUrl
-    ? `<a href="${alphaUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Alpha-tested, queued for Beta-Version — click to open the alpha build">✅ Ready for Beta ↗</a>`
-    : `<span class="badge ps-ready-prod">✅ Ready for Beta</span>`;
+  // Alpha → the shared alpha environment, unless Scott posted a build-specific link.
+  const aUrl = alphaUrl || ALPHA_DEFAULT_URL;
+  const aTip = alphaUrl ? "Open this project's own alpha build" : 'Open the shared alpha environment (alpha.portal.togohealth.com)';
+  if (s === 'alpha_testing') return `<a href="${aUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="${aTip}"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing ↗</a>`;
+  if (s === 'ready_beta') return `<a href="${aUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Alpha-tested, queued for Beta-Version — ${aTip}">✅ Ready for Beta ↗</a>`;
   // Beta-Version → the single shared beta link (set by Scott via the config).
   if (s === 'beta_version') return betaVersionUrl
     ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version ↗</a>`
@@ -1772,7 +1773,7 @@ function projectActions(p) {
     if (p.prUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
   }
   if (p.status === 'pr_alpha_ready') {
-    parts.push(`<button class="btn btn-green btn-sm" onclick="openAlphaModal(${p.number})" title="Enter the alpha deploy link and move to Alpha Testing">Mark Alpha Testing</button>`);
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openAlphaModal(${p.number})" title="Move to Alpha Testing (uses the shared alpha environment unless you paste a build-specific URL)">Mark Alpha Testing</button>`);
     parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott again on this PR">Re-ping Scott</button>`);
     parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision — posts on PR and tags developer">Needs Revision</button>`);
   }
@@ -1780,7 +1781,7 @@ function projectActions(p) {
     parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrAlphaReady(${p.number})" title="Fixed — mark PR alpha-ready again">PR Updated</button>`);
   }
   if (p.status === 'alpha_testing') {
-    if (!p.alphaUrl) parts.push(`<button class="btn btn-amber btn-sm" onclick="openAlphaModal(${p.number})" title="No alpha link captured — add the deploy URL so the badge links to it">⚠ Add alpha link</button>`);
+    if (!p.alphaUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="openAlphaModal(${p.number})" title="Alpha uses the shared environment (alpha.portal.togohealth.com). Only add a link if this build has its own URL.">Alpha link (optional)</button>`);
     parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyBeta(${p.number})" title="Alpha-tested — queue for the next Beta-Version promotion">Ready for Beta</button>`);
     parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not passing alpha — send back for revision">Needs Revision</button>`);
   }
@@ -2421,20 +2422,21 @@ function openAlphaModal(number) {
   betaIssueNumber = number;
   const p = currentProjects.find(p => p.number === number);
   document.getElementById('beta-modal-title').textContent = p ? p.title : `Issue #${number}`;
-  document.getElementById('beta-url-input').value = '';
+  document.getElementById('beta-url-input').value = ALPHA_DEFAULT_URL;
   document.getElementById('beta-note-input').value = '';
   document.getElementById('beta-modal').style.display = 'flex';
   setTimeout(() => document.getElementById('beta-url-input').focus(), 50);
 }
 function closeBetaModal() { document.getElementById('beta-modal').style.display = 'none'; }
 async function submitMarkAlpha() {
-  const url  = document.getElementById('beta-url-input').value.trim();
+  let url    = document.getElementById('beta-url-input').value.trim();
   const note = document.getElementById('beta-note-input').value.trim();
-  if (!url) { toast('Alpha URL is required — paste the deploy link first.', true); return; }
+  if (!url) url = ALPHA_DEFAULT_URL;   // alpha is one shared environment by default
   const btn  = document.getElementById('beta-submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const body = `🚀 **Alpha:** ${url}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
+    const shared = url === ALPHA_DEFAULT_URL;
+    const body = `🚀 **Alpha:** ${url}${shared ? ' _(shared alpha environment)_' : ''}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
     await postComment(betaIssueNumber, body);
     await removeLabel(betaIssueNumber, 'status:pr-alpha-ready');
     await removeLabel(betaIssueNumber, 'status:needs-revision');
@@ -2814,7 +2816,7 @@ After the developer approves and you run gh pr create, move THIS project to the
 Clearing in-progress/needs-revision is required — needs-revision outranks pr-alpha-ready,
 so a leftover label keeps this out of the Alpha tier. This lands the project in
 Alpha Testing -> PR-alpha-ready and pings Scott. Do NOT deploy an alpha or mark Alpha
-Testing — Scott adds the alpha deploy link and closes the PR.`;
+Testing — Scott promotes to alpha (alpha.portal.togohealth.com unless a build-specific link is given) and closes the PR.`;
 }
 
 function copyNewProjectPrompt() {
