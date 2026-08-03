@@ -207,6 +207,8 @@
   .stat-click:hover { border-color:var(--primary); box-shadow:0 2px 10px rgba(37,99,235,.13); }
   .stat-more { font-size:10px; font-weight:600; color:var(--primary); margin-left:6px; text-transform:none; letter-spacing:0; }
   .stat-scope-bar { height:10px; border-radius:5px; margin:8px 0 6px; }
+  .onc-detail-pts { font-size:12px; font-weight:600; color:var(--text-muted); margin-top:2px; white-space:nowrap; }
+  .onc-pts-beyond { color:var(--text-muted); font-weight:500; }
   .onc-scope-box { background:#f6f8fc; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.55; color:var(--text-muted); margin-bottom:14px; }
   .onc-row-nondev { background:#fafbfd; }
   .onc-detail-foot { font-size:12px; color:var(--text-muted); margin-top:14px; line-height:1.5; }
@@ -1127,7 +1129,7 @@ function openOncDetail(cid){
     const nm = projTitleByNum(s.num) || ('#'+s.num);
     return `<tr class="onc-detail-proj" onclick="jumpToProject(${s.num})" title="Go to this project in the tracker">
       <td><span class="onc-dot" style="background:${col}"></span>#${s.num}</td>
-      <td>${nm}</td><td>${s.dev} pts</td>
+      <td>${nm}</td><td style="white-space:nowrap"><b>${s.dev}</b>/${fmtPts(sc.devTotal)} pts</td>
       <td style="color:${col};font-weight:600">${stageLabel(s.status)}</td>
       <td><strong>${d}</strong></td><td class="onc-go">→</td></tr>`;
   }).join('');
@@ -1137,7 +1139,7 @@ function openOncDetail(cid){
     const pts  = s.testing || s.optional;
     const nm = projTitleByNum(s.num) || ('#'+s.num);
     return `<tr class="onc-detail-proj onc-row-nondev" onclick="jumpToProject(${s.num})">
-      <td>#${s.num}</td><td>${nm}</td><td>${pts} pts</td>
+      <td>#${s.num}</td><td>${nm}</td><td style="white-space:nowrap"><b>${pts}</b>/${fmtPts(sc.all)} pts</td>
       <td colspan="2" style="color:var(--text-muted);font-weight:600">${kind} — beyond the 100% line</td>
       <td class="onc-go">→</td></tr>`;
   }).join('');
@@ -1154,12 +1156,15 @@ function openOncDetail(cid){
   document.getElementById('onc-detail-body').innerHTML = `
     <div class="onc-detail-head">
       <div><div class="onc-detail-crit">${cid}</div><div class="onc-detail-title">${title}</div></div>
-      <div class="onc-detail-total">${headPct}</div>
+      <div style="text-align:right">
+        <div class="onc-detail-total">${headPct}</div>
+        <div class="onc-detail-pts">${fmtPts(sc.base + sc.delivered)}/${fmtPts(sc.devTotal)} dev pts${(sc.testing+sc.optional)?` <span class="onc-pts-beyond">+${fmtPts(sc.testing+sc.optional)} beyond</span>`:''}</div>
+      </div>
     </div>
     ${legend}
     ${scopeNote}
     ${body}
-    <p class="onc-detail-foot">Each project delivers <b>points × stage</b> (α 50% · β 75% · γ 100%) on top of the ${sc.base} already built. The percentage measures the <b>${sc.devTotal}-point developer-closable scope</b> only. Click a row to open that project.</p>`;
+    <p class="onc-detail-foot">Each project delivers <b>points × stage</b> (α 50% · β 75% · γ 100%) on top of the ${sc.base} already built. The percentage measures the <b>${fmtPts(sc.devTotal)}-point developer-closable scope</b> only (full certification scope is ${fmtPts(sc.all)} pts). Click a row to open that project.</p>`;
   document.getElementById('onc-detail-modal').style.display = 'flex';
 }
 function closeOncDetail(){ const m=document.getElementById('onc-detail-modal'); if(m) m.style.display='none'; }
