@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New-Hire Machine Setup — TogoHealth Dev Trail</title>
+<link rel="icon" type="image/png" href="icons/togo-favicon.png">
+<style>
+  :root{
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --line:#e2e8f0;
+    --blue:#2563eb; --blue-bg:#eff6ff;
+    --teal:#0d9488; --teal-bg:#f0fdfa;
+    --orange:#ea580c; --orange-bg:#fff7ed;
+    --green:#16a34a; --green-bg:#f0fdf4;
+    --purple:#7c3aed; --purple-bg:#f5f3ff;
+    --red:#dc2626; --red-bg:#fef2f2;
+    --slate:#475569; --slate-bg:#f8fafc;
+    --shadow:0 1px 3px rgba(15,23,42,.07),0 8px 28px rgba(15,23,42,.06);
+    --shadow-lg:0 2px 6px rgba(15,23,42,.09),0 18px 48px rgba(15,23,42,.11);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(1100px 620px at 82% -8%, #e0f2fe 0%, transparent 62%),
+      radial-gradient(900px 520px at 8% 4%, #f0fdfa 0%, transparent 58%),
+      linear-gradient(#ffffff, #fbfdff 42%, #ffffff);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* ── hero ── */
+  header.hero{padding:64px 0 40px;text-align:center;position:relative;overflow:hidden}
+  .hero .paws{position:absolute;inset:0;pointer-events:none;opacity:.5}
+  .hero .paw{position:absolute;font-size:18px;opacity:.22;animation:drift 9s ease-in-out infinite}
+  @keyframes drift{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-13px) rotate(9deg)}}
+  .logo-badge{
+    display:inline-flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+    padding:11px 22px 11px 14px;border-radius:999px;box-shadow:var(--shadow);margin-bottom:26px;
+  }
+  .logo-badge img{width:44px;height:44px;object-fit:contain;display:block}
+  .logo-badge b{font-size:15px;letter-spacing:.2px}
+  .logo-badge span{font-size:12px;color:var(--muted);display:block;font-weight:500}
+  h1{
+    font-size:clamp(32px,5.8vw,58px);line-height:1.05;margin:0 0 16px;letter-spacing:-1.4px;font-weight:850;
+    background:linear-gradient(96deg,#0f172a 4%,#2563eb 48%,#0d9488 82%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .tagline{font-size:clamp(16px,2.1vw,20px);color:var(--ink-2);max-width:660px;margin:0 auto 12px;line-height:1.55}
+  .tagline b{color:var(--blue)}
+  .subtle{font-size:13.5px;color:var(--muted);max-width:600px;margin:0 auto}
+
+  .warnbar{
+    margin:28px 0 8px;background:var(--red-bg);border:1px solid #fecaca;border-left:5px solid var(--red);
+    border-radius:12px;padding:14px 17px;font-size:13.5px;color:#7f1d1d;line-height:1.6;
+  }
+  .warnbar b{color:var(--red)}
+
+  /* ── OS tabs on code blocks ── */
+  .oscode{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:12px;background:#0f172a}
+  .oscode .tabs{display:flex;background:#0b1220}
+  .oscode .tab{flex:1;padding:8px 0;text-align:center;font-size:12px;font-weight:800;letter-spacing:.4px;
+    color:#94a3b8;cursor:pointer;border:none;background:transparent;text-transform:uppercase}
+  .oscode .tab.active{color:#fff;background:#1e293b}
+  .oscode pre{margin:0;padding:14px 16px;font-size:12.3px;line-height:1.65;color:#e2e8f0;overflow-x:auto;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;display:none}
+  .oscode pre.show{display:block}
+  .oscode pre b{color:#5eead4;font-weight:700}
+  .step.left .oscode{text-align:left}
+
+  /* ── trail (shared with the "How We Ship" guide) ── */
+  .trail{position:relative;padding:56px 0 20px}
+  .trail:before{
+    content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;
+    background:repeating-linear-gradient(180deg,var(--line) 0 9px,transparent 9px 18px);
+  }
+  .trail-fill{
+    position:absolute;left:50%;top:0;width:3px;margin-left:-1.5px;height:0;
+    background:linear-gradient(180deg,var(--blue),var(--teal) 40%,var(--purple) 70%,var(--green));
+    border-radius:3px;transition:height .18s linear;box-shadow:0 0 14px rgba(37,99,235,.4);
+  }
+  .step{position:relative;width:calc(50% - 46px);margin-bottom:30px;opacity:0;transform:translateY(26px);transition:opacity .55s ease,transform .55s ease}
+  .step.in{opacity:1;transform:none}
+  .step.left{margin-right:auto;text-align:right}
+  .step.right{margin-left:auto}
+  .node{
+    position:absolute;top:22px;width:44px;height:44px;border-radius:50%;background:#fff;border:3px solid var(--c);
+    display:flex;align-items:center;justify-content:center;font-weight:850;font-size:15px;color:var(--c);
+    box-shadow:0 0 0 6px #fff, var(--shadow);z-index:2;
+  }
+  .step.left .node{right:-68px}
+  .step.right .node{left:-68px}
+  .node img{width:24px;height:24px;object-fit:contain}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);transition:box-shadow .25s,transform .25s}
+  .card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+  .card h3{margin:0 0 7px;font-size:16.5px;font-weight:820;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+  .step.left .card h3{justify-content:flex-end}
+  .card p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.62}
+  .card p + p{margin-top:8px}
+  .who{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--bg);color:var(--c);margin-bottom:9px}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--slate-bg);color:var(--slate);border:1px solid var(--line);margin:7px 4px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .card code{background:var(--slate-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .card ul{margin:10px 0 0;padding-left:19px;text-align:left;display:inline-block;font-size:13.2px;color:var(--ink-2);line-height:1.6}
+  .card li{margin:0 0 6px}
+  .card li:last-child{margin-bottom:0}
+  .card li b{color:var(--ink)}
+  .card li code{font-size:11.5px}
+  .card a{color:var(--blue);font-weight:700;text-decoration:none}
+  .card a:hover{text-decoration:underline}
+
+  .loop{
+    display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--purple-bg);
+    border:1px dashed #c4b5fd;border-radius:11px;padding:10px 13px;text-align:left;
+  }
+  .step.left .loop{flex-direction:row-reverse;text-align:right}
+  .loop .ic{font-size:17px;line-height:1.2;flex:none}
+  .loop div{font-size:12.5px;color:#5b21b6;line-height:1.55}
+  .loop b{color:#4c1d95}
+
+  .mail{display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--blue-bg);border:1px dashed #bfdbfe;border-radius:11px;padding:10px 13px;text-align:left}
+  .step.left .mail{flex-direction:row-reverse;text-align:right}
+  .mail div{font-size:12.5px;color:#1e40af;line-height:1.55}
+
+  .optcall{display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--orange-bg);border:1px dashed #fed7aa;border-radius:11px;padding:10px 13px;text-align:left}
+  .step.left .optcall{flex-direction:row-reverse;text-align:right}
+  .optcall div{font-size:12.5px;color:#9a3412;line-height:1.55}
+  .optcall b{color:#7c2d12}
+
+  .phase{position:relative;text-align:center;margin:8px 0 34px;opacity:0;transform:translateY(16px);transition:.5s}
+  .phase.in{opacity:1;transform:none}
+  .phase span{
+    display:inline-block;background:#fff;border:2px solid var(--c);color:var(--c);
+    font-size:11.5px;font-weight:850;letter-spacing:1.7px;text-transform:uppercase;
+    padding:8px 20px;border-radius:999px;box-shadow:0 0 0 7px #fff,var(--shadow);
+  }
+  .phase small{display:block;margin-top:8px;font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+
+  /* ── env bookmark cards (matches "How We Ship") ── */
+  .envs{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:8px}
+  .env{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px 15px 13px;box-shadow:var(--shadow);position:relative;overflow:hidden;text-align:left}
+  .env:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+  .env .top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .env img{width:24px;height:24px;object-fit:contain}
+  .env h4{margin:0;font-size:14px;font-weight:800;letter-spacing:.1px}
+  .env p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+  .env code{display:block;margin-top:8px;font-size:10.8px;font-weight:700;padding:4px 7px;border-radius:6px;background:var(--bg);color:var(--c);word-break:break-all}
+
+  /* ── rules / good-habits grid ── */
+  .rules{margin:64px 0 20px}
+  .rules h2{font-size:clamp(23px,3.4vw,33px);margin:0 0 8px;letter-spacing:-.7px;font-weight:850}
+  .rules .lead{font-size:14.5px;color:var(--muted);margin:0 0 24px;max-width:680px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+  .rule{background:#fff;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:13px;padding:15px 17px;box-shadow:var(--shadow)}
+  .rule h4{margin:0 0 6px;font-size:13.8px;font-weight:820;display:flex;gap:7px;align-items:center}
+  .rule p{margin:0;font-size:12.8px;color:var(--ink-2);line-height:1.6}
+  .rule code{background:var(--slate-bg);border:1px solid var(--line);border-radius:4px;padding:1px 4px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ── session-name reference table ── */
+  .sessions{margin:64px 0 20px}
+  .sessions h2{font-size:clamp(23px,3.4vw,33px);margin:0 0 8px;letter-spacing:-.7px;font-weight:850}
+  .sessions .lead{font-size:14.5px;color:var(--muted);margin:0 0 22px;max-width:680px;line-height:1.6}
+  .sesscard{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+  .sesscard .badge{font-size:11px;font-weight:850;letter-spacing:.4px;text-transform:uppercase;padding:6px 12px;border-radius:999px;background:var(--bg);color:var(--c);white-space:nowrap;height:fit-content}
+  .sesscard h4{margin:0 0 5px;font-size:14.5px;font-weight:820}
+  .sesscard p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.6}
+  .sesscard .req{display:inline-block;margin-top:7px;font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--orange);background:var(--orange-bg);padding:2px 8px;border-radius:6px}
+
+  footer{margin:66px 0 46px;padding-top:26px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:13px}
+  footer a{color:var(--blue);font-weight:700;text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .btns{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;text-decoration:none;font-size:13.5px;font-weight:750;padding:11px 19px;border-radius:10px;box-shadow:var(--shadow);transition:.2s}
+  .btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+  #bar{position:fixed;top:0;left:0;height:3.5px;background:linear-gradient(90deg,var(--blue),var(--teal),var(--purple),var(--green));width:0;z-index:99}
+
+  @media(max-width:860px){
+    .trail:before,.trail-fill{left:26px}
+    .step{width:100%;text-align:left!important;padding-left:66px}
+    .step.left .node,.step.right .node{left:4px;right:auto}
+    .step.left .card h3{justify-content:flex-start}
+    .step.left .loop,.step.left .mail,.step.left .optcall{flex-direction:row;text-align:left}
+    .phase{text-align:left;padding-left:66px}
+    .sesscard{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="paws">
+    <div class="paw" style="left:7%;top:16%">💻</div><div class="paw" style="left:88%;top:24%;animation-delay:1.4s">🔑</div>
+    <div class="paw" style="left:16%;top:68%;animation-delay:2.6s">🐾</div><div class="paw" style="left:79%;top:72%;animation-delay:.7s">⌨️</div>
+    <div class="paw" style="left:47%;top:8%;animation-delay:3.4s">❄️</div>
+  </div>
+  <div class="wrap">
+    <div class="logo-badge">
+      <img src="icons/togo-logo.png" alt="TogoHealth">
+      <div style="text-align:left"><b>TogoHealth</b><span>New-Hire Machine Setup · Reference</span></div>
+    </div>
+    <h1>Get your laptop<br>trail-ready</h1>
+    <p class="tagline">Brand-new Mac or PC to fully set up, sign in everywhere, and Claude running the rest — <b>step by step, nothing skipped.</b></p>
+    <p class="subtle">Works either machine — every command below shows a 🍎 <b>Mac</b> and 🪟 <b>PC</b> version. Pick your tab once; it'll remember it as you scroll.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warnbar">
+    <b>Before you touch a terminal:</b> ask Greg or Morgan for three things — a <b>GitHub account</b> added to the <code>togohealth-dev</code> org, a <b>@togohealth.com Google account</b>, and to be told when both are ready. Everything below assumes you have them.
+  </div>
+</div>
+
+<div class="wrap trail" id="trail">
+  <div class="trail-fill" id="fill"></div>
+
+  <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Get online</span></div>
+
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">1</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Unbox &amp; sign in 🖥️</h3>
+      <p>Turn on the laptop, connect to Wi-Fi, and let it finish any first-run system updates before installing anything.</p>
+      <p><b>🍎 Mac:</b> sign in with your @togohealth.com Google account when prompted, or skip and do it in Chrome (next step).<br><b>🪟 PC:</b> a Microsoft/local account is fine for Windows itself — your @togohealth.com identity lives in Chrome and Google, not Windows.</p>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">2</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Install Chrome &amp; sign in to Google Workspace 🌐</h3>
+      <p>Download Chrome from <a href="https://www.google.com/chrome/" target="_blank">google.com/chrome</a> and install it — on both Mac and PC this is the same installer flow (download → open → drag/run).</p>
+      <p>Open Chrome, click your profile icon (top-right) → <b>Sign in</b> → use your <b>@togohealth.com</b> address. This one account is your identity for Gmail, Drive, Tailscale, and the project tracker.</p>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">3</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Pin your terminal ⌨️</h3>
+      <p>You'll live in this for the next hour, so keep it one click away.</p>
+      <p><b>🍎 Mac — Terminal:</b> press <code>⌘Space</code>, type <code>Terminal</code>, open it, then right-click its Dock icon → <b>Options → Keep in Dock</b>.<br>
+      <b>🪟 PC — PowerShell:</b> click Start, type <code>PowerShell</code>, right-click <b>Windows PowerShell</b> → <b>Pin to taskbar</b> (or <b>Pin to Start</b>).</p>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--teal)"><span>Phase 2 · Terminal bootstrap</span><small>paste these one at a time — read what each does first</small></div>
+
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">4</div>
+    <div class="card">
+      <span class="who">You, in the terminal</span>
+      <h3>Package manager + Git 📦</h3>
+      <p>This installs the tool that installs everything else.</p>
+      <div class="oscode">
+        <div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button></div>
+        <pre class="os-mac show"><b># Command Line Tools (includes git)</b>
+xcode-select --install
+
+<b># Homebrew</b>
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"</pre>
+        <pre class="os-pc"><b># Git (winget ships with Windows 10/11)</b>
+winget install --id Git.Git -e --source winget
+
+<b># close and reopen PowerShell so PATH updates, then continue below</b></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">5</div>
+    <div class="card">
+      <span class="who">You, in the terminal</span>
+      <h3>Node + GitHub CLI 🔧</h3>
+      <div class="oscode">
+        <div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button></div>
+        <pre class="os-mac show">brew install node gh</pre>
+        <pre class="os-pc">winget install --id OpenJS.NodeJS.LTS -e --source winget
+winget install --id GitHub.cli -e --source winget
+
+<b># close and reopen PowerShell again</b></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">6</div>
+    <div class="card">
+      <span class="who">You, in the terminal</span>
+      <h3>Claude Code — same command, either machine 🤖</h3>
+      <div class="oscode">
+        <div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button></div>
+        <pre class="os-mac show">npm install -g @anthropic-ai/claude-code
+claude --version</pre>
+        <pre class="os-pc">npm install -g @anthropic-ai/claude-code
+claude --version</pre>
+      </div>
+      <p>Claude Code is Node-based, so once Node is installed the install step is identical on Mac and PC.</p>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">7</div>
+    <div class="card">
+      <span class="who">You, in the terminal</span>
+      <h3>Sign in to GitHub 🔐</h3>
+      <div class="oscode">
+        <div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button></div>
+        <pre class="os-mac show">gh auth login
+<b># browser opens → log in with your GitHub account</b>
+
+gh auth refresh -h github.com -s workflow</pre>
+        <pre class="os-pc">gh auth login
+<b># browser opens → log in with your GitHub account</b>
+
+gh auth refresh -h github.com -s workflow</pre>
+      </div>
+      <p>That second command matters: without the <code>workflow</code> scope, Claude can't push certain project files later and the push fails with a confusing permission error.</p>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--purple)"><span>Phase 3 · Claude everywhere + passkeys</span></div>
+
+  <div class="step right" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">8</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Sign in to all three Claude surfaces 🧠</h3>
+      <ul>
+        <li><b>Claude Desktop app</b> — download from <a href="https://claude.ai/download" target="_blank">claude.ai/download</a>, sign in with your work account.</li>
+        <li><b>Claude on the web</b> — in Chrome, sign in at <a href="https://claude.ai" target="_blank">claude.ai</a>. Claude Code on the web lives at <a href="https://claude.ai/code" target="_blank">claude.ai/code</a>.</li>
+        <li><b>Claude for Chrome</b> — install the sidebar extension, pin it, sign in with the same account. Only grant it access on sites you actually use it on.</li>
+      </ul>
+      <p>Same account everywhere — sessions and history line up no matter which one you open.</p>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">9</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Turn on passkeys 🔑</h3>
+      <p>Passkeys use your laptop's own fingerprint/face sensor instead of typing a code every time.</p>
+      <p><b>🍎 Mac:</b> Touch ID is usually already on ( → <code>System Settings → Touch ID & Password</code>).<br>
+      <b>🪟 PC:</b> turn on Windows Hello ( → <code>Settings → Accounts → Sign-in options</code>) — fingerprint, face, or a PIN.</p>
+      <div class="loop"><span class="ic">⚠️</span><div><b>You'll set up TWO separate passkeys, don't mix them up:</b> one for your Google/GitHub identity (whenever a site asks), and a second one later for the <b>local EMR sandbox login</b> (Phase 5, below) — that one only exists on your machine and has nothing to do with Google.</div></div>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--green)"><span>Phase 4 · Hand it to Claude</span></div>
+
+  <div class="step right" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">10</div>
+    <div class="card">
+      <span class="who">You + Claude</span>
+      <h3>Copy the setup prompt, start fresh 📋</h3>
+      <ul>
+        <li>Open the <a href="https://togohealth-dev.github.io/portal-dev/" target="_blank">project tracker</a> → <b>📚 Developer Reference Projects</b> → <b>"New-hire machine setup — Claude Code prompt."</b></li>
+        <li>Click <b>Copy Prompt</b>.</li>
+        <li>In your terminal, run <code>claude</code> to open a <b>brand-new session</b> and paste the whole thing in.</li>
+      </ul>
+      <p>That prompt walks Claude (and you) through cloning the repos, wiring up the always-on local EMR, and joining the tracker — in order, checking each step before moving on.</p>
+      <div class="loop"><span class="ic">🚫</span><div><b>Claude will pause at every login, password, and consent screen and hand it to you.</b> Never let it type a password or accept an invite on your behalf — that's the one hard rule in that whole prompt.</div></div>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">11</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Your <em>localhost</em> login — a new account + passkey 🩺</h3>
+      <p>Partway through, Claude will have you open <code>localhost:3000</code> for the first time. This is a <b>separate account from Google/GitHub</b> — it's your login for the sandbox EMR itself.</p>
+      <p>Click <b>Forgot your password?</b> → type in your <b>@togohealth.com email</b> → a 6-digit code arrives → set a password → sign in → enroll <b>Touch ID / Windows Hello</b> as your second passkey (the "MFA" one from Phase 3).</p>
+      <div class="loop"><span class="ic">📧</span><div>If the code never arrives, that's a one-line fix in your local backend's email setup — tell Claude and it'll sort it out before you try again. Don't keep re-clicking "resend."</div></div>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--blue)"><span>Phase 5 · Bookmark the three environments</span></div>
+
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">12</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Save these to your Chrome bookmarks bar 📑</h3>
+      <p>Open each in a tab, click the ⭐ in the address bar (or <code>⌘D</code> Mac / <code>Ctrl+D</code> PC), and drag it onto the bookmarks bar so all three sit side by side.</p>
+      <div class="envs">
+        <div class="env" style="--c:var(--orange);--bg:var(--orange-bg)">
+          <div class="top"><img src="icons/alpha.png" alt="α"><h4>Alpha</h4></div>
+          <p>One feature at a time, real data.</p>
+          <code>alpha.portal.togohealth.com</code>
+        </div>
+        <div class="env" style="--c:var(--blue);--bg:var(--blue-bg)">
+          <div class="top"><img src="icons/beta.png" alt="β"><h4>Beta</h4></div>
+          <p>This cycle's build, staff testers.</p>
+          <code>beta.portal.togohealth.com</code>
+        </div>
+        <div class="env" style="--c:var(--green);--bg:var(--green-bg)">
+          <div class="top"><img src="icons/gamma.png" alt="γ"><h4>Gamma</h4></div>
+          <p>Full production. Everyone.</p>
+          <code>portal.togohealth.com</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--purple)"><span>Phase 6 · Join the tracker</span></div>
+
+  <div class="step left" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">13</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Sign in to the Project Tracker 📊</h3>
+      <p>Open <a href="https://togohealth-dev.github.io/portal-dev/" target="_blank">togohealth-dev.github.io/portal-dev</a> → <b>Sign in with GitHub</b>. Confirm you can see Current Projects, Future Ideas, and the <b>📚 Reference</b> section — bookmark this one too, you'll open it daily.</p>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">14</div>
+    <div class="card">
+      <span class="who">You + Claude</span>
+      <h3>Start your second session: "TogoHealth EMR Project Tracker" 🏷️</h3>
+      <p>Open a fresh <code>claude</code> session and <b>name it "TogoHealth EMR Project Tracker."</b> This is the session you'll come back to for browsing the tracker, claiming projects, and reading reference docs — separate from the one-time setup session above.</p>
+      <p>Ask it to open the <b>📚 Reference</b> section for you — that's where this guide lives, alongside <a href="workflow.html">📖 How we ship — illustrated dev trail</a>. Read that one next; it picks up exactly where this guide ends.</p>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--slate)"><span>Optional · Ask for these if your role needs them</span></div>
+
+  <div class="step left" style="--c:var(--slate);--bg:var(--slate-bg)">
+    <div class="node">＋</div>
+    <div class="card">
+      <span class="who">You</span>
+      <h3>Tailscale — reach the Mac mini 📡</h3>
+      <p>Not part of the default setup. If your work touches the always-on Mac mini (PHI storage, automation), <b>ask Greg or Morgan for a Tailscale invite</b> first.</p>
+      <div class="optcall"><span class="ic">🙋</span><div><b>Request it, don't assume it.</b> Once invited: open the Tailscale app, sign in with your @togohealth.com account, and verify with <code>tailscale status</code>.</div></div>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--slate);--bg:var(--slate-bg)">
+    <div class="node">＋</div>
+    <div class="card">
+      <span class="who">You + Claude</span>
+      <h3>SEGE Command Center 🎛️</h3>
+      <p>A separate dashboard/repo, not part of the EMR. <b>Ask Greg for access</b> — public dashboards live in <code>sege-command</code>; private staffing data in <code>sege-staffing</code> is a further, separate ask.</p>
+      <div class="optcall"><span class="ic">🙋</span><div><b>Request it, don't assume it.</b> Once granted: start a <b>new Claude session named "SEGE Command Center,"</b> clone <code>github.com/togohealth-dev/sege-command</code>, and ask Claude to explore the repo and get you oriented.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap sessions">
+  <h2>Which session is which?</h2>
+  <p class="lead">By the end of today you'll have named, separate Claude sessions. Keep them separate — that's what makes each one easy to pick back up.</p>
+  <div class="sesscard" style="--c:var(--green);--bg:var(--green-bg)">
+    <span class="badge">Setup · once</span>
+    <div><h4>New-hire machine setup</h4><p>The big one-time run — Copy Prompt from the tracker's Reference section, paste into a fresh session. You won't reuse this session after today.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <span class="badge">Daily driver</span>
+    <div><h4>TogoHealth EMR Project Tracker</h4><p>Your go-to for browsing the tracker, claiming a project, and reading reference docs. Come back to this one often.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--slate);--bg:var(--slate-bg)">
+    <span class="badge">Per-project</span>
+    <div><h4>One session per project you build</h4><p>When you claim a project, hit its <b>Copy Prompt</b> and open <em>yet another</em> fresh session for just that build — see <a href="workflow.html">How we ship</a> for the full picture.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <span class="badge">Optional</span>
+    <div><h4>SEGE Command Center</h4><p>Only if you asked for and received access. A separate session, a separate repo, nothing to do with the EMR.</p></div>
+  </div>
+</div>
+
+<div class="wrap rules">
+  <h2>Good habits from day one</h2>
+  <p class="lead">Small things that save you a confusing afternoon later.</p>
+  <div class="grid">
+    <div class="rule" style="--c:var(--red)">
+      <h4>🔑 Two different passkeys</h4>
+      <p>Google/GitHub passkey ≠ localhost EMR passkey. Same finger, two separate accounts — don't assume enrolling one enrolls both.</p>
+    </div>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🚫 Claude never types your password</h4>
+      <p>Logins, invites, and consent screens are always yours to click — in setup and in every session after.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🙋 Optional access is opt-in</h4>
+      <p>Tailscale and SEGE aren't part of default setup. If you need either, ask Greg or Morgan first — don't try to self-serve your way in.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🏷️ Name your sessions</h4>
+      <p>"TogoHealth EMR Project Tracker," "SEGE Command Center," and one per project. A named session is one you can actually find again tomorrow.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>📑 Bookmark all three environments</h4>
+      <p>Alpha, beta, and gamma look almost identical — a bookmarks bar with all three visible stops you from testing on the wrong one.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>📧 Localhost email issues are common</h4>
+      <p>If the reset code never arrives, it's a known, one-line fix in the backend's email config — mention it to Claude rather than clicking resend a dozen times.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>🪟 PC vs 🍎 Mac — same destination</h4>
+      <p>Different install commands, identical result: git, GitHub CLI, Node, and Claude Code all working from your terminal.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>📖 Read "How We Ship" next</h4>
+      <p>This guide gets your laptop ready. The next one explains what actually happens to a project once you start building — read it before you claim your first one.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="btns">
+      <a class="btn" href="workflow.html">📖 Read "How We Ship" next →</a>
+      <a class="btn ghost" href="index.html">← Back to the Project Tracker</a>
+    </div>
+    <p>Stuck on any step? Ask Greg or Scott — that's always faster than guessing.<br>
+    <span style="font-size:12px;opacity:.75">TogoHealth · named for Togo, the sled dog who ran the hardest leg and got none of the credit.</span></p>
+  </div>
+</footer>
+
+<script>
+  // OS tab toggle — one click switches every code block on the page, remembered via localStorage.
+  function setOS(os){
+    document.querySelectorAll('.oscode').forEach(function(box){
+      box.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.os === os); });
+      box.querySelectorAll('pre').forEach(function(p){ p.classList.toggle('show', p.classList.contains('os-'+os)); });
+    });
+    try { localStorage.setItem('togo-setup-os', os); } catch(e){}
+  }
+  document.querySelectorAll('.oscode .tab').forEach(function(btn){
+    btn.addEventListener('click', function(){ setOS(btn.dataset.os); });
+  });
+  (function(){
+    var saved = null;
+    try { saved = localStorage.getItem('togo-setup-os'); } catch(e){}
+    if (saved === 'mac' || saved === 'pc') setOS(saved);
+  })();
+
+  // scroll progress + trail fill + reveal (same mechanism as "How We Ship")
+  var steps = [].slice.call(document.querySelectorAll('.step,.phase'));
+  var trail = document.getElementById('trail'), fill = document.getElementById('fill'), bar = document.getElementById('bar');
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold:.14, rootMargin:'0px 0px -8% 0px' });
+  steps.forEach(function(s){ io.observe(s); });
+
+  function onScroll(){
+    var d = document.documentElement;
+    var p = d.scrollTop / Math.max(1, d.scrollHeight - d.clientHeight);
+    bar.style.width = (p*100).toFixed(2) + '%';
+    var r = trail.getBoundingClientRect();
+    var seen = Math.min(Math.max(window.innerHeight*0.6 - r.top, 0), trail.offsetHeight);
+    fill.style.height = seen + 'px';
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll);
+  onScroll();
+</script>
+</body>
+</html>
