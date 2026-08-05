@@ -213,7 +213,7 @@
   <div class="step left" style="--c:var(--slate);--bg:var(--slate-bg)">
     <div class="node">1</div>
     <div class="card">
-      <span class="who">Claude + Greg</span>
+      <span class="who">Claude</span>
       <h3>A project gets written 📝</h3>
       <p>Ideas arrive from anywhere — a provider's complaint, a nurse's shortcut, a certification gap, Scott's roadmap. Claude turns each one into a real project on the tracker, written to the standards in our instruction files, so the scope, gotchas and constraints are captured before anyone codes.</p>
       <p>It lands in <b>Drafts</b> or <b>Future Ideas</b> with a priority of 1–5.</p>
@@ -239,7 +239,9 @@
     <div class="card">
       <span class="who">Developer</span>
       <h3>Copy the prompt, open a session 🤖</h3>
-      <p>Hit <b>Copy Prompt</b> on the project. You get the full build brief <i>plus</i> the standing constraints — PR size, schema safety, no Firebase, where secrets live, which certification criteria it touches. Paste it into a <b>fresh Claude session</b>.</p>
+      <p>Hit <b>Copy Prompt</b> on the project card. That gives you the <b>project tracker's prompt</b> — this project's build brief plus every standing instruction that applies to all our work: PR size, schema safety, where secrets live, auth rules, which certification criteria it touches.</p>
+      <p>The prompt doesn't try to contain everything. It <b>points Claude at our instruction files</b> — the <code>.md</code> files in the repo and strategy docs — which hold the deeper detail. Claude reads those itself at the start of the session, so you don't have to memorise any of it.</p>
+      <p>Paste the whole thing into a <b>fresh Claude session</b>.</p>
       <p><b>One session = one project = one branch.</b> Don't build two projects in one session; they'll tangle.</p>
       <span class="chip">Copy Prompt</span><span class="chip">new session</span>
     </div>
@@ -407,8 +409,8 @@
       <p>Every credential lives in the gitignored <code>portal/backend/.env</code> (Secret Manager once deployed). Missing a key? <b>Ask Greg or Scott.</b> Never invent one, never hardcode it, never paste one into an issue, PR or chat.</p>
     </div>
     <div class="rule" style="--c:var(--blue)">
-      <h4>🔐 Auth is MFA — leave Firebase alone</h4>
-      <p>Firebase is on its way out. Build anything auth-related on the MFA path. If a change looks like it needs Firebase, stop and flag it.</p>
+      <h4>🔐 Auth is MFA</h4>
+      <p>Anything touching sign-in, identity, sessions or tokens gets built on our <b>MFA path</b> — password first, then a passkey. Legacy auth code is being retired, so don't extend it. If a change looks like it needs the old path, stop and flag it.</p>
     </div>
     <div class="rule" style="--c:var(--teal)">
       <h4>🩺 Compiling isn't testing</h4>
