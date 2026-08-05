@@ -101,6 +101,12 @@
   .chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--slate-bg);color:var(--slate);border:1px solid var(--line);margin:7px 4px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .card code{background:var(--slate-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
+  .card ul{margin:10px 0 0;padding-left:19px;text-align:left;display:inline-block;font-size:13.2px;color:var(--ink-2);line-height:1.6}
+  .card li{margin:0 0 6px}
+  .card li:last-child{margin-bottom:0}
+  .card li b{color:var(--ink)}
+  .card li code{font-size:11.5px}
+
   /* loop badges */
   .loop{
     display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--purple-bg);
@@ -238,7 +244,7 @@
     <div class="node">3</div>
     <div class="card">
       <span class="who">Developer</span>
-      <h3>Copy the prompt, open a session 🤖</h3>
+      <h3>Project Tracker: Copy Prompt / Claude: Open a <b>NEW</b> Session 🤖</h3>
       <p>Hit <b>Copy Prompt</b> on the project card. That gives you the <b>project tracker's prompt</b> — this project's build brief plus every standing instruction that applies to all our work: PR size, schema safety, where secrets live, auth rules, which certification criteria it touches.</p>
       <p>The prompt doesn't try to contain everything. It <b>points Claude at our instruction files</b> — the <code>.md</code> files in the repo and strategy docs — which hold the deeper detail. Claude reads those itself at the start of the session, so you don't have to memorise any of it.</p>
       <p>Paste the whole thing into a <b>fresh Claude session</b>.</p>
@@ -271,18 +277,29 @@
   <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
     <div class="node">6</div>
     <div class="card">
-      <span class="who">Claude</span>
-      <h3>Code review by a second model 🔍</h3>
-      <p>The work gets reviewed by <b>Opus 5</b> or <b>Fable</b>, picked by how complex the change is. A model that didn't write the code is much better at spotting what's wrong with it.</p>
+      <span class="who">Developer + Claude</span>
+      <h3>Get the code reviewed by a second model 🔍</h3>
+      <ul>
+        <li>In the session, run <code>/code-review</code> on your working diff.</li>
+        <li><b>Pick the reviewer by complexity:</b> <b>Fable</b> for small, contained changes — copy, styling, a single component. <b>Opus 5</b> for anything touching the database schema, auth, orders, or clinical logic.</li>
+        <li><b>Use a different model than the one that wrote the code.</b> A model reviewing its own work misses its own blind spots.</li>
+        <li>Fix what it flags, then <b>re-run the review</b> until it comes back clean.</li>
+        <li>If a finding looks wrong, say so — don't just apply it. Reviews are suggestions, not orders.</li>
+      </ul>
     </div>
   </div>
 
   <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
     <div class="node">7</div>
     <div class="card">
-      <span class="who">Developer</span>
-      <h3>Click every new path yourself ✋</h3>
-      <p>Type-checks and a clean build are <b>not</b> testing. Open each new screen and use it like a nurse would — happy path, empty state, and the error case.</p>
+      <span class="who">Developer + Claude</span>
+      <h3>Have Claude give you a list of new features to test 📋</h3>
+      <ul>
+        <li>Ask Claude: <b>"list every new feature and screen in this project that I should test"</b> — now you have a checklist instead of guessing.</li>
+        <li>Walk that list on localhost yourself. For each item, try the <b>normal path</b>, the <b>empty state</b>, and one <b>wrong input</b>.</li>
+        <li>Use it the way a <b>nurse or provider</b> would, not the way you built it.</li>
+        <li>A clean build and passing type-checks are <b>not</b> testing. Only clicking is.</li>
+      </ul>
       <div class="loop"><span class="ic">🔁</span><div><b>Iterate here, not later:</b> fix → reload → click again, as many rounds as it takes. Bugs are cheap on localhost and expensive once real users meet them.</div></div>
     </div>
   </div>
@@ -293,7 +310,7 @@
     <div class="node">8</div>
     <div class="card">
       <span class="who">Claude</span>
-      <h3>Open the PR, mark it ready 🚀</h3>
+      <h3>Open the PR, Mark it Alpha Ready 🚀</h3>
       <p>Claude pushes the branch and opens a pull request, then moves the card to <b>PR Alpha Ready</b> and tags Scott. Keep PRs small — 1–2 features. If a build starts sprawling, split it into another project rather than growing the PR.</p>
       <p>That label does one more thing: it starts advancing the <b>ONC/MIPS certification bars</b> automatically.</p>
       <span class="chip">status:pr-alpha-ready</span><span class="chip">ONC +50%</span>
