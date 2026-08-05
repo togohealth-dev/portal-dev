@@ -1966,6 +1966,12 @@ async function loadReferenceProjects() {
   } catch(e) { if (loading) loading.textContent = `Error: ${e.message}`; }
 }
 
+// A reference issue can point at a page in this repo with a "PAGE: <file>" line in its
+// body — the tracker then links the title and adds an "Open guide" button.
+function refPage(p){
+  const m = (p.body||'').match(/^\s*PAGE:\s*([A-Za-z0-9._\/-]+\.html)\s*$/mi);
+  return m ? m[1] : null;
+}
 function renderReferenceProjects() {
   const el = document.getElementById('ref-content');
   if (!el) return;
@@ -1981,11 +1987,12 @@ function renderReferenceProjects() {
       ${referenceProjects.map((p, idx) => `<tr id="proj-${p.number}">
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td>
-          <span style="margin-right:5px">📚</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+          <span style="margin-right:5px">📚</span>${refPage(p) ? `<a class="proj-title" href="${refPage(p)}" title="Open the illustrated guide">${esc(p.title)}</a>` : `<a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>`}
           <div class="proj-desc">${esc(buildSummary(p))}</div>
         </td>
         <td>${notesHtml(p)}</td>
         <td><div class="actions">
+          ${refPage(p) ? `<a href="${refPage(p)}" class="btn btn-primary btn-sm" title="Open the illustrated guide">📖 Open guide</a>` : ''}
           <button class="btn btn-outline btn-sm" id="cpbtn-${p.number}" onclick="copyReferencePrompt(${p.number})" title="Copy the setup/reference prompt to paste into Claude">Copy Prompt</button>
           ${editBtn(p.number)}
           <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>
