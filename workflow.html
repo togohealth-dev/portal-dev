@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How We Ship — TogoHealth Dev Trail</title>
+<link rel="icon" type="image/png" href="icons/togo-favicon.png">
+<style>
+  :root{
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --line:#e2e8f0;
+    --blue:#2563eb; --blue-bg:#eff6ff;
+    --teal:#0d9488; --teal-bg:#f0fdfa;
+    --orange:#ea580c; --orange-bg:#fff7ed;
+    --green:#16a34a; --green-bg:#f0fdf4;
+    --purple:#7c3aed; --purple-bg:#f5f3ff;
+    --red:#dc2626; --red-bg:#fef2f2;
+    --slate:#475569; --slate-bg:#f8fafc;
+    --shadow:0 1px 3px rgba(15,23,42,.07),0 8px 28px rgba(15,23,42,.06);
+    --shadow-lg:0 2px 6px rgba(15,23,42,.09),0 18px 48px rgba(15,23,42,.11);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(1100px 620px at 82% -8%, #e0f2fe 0%, transparent 62%),
+      radial-gradient(900px 520px at 8% 4%, #f0fdfa 0%, transparent 58%),
+      linear-gradient(#ffffff, #fbfdff 42%, #ffffff);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* ── hero ── */
+  header.hero{padding:64px 0 40px;text-align:center;position:relative;overflow:hidden}
+  .hero .paws{position:absolute;inset:0;pointer-events:none;opacity:.5}
+  .hero .paw{position:absolute;font-size:18px;opacity:.22;animation:drift 9s ease-in-out infinite}
+  @keyframes drift{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-13px) rotate(9deg)}}
+  .logo-badge{
+    display:inline-flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+    padding:11px 22px 11px 14px;border-radius:999px;box-shadow:var(--shadow);margin-bottom:26px;
+  }
+  .logo-badge img{width:44px;height:44px;object-fit:contain;display:block}
+  .logo-badge b{font-size:15px;letter-spacing:.2px}
+  .logo-badge span{font-size:12px;color:var(--muted);display:block;font-weight:500}
+  h1{
+    font-size:clamp(34px,6.2vw,62px);line-height:1.03;margin:0 0 16px;letter-spacing:-1.6px;font-weight:850;
+    background:linear-gradient(96deg,#0f172a 4%,#0d9488 46%,#2563eb 78%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .tagline{font-size:clamp(16px,2.1vw,20px);color:var(--ink-2);max-width:660px;margin:0 auto 12px;line-height:1.55}
+  .tagline b{color:var(--teal)}
+  .subtle{font-size:13.5px;color:var(--muted);max-width:600px;margin:0 auto}
+
+  /* ── environment legend ── */
+  .envs{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:46px 0 12px}
+  .env{background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px 17px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .env:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+  .env .top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .env img{width:26px;height:26px;object-fit:contain}
+  .env .dot{width:11px;height:11px;border-radius:50%;background:var(--c);flex:none}
+  .env h4{margin:0;font-size:14.5px;font-weight:800;letter-spacing:.1px}
+  .env p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .env .db{display:inline-block;margin-top:9px;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--bg);color:var(--c)}
+
+  .warnbar{
+    margin:28px 0 8px;background:var(--red-bg);border:1px solid #fecaca;border-left:5px solid var(--red);
+    border-radius:12px;padding:14px 17px;font-size:13.5px;color:#7f1d1d;line-height:1.6;
+  }
+  .warnbar b{color:var(--red)}
+
+  /* ── trail ── */
+  .trail{position:relative;padding:56px 0 20px}
+  .trail:before{
+    content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;
+    background:repeating-linear-gradient(180deg,var(--line) 0 9px,transparent 9px 18px);
+  }
+  .trail-fill{
+    position:absolute;left:50%;top:0;width:3px;margin-left:-1.5px;height:0;
+    background:linear-gradient(180deg,var(--teal),var(--blue) 42%,var(--orange) 68%,var(--green));
+    border-radius:3px;transition:height .18s linear;box-shadow:0 0 14px rgba(37,99,235,.4);
+  }
+  .step{position:relative;width:calc(50% - 46px);margin-bottom:30px;opacity:0;transform:translateY(26px);transition:opacity .55s ease,transform .55s ease}
+  .step.in{opacity:1;transform:none}
+  .step.left{margin-right:auto;text-align:right}
+  .step.right{margin-left:auto}
+  .node{
+    position:absolute;top:22px;width:44px;height:44px;border-radius:50%;background:#fff;border:3px solid var(--c);
+    display:flex;align-items:center;justify-content:center;font-weight:850;font-size:15px;color:var(--c);
+    box-shadow:0 0 0 6px #fff, var(--shadow);z-index:2;
+  }
+  .step.left .node{right:-68px}
+  .step.right .node{left:-68px}
+  .node img{width:24px;height:24px;object-fit:contain}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);transition:box-shadow .25s,transform .25s}
+  .card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+  .card h3{margin:0 0 7px;font-size:16.5px;font-weight:820;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+  .step.left .card h3{justify-content:flex-end}
+  .card p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.62}
+  .card p + p{margin-top:8px}
+  .who{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--bg);color:var(--c);margin-bottom:9px}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--slate-bg);color:var(--slate);border:1px solid var(--line);margin:7px 4px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .card code{background:var(--slate-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* loop badges */
+  .loop{
+    display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--purple-bg);
+    border:1px dashed #c4b5fd;border-radius:11px;padding:10px 13px;text-align:left;
+  }
+  .step.left .loop{flex-direction:row-reverse;text-align:right}
+  .loop .ic{font-size:17px;line-height:1.2;flex:none}
+  .loop div{font-size:12.5px;color:#5b21b6;line-height:1.55}
+  .loop b{color:#4c1d95}
+
+  /* email callout */
+  .mail{display:flex;align-items:flex-start;gap:11px;margin-top:12px;background:var(--blue-bg);border:1px dashed #bfdbfe;border-radius:11px;padding:10px 13px;text-align:left}
+  .step.left .mail{flex-direction:row-reverse;text-align:right}
+  .mail div{font-size:12.5px;color:#1e40af;line-height:1.55}
+
+  /* phase banner */
+  .phase{position:relative;text-align:center;margin:8px 0 34px;opacity:0;transform:translateY(16px);transition:.5s}
+  .phase.in{opacity:1;transform:none}
+  .phase span{
+    display:inline-block;background:#fff;border:2px solid var(--c);color:var(--c);
+    font-size:11.5px;font-weight:850;letter-spacing:1.7px;text-transform:uppercase;
+    padding:8px 20px;border-radius:999px;box-shadow:0 0 0 7px #fff,var(--shadow);
+  }
+
+  /* ── rules ── */
+  .rules{margin:64px 0 20px}
+  .rules h2{font-size:clamp(23px,3.4vw,33px);margin:0 0 8px;letter-spacing:-.7px;font-weight:850}
+  .rules .lead{font-size:14.5px;color:var(--muted);margin:0 0 24px;max-width:680px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+  .rule{background:#fff;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:13px;padding:15px 17px;box-shadow:var(--shadow)}
+  .rule h4{margin:0 0 6px;font-size:13.8px;font-weight:820;display:flex;gap:7px;align-items:center}
+  .rule p{margin:0;font-size:12.8px;color:var(--ink-2);line-height:1.6}
+  .rule code{background:var(--slate-bg);border:1px solid var(--line);border-radius:4px;padding:1px 4px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  footer{margin:66px 0 46px;padding-top:26px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:13px}
+  footer a{color:var(--blue);font-weight:700;text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .btns{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;text-decoration:none;font-size:13.5px;font-weight:750;padding:11px 19px;border-radius:10px;box-shadow:var(--shadow);transition:.2s}
+  .btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+  /* progress */
+  #bar{position:fixed;top:0;left:0;height:3.5px;background:linear-gradient(90deg,var(--teal),var(--blue),var(--orange),var(--green));width:0;z-index:99}
+
+  @media(max-width:860px){
+    .trail:before,.trail-fill{left:26px}
+    .step{width:100%;text-align:left!important;padding-left:66px}
+    .step.left .node,.step.right .node{left:4px;right:auto}
+    .step.left .card h3{justify-content:flex-start}
+    .step.left .loop,.step.left .mail{flex-direction:row;text-align:left}
+    .phase{text-align:left;padding-left:66px}
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="paws">
+    <div class="paw" style="left:7%;top:16%">🐾</div><div class="paw" style="left:88%;top:24%;animation-delay:1.4s">🐾</div>
+    <div class="paw" style="left:16%;top:68%;animation-delay:2.6s">❄️</div><div class="paw" style="left:79%;top:72%;animation-delay:.7s">🐾</div>
+    <div class="paw" style="left:47%;top:8%;animation-delay:3.4s">❄️</div>
+  </div>
+  <div class="wrap">
+    <div class="logo-badge">
+      <img src="icons/togo-logo.png" alt="TogoHealth">
+      <div style="text-align:left"><b>TogoHealth</b><span>Developer Onboarding · Reference</span></div>
+    </div>
+    <h1>How a project<br>gets to production</h1>
+    <p class="tagline">Every feature runs the same trail — from a rough idea to real clinicians using it. Like a good sled team: <b>steady, in order, nobody skips ahead.</b></p>
+    <p class="subtle">New here? Read this once, top to bottom. It's the whole process — who does what, where the loops are, and which rules never bend.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="envs">
+    <div class="env" style="--c:var(--teal);--bg:var(--teal-bg)">
+      <div class="top"><span class="dot"></span><h4>Localhost</h4></div>
+      <p>Your machine. Where you build and click through your own work.</p>
+      <span class="db">Sandbox DB · fake patients</span>
+    </div>
+    <div class="env" style="--c:var(--orange);--bg:var(--orange-bg)">
+      <div class="top"><img src="icons/alpha.png" alt="α"><h4>Alpha</h4></div>
+      <p>One finished feature, deployed alone so it can be tested in isolation.</p>
+      <span class="db">⚠ Production DB · real patients</span>
+    </div>
+    <div class="env" style="--c:var(--blue);--bg:var(--blue-bg)">
+      <div class="top"><img src="icons/beta.png" alt="β"><h4>Beta</h4></div>
+      <p>Every alpha from the cycle combined, tested together by real staff.</p>
+      <span class="db">⚠ Production DB · real patients</span>
+    </div>
+    <div class="env" style="--c:var(--green);--bg:var(--green-bg)">
+      <div class="top"><img src="icons/gamma.png" alt="γ"><h4>Gamma</h4></div>
+      <p>Full production. Everyone. This is the finish line.</p>
+      <span class="db">⚠ Production DB · real patients</span>
+    </div>
+  </div>
+
+  <div class="warnbar">
+    <b>The one thing to burn into your memory:</b> only <b>localhost</b> uses the sandbox. Alpha, beta and gamma all read and write the <b>same real production database</b> — on different versions of the code, at the same time. That's why schema changes are additive-only, and why test patients never go anywhere but your own machine.
+  </div>
+</div>
+
+<div class="wrap trail" id="trail">
+  <div class="trail-fill" id="fill"></div>
+
+  <div class="phase" style="--c:var(--slate)"><span>Phase 1 · Idea → Draft</span></div>
+
+  <div class="step left" style="--c:var(--slate);--bg:var(--slate-bg)">
+    <div class="node">1</div>
+    <div class="card">
+      <span class="who">Claude + Greg</span>
+      <h3>A project gets written 📝</h3>
+      <p>Ideas arrive from anywhere — a provider's complaint, a nurse's shortcut, a certification gap, Scott's roadmap. Claude turns each one into a real project on the tracker, written to the standards in our instruction files, so the scope, gotchas and constraints are captured before anyone codes.</p>
+      <p>It lands in <b>Drafts</b> or <b>Future Ideas</b> with a priority of 1–5.</p>
+      <span class="chip">status:draft</span><span class="chip">future-idea</span><span class="chip">priority-1…5</span>
+      <div class="loop"><span class="ic">💡</span><div><b>Always open:</b> users can drop a new idea in at any time — it becomes a draft or future idea and joins the queue. Nothing is ever "too late" to suggest.</div></div>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--slate);--bg:var(--slate-bg)">
+    <div class="node">2</div>
+    <div class="card">
+      <span class="who">Any developer</span>
+      <h3>You claim it 🙋</h3>
+      <p>Pick a project and claim it in the tracker. It moves to <b>In Progress</b> and gets your name on it, so two people never build the same thing.</p>
+      <span class="chip">status:in-progress</span>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--teal)"><span>Phase 2 · Build on localhost</span></div>
+
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">3</div>
+    <div class="card">
+      <span class="who">Developer</span>
+      <h3>Copy the prompt, open a session 🤖</h3>
+      <p>Hit <b>Copy Prompt</b> on the project. You get the full build brief <i>plus</i> the standing constraints — PR size, schema safety, no Firebase, where secrets live, which certification criteria it touches. Paste it into a <b>fresh Claude session</b>.</p>
+      <p><b>One session = one project = one branch.</b> Don't build two projects in one session; they'll tangle.</p>
+      <span class="chip">Copy Prompt</span><span class="chip">new session</span>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">4</div>
+    <div class="card">
+      <span class="who">Developer + Claude</span>
+      <h3>Build, committing as you go 💾</h3>
+      <p>Work in small commits on a feature branch. Commits are your undo button and your handoff notes — a project with one giant commit at the end is very hard for anyone else to pick up.</p>
+      <div class="loop"><span class="ic">🤝</span><div><b>Handoff loop:</b> a project can move to another developer mid-build. Because the work lives in commits on a branch (not in one person's chat window), they pick up where you stopped.</div></div>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">5</div>
+    <div class="card">
+      <span class="who">Developer</span>
+      <h3>See it on localhost 👀</h3>
+      <p>Run it on your own machine, pointed at the <b>sandbox database</b> — fake patients, safe to break. Sign in the normal way: password first, then your passkey for MFA.</p>
+      <p>If your localhost is calling the production backend, <b>stop</b> — that's real patient data, and it's the one setup mistake that actually matters.</p>
+      <span class="chip">sandbox · localhost:5434</span>
+    </div>
+  </div>
+
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">6</div>
+    <div class="card">
+      <span class="who">Claude</span>
+      <h3>Code review by a second model 🔍</h3>
+      <p>The work gets reviewed by <b>Opus 5</b> or <b>Fable</b>, picked by how complex the change is. A model that didn't write the code is much better at spotting what's wrong with it.</p>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">7</div>
+    <div class="card">
+      <span class="who">Developer</span>
+      <h3>Click every new path yourself ✋</h3>
+      <p>Type-checks and a clean build are <b>not</b> testing. Open each new screen and use it like a nurse would — happy path, empty state, and the error case.</p>
+      <div class="loop"><span class="ic">🔁</span><div><b>Iterate here, not later:</b> fix → reload → click again, as many rounds as it takes. Bugs are cheap on localhost and expensive once real users meet them.</div></div>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--blue)"><span>Phase 3 · Pull request</span></div>
+
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">8</div>
+    <div class="card">
+      <span class="who">Claude</span>
+      <h3>Open the PR, mark it ready 🚀</h3>
+      <p>Claude pushes the branch and opens a pull request, then moves the card to <b>PR Alpha Ready</b> and tags Scott. Keep PRs small — 1–2 features. If a build starts sprawling, split it into another project rather than growing the PR.</p>
+      <p>That label does one more thing: it starts advancing the <b>ONC/MIPS certification bars</b> automatically.</p>
+      <span class="chip">status:pr-alpha-ready</span><span class="chip">ONC +50%</span>
+      <div class="loop"><span class="ic">🚫</span><div><b>Claude never merges or closes a PR</b>, and never pushes to <code>main</code>. Scott is the only gatekeeper — that's deliberate.</div></div>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">9</div>
+    <div class="card">
+      <span class="who">Scott</span>
+      <h3>Code review 🧐</h3>
+      <p>Scott reads the diff before anything touches real data — schema safety, auth, and whether old and new code can live together in the shared database.</p>
+      <div class="loop"><span class="ic">↩️</span><div><b>Revision loop:</b> if something's off, the card goes to <b>Needs Revision</b> and comes straight back to you. Normal, not a failure.</div></div>
+      <span class="chip">status:needs-revision</span>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--orange)"><span>Phase 4 · Alpha — real data, one feature</span></div>
+
+  <div class="step right" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <div class="node"><img src="icons/alpha.png" alt="α"></div>
+    <div class="card">
+      <span class="who">Scott</span>
+      <h3>Deployed to alpha ⚠️</h3>
+      <p>Scott deploys the feature pointed at the <b>production database</b>. Simple changes ride the shared alpha environment; a complex one gets its own alpha page so nothing else muddies the test.</p>
+      <p>The card moves to <b>Alpha Testing</b> with a link straight to the build.</p>
+      <span class="chip">status:alpha-testing</span><span class="chip">real patients</span>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <div class="node">10</div>
+    <div class="card">
+      <span class="who">QA leads · Greg, Morgan, Jordan</span>
+      <h3>QA tests it for real 🧪</h3>
+      <p>The clinical leads use the feature against real charts — the first time it meets messy, real-world data instead of tidy sandbox rows.</p>
+      <div class="loop"><span class="ic">↩️</span><div><b>Two ways out:</b> send it back for revision (→ back to Phase 2 with notes), or mark it <b>Ready for Beta</b> and let it into the next combined build.</div></div>
+      <span class="chip">status:ready-beta</span>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--blue)"><span>Phase 5 · Beta — everything together</span></div>
+
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node"><img src="icons/beta.png" alt="β"></div>
+    <div class="card">
+      <span class="who">Scott</span>
+      <h3>Combined into a beta build 🧩</h3>
+      <p>Every two weeks Scott merges the cycle's alphas into <b>one</b> beta and ships it to the beta group — MAs, nurses, staff and providers. This is the first time the changes run <i>together</i>, which is where surprises actually live.</p>
+      <div class="mail"><span class="ic">📧</span><div><b>"What's new" email</b> goes out to beta users, in plain language, so they know what changed and what to look at.</div></div>
+      <span class="chip">status:beta-version</span><span class="chip">ONC +75%</span>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">11</div>
+    <div class="card">
+      <span class="who">Beta users → Scott</span>
+      <h3>Real people, real feedback 🗣️</h3>
+      <p>Beta users work normally and report what's confusing or broken. Scott fixes bugs and glitches directly.</p>
+      <div class="loop"><span class="ic">🌱</span><div><b>Feedback becomes work:</b> a small fix is patched in beta; a bigger request becomes a brand-new project back at Phase 1.</div></div>
+      <div class="loop" style="background:var(--red-bg);border-color:#fecaca"><span class="ic">🧯</span><div style="color:#7f1d1d"><b>Emergency valve:</b> Scott can switch a feature back off in beta if it's causing harm. Shipping is reversible — that's the point of having stages.</div></div>
+    </div>
+  </div>
+
+  <div class="phase" style="--c:var(--green)"><span>Phase 6 · Gamma — everyone</span></div>
+
+  <div class="step right" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node"><img src="icons/gamma.png" alt="γ"></div>
+    <div class="card">
+      <span class="who">Scott</span>
+      <h3>Published to full production 🎉</h3>
+      <p>When beta holds up, Scott promotes it to <b>gamma</b> — every user, every facility. Same two-week rhythm: this cycle's alphas become the new beta while the last beta becomes gamma.</p>
+      <div class="mail"><span class="ic">📧</span><div><b>"What's new in version x.y.z"</b> goes to <b>all</b> users — the release note that closes the loop for the people who asked for it.</div></div>
+      <span class="chip">closed · gamma</span><span class="chip">ONC 100%</span>
+    </div>
+  </div>
+
+  <div class="step left" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">12</div>
+    <div class="card">
+      <span class="who">Everyone</span>
+      <h3>The trail loops back 🔄</h3>
+      <p>Production isn't the end. Bugs, glitches and "could it also…" all flow back in as feedback, and become the next drafts and future ideas.</p>
+      <div class="loop"><span class="ic">♾️</span><div><b>That's the whole engine:</b> ship small, listen, feed it back to Phase 1. A finished project is just the start of the next one.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap rules">
+  <h2>Rules that never bend</h2>
+  <p class="lead">Most of the process is flexible. These aren't — each one exists because breaking it once caused real damage or would put patient data at risk.</p>
+  <div class="grid">
+    <div class="rule" style="--c:var(--red)">
+      <h4>🗄️ The database is shared</h4>
+      <p>Alpha, beta and gamma all use the <b>same production database</b> on different code versions, simultaneously. Schema changes are <b>additive only</b> — new columns nullable or defaulted. Never rename, retype, or repurpose a column old code still reads.</p>
+    </div>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🧪 Test data stays home</h4>
+      <p>Test patients and PHI live on your <b>local sandbox only</b>. A row you create for testing is visible in production the moment it exists — you cannot "seed just alpha."</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>✂️ Small PRs</h4>
+      <p>1–2 features per PR. If a build grows a third, stop and split it into a new project. Big PRs sit unreviewed and break in ways nobody can untangle.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🛤️ One lane at a time</h4>
+      <p>One session, one project, one branch, one worktree. Mixing two projects in one session is the fastest way to an unreviewable diff.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>🔑 Secrets have one home</h4>
+      <p>Every credential lives in the gitignored <code>portal/backend/.env</code> (Secret Manager once deployed). Missing a key? <b>Ask Greg or Scott.</b> Never invent one, never hardcode it, never paste one into an issue, PR or chat.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>🔐 Auth is MFA — leave Firebase alone</h4>
+      <p>Firebase is on its way out. Build anything auth-related on the MFA path. If a change looks like it needs Firebase, stop and flag it.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>🩺 Compiling isn't testing</h4>
+      <p>A green build proves nothing about whether a nurse can use the screen. Click every new path yourself before opening the PR.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>🤖 AI on patient data</h4>
+      <p>PHI-touching AI runs server-side only, through the provider we hold a BAA with, sending the minimum necessary. A clinician confirms every write, and the decision gets logged.</p>
+    </div>
+    <div class="rule" style="--c:var(--purple)">
+      <h4>📈 Certification updates itself</h4>
+      <p>Each project owns a slice of the ONC/MIPS criteria it advances, and the bars fill from the card's status label — <b>alpha 50% · beta 75% · gamma 100%</b>. Label the card correctly and the number takes care of itself. Never hand-edit a percentage.</p>
+    </div>
+    <div class="rule" style="--c:var(--purple)">
+      <h4>⏱️ The two-week rhythm</h4>
+      <p>Every other Tuesday, both promotions happen at once: this cycle's alphas become the new beta, and the previous beta becomes gamma.</p>
+    </div>
+    <div class="rule" style="--c:var(--slate)">
+      <h4>⚡ The fast-track exception</h4>
+      <p>Genuinely low-risk changes — copy tweaks, small UI, config — can go straight to gamma at Scott's or Greg's call. <b>Never</b> for schema, auth, patient data, or clinical logic.</p>
+    </div>
+    <div class="rule" style="--c:var(--slate)">
+      <h4>🗑️ Stopping is allowed</h4>
+      <p>Projects that turn out to be wrong get marked <b>Abandoned</b> with the reason written down. A documented dead end is worth more than a half-built feature nobody trusts.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="btns">
+      <a class="btn" href="index.html">← Back to the Project Tracker</a>
+      <a class="btn ghost" href="https://github.com/togohealth-dev/emr-beta/issues/198" target="_blank">🛠️ Set up your machine</a>
+    </div>
+    <p>Stuck anywhere on this trail? Ask Greg or Scott — that's always faster than guessing.<br>
+    <span style="font-size:12px;opacity:.75">TogoHealth · named for Togo, the sled dog who ran the hardest leg and got none of the credit.</span></p>
+  </div>
+</footer>
+
+<script>
+  // scroll progress + trail fill + reveal
+  var steps = [].slice.call(document.querySelectorAll('.step,.phase'));
+  var trail = document.getElementById('trail'), fill = document.getElementById('fill'), bar = document.getElementById('bar');
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold:.14, rootMargin:'0px 0px -8% 0px' });
+  steps.forEach(function(s){ io.observe(s); });
+
+  function onScroll(){
+    var d = document.documentElement;
+    var p = d.scrollTop / Math.max(1, d.scrollHeight - d.clientHeight);
+    bar.style.width = (p*100).toFixed(2) + '%';
+    var r = trail.getBoundingClientRect();
+    var seen = Math.min(Math.max(window.innerHeight*0.6 - r.top, 0), trail.offsetHeight);
+    fill.style.height = seen + 'px';
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll);
+  onScroll();
+</script>
+</body>
+</html>
