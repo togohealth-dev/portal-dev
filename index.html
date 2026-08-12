@@ -2982,8 +2982,13 @@ function copyProjectPrompt(number) {
 }
 
 function copyFuturePrompt(number) {
-  const p = futureIdeas.find(p => p.number === number) || facilityPortal.find(p => p.number === number) || (typeof integrations!=='undefined' ? integrations.find(p => p.number === number) : null);
-  if (!p) return;
+  const p = futureIdeas.find(p => p.number === number)
+    || facilityPortal.find(p => p.number === number)
+    || (typeof integrations !== 'undefined' ? integrations.find(p => p.number === number) : null)
+    || (typeof woundCare   !== 'undefined' ? woundCare.find(p => p.number === number)   : null);
+  // Every section that renders promptBtn() must be in the lookup above, or its
+  // buttons fail silently. Say so instead of returning quietly.
+  if (!p) { toast(`Can't build a prompt for #${number} — project not loaded`, true); return; }
   const body = p.body || '';
   // Extract the claude prompt code block from the issue body
   const m = body.match(/### Claude prompt\s*\n```[^\n]*\n([\s\S]*?)```/);
