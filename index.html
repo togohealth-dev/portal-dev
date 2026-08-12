@@ -1509,15 +1509,21 @@ async function loadWoundCare() {
       const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
       const estMatch = body.match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
       const trackMatch = body.match(/\*\*Track:\*\*\s*([^\n*]+)/i);
+      // Optional "**Rank:** N" — the explicitly stated build order for this track.
+      // Ranked builds sort above everything else and carry a ★N badge.
+      const rankMatch = body.match(/\*\*Rank:\*\*\s*(\d+)/i);
       return {
         number: issue.number, title: issue.title, body, url: issue.html_url, labels, priority,
         track: (trackMatch ? trackMatch[1] : 'Other').trim(),
+        rank: rankMatch ? +rankMatch[1] : null,
         oncRefs: extractOncRefs(issue.title + ' ' + body),
         assignees: (issue.assignees||[]).map(a=>a.login),
         codingEst: estMatch ? estMatch[1] + 'h' : null,
         commentCount: issue.comments,
       };
-    }).sort((a,b) => b.priority - a.priority || a.number - b.number);
+    }).sort((a,b) => (a.rank ?? 99) - (b.rank ?? 99)
+                  || b.priority - a.priority
+                  || a.number - b.number);
     renderWoundCare();
     loading.style.display = 'none';
     content.style.display = 'block';
@@ -1529,11 +1535,19 @@ async function loadWoundCare() {
 // Row blurb: first real sentence of the body — skip the "## " headline and the
 // **Track:** / **Coding estimate:** / **Depends on:** metadata lines above it.
 function wcBlurb(body) {
-  const line = (body||'').split('\n').find(l =>
-    l.trim()
-    && !l.startsWith('#')
-    && !/^\*\*(Track|Coding estimate|Depends on|Reported by)/i.test(l.trim())
-  ) || '';
+  const META = /^\*\*(Track|Rank|Coding estimate|Depends on|Reported by|Scope note)/i;
+  let skippingParagraph = false, line = '';
+  for (const raw of (body||'').split('\n')) {
+    const l = raw.trim();
+    if (!l) { skippingParagraph = false; continue; }   // blank line ends a paragraph
+    if (l.startsWith('#')) continue;
+    // A metadata line swallows the rest of its paragraph, so a wrapped
+    // "**Scope note:** …" doesn't leak its second line into the blurb.
+    if (META.test(l)) { skippingParagraph = true; continue; }
+    if (skippingParagraph) continue;
+    line = l;
+    break;
+  }
   return line.replace(/^[*>\s]+/, '').replace(/\*\*/g, '').slice(0, 140);
 }
 
@@ -1561,7 +1575,7 @@ function renderWoundCare() {
     rows += groups[k].map(p => `<tr id="proj-${p.number}">
       <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${++n}</td>
       <td>
-        <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+        ${p.rank ? `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:1px 6px;margin-right:6px" title="Stated build order — ${p.rank === 1 ? 'most important build in this track' : 'rank ' + p.rank}">★${p.rank}</span>` : ''}<a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
         <div class="proj-desc">${esc(wcBlurb(p.body))}</div>
       </td>
       <td>${dotsHtml(p.priority)}</td>
