@@ -373,6 +373,7 @@
   <a onclick="jumpTo('fb')">Future Builds</a>
   <a onclick="jumpTo('int')">↳ Integrations</a>
   <a onclick="jumpTo('fp')">↳ Facility</a>
+  <a onclick="jumpTo('wc')">↳ WoundCare</a>
   <a onclick="jumpTo('fi')">↳ Other</a>
   <a onclick="jumpTo('onc')" title="Certification progress, weighted by each project's live stage">ONC<span id="onc-nav-pct"></span></a>
   <a onclick="jumpTo('done')"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
@@ -446,6 +447,21 @@
     <div class="sec-body">
       <div id="fp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
       <div id="fp-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── WOUNDCARE (nested under Future Builds) ── -->
+  <div class="section-block" id="sec-wc">
+    <div class="section-hdr">
+      <h2>↳ WoundCare <span style="font-size:12px;font-weight:500;color:var(--text-muted)">— wound documentation &amp; end-of-day summary</span></h2>
+      <p>Wound-provider documentation track — structured wound measurements and their progression in every note, plus the printed end-of-day summary handed to the facility. Sourced from wound-provider documentation-time feedback. Priority dots are ranking within this track, not ONC scope. Claim any to move it into Current Projects.</p>
+      <button class="sec-toggle" onclick="toggleSection('wc')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="wc-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="wc-content" style="display:none"></div>
     </div>
   </div>
 
@@ -1364,13 +1380,13 @@ async function refresh(loaders, label) {
 
 // Full reload (initial load, manual Refresh button).
 async function loadAll() {
-  await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadIntegrations, loadReferenceProjects]);
+  await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadWoundCare, loadIntegrations, loadReferenceProjects]);
 }
 
 // Lighter reloads after a row action — skip sections that action can't change,
 // so feedback is far faster than a full 5-section reload.
 async function reloadProjects() { // project-row actions (current/completed/future/facility/reference)
-  await refresh([loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadIntegrations, loadReferenceProjects], 'Saving…');
+  await refresh([loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadWoundCare, loadIntegrations, loadReferenceProjects], 'Saving…');
 }
 async function reloadOnc() {       // ONC criterion actions only
   await refresh([load], 'Saving…');
@@ -1469,6 +1485,112 @@ async function loadFutureIdeas() {
   } catch(e) {
     document.getElementById('fi-loading').textContent = `Error: ${e.message}`;
   }
+}
+
+// ── WoundCare ─────────────────────────────────────────────────────────────────
+// Wound-provider documentation track. Same issue-as-source-of-truth model as the
+// other Future Builds groups (label `woundcare` on togohealth-dev/emr-beta), but
+// rows are grouped by the `**Track:**` line in the issue body rather than by vendor.
+let woundCare = [];
+
+const WC_TRACK_ORDER = ['Wound documentation', 'End-of-day summary', 'Documentation speed'];
+
+async function loadWoundCare() {
+  const loading = document.getElementById('wc-loading');
+  const content = document.getElementById('wc-content');
+  if (!loading || !content) return;
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  try {
+    const raw = await ghFetch(`/repos/${REPO}/issues?labels=woundcare&state=open&per_page=100`);
+    woundCare = raw.map(issue => {
+      const labels = issue.labels.map(l => l.name);
+      const body = issue.body || '';
+      const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
+      const estMatch = body.match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
+      const trackMatch = body.match(/\*\*Track:\*\*\s*([^\n*]+)/i);
+      return {
+        number: issue.number, title: issue.title, body, url: issue.html_url, labels, priority,
+        track: (trackMatch ? trackMatch[1] : 'Other').trim(),
+        oncRefs: extractOncRefs(issue.title + ' ' + body),
+        assignees: (issue.assignees||[]).map(a=>a.login),
+        codingEst: estMatch ? estMatch[1] + 'h' : null,
+        commentCount: issue.comments,
+      };
+    }).sort((a,b) => b.priority - a.priority || a.number - b.number);
+    renderWoundCare();
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  } catch(e) {
+    loading.textContent = `Error: ${e.message}`;
+  }
+}
+
+// Row blurb: first real sentence of the body — skip the "## " headline and the
+// **Track:** / **Coding estimate:** / **Depends on:** metadata lines above it.
+function wcBlurb(body) {
+  const line = (body||'').split('\n').find(l =>
+    l.trim()
+    && !l.startsWith('#')
+    && !/^\*\*(Track|Coding estimate|Depends on|Reported by)/i.test(l.trim())
+  ) || '';
+  return line.replace(/^[*>\s]+/, '').replace(/\*\*/g, '').slice(0, 140);
+}
+
+function renderWoundCare() {
+  const el = document.getElementById('wc-content');
+  if (!el) return;
+  if (!woundCare.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No WoundCare builds yet.</div>`;
+    return;
+  }
+  const totalH = woundCare.reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
+
+  // Group by track, ordered by WC_TRACK_ORDER first, then any unrecognized track.
+  const groups = {};
+  woundCare.forEach(p => { (groups[p.track] = groups[p.track] || []).push(p); });
+  const order = Object.keys(groups).sort((a,b) => {
+    const ia = WC_TRACK_ORDER.indexOf(a), ib = WC_TRACK_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+
+  let n = 0, rows = '';
+  order.forEach(k => {
+    const gH = groups[k].reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
+    rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length} · ~${gH}h)</span></td></tr>`;
+    rows += groups[k].map(p => `<tr id="proj-${p.number}">
+      <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${++n}</td>
+      <td>
+        <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+        <div class="proj-desc">${esc(wcBlurb(p.body))}</div>
+      </td>
+      <td>${dotsHtml(p.priority)}</td>
+      <td>${assigneeHtml(p.assignees)}</td>
+      <td style="font-size:12px;color:var(--text-muted);font-weight:600">${p.codingEst || '<span style="color:var(--border)">—</span>'}</td>
+      <td>${notesHtml(p)}</td>
+      <td><div class="actions">
+        ${promptBtn(p.number, true)}
+        <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this build and move it to Current Projects">Claim</button>
+      </div></td>
+    </tr>`).join('');
+  });
+
+  const jump = order.map(k =>
+    `<button class="btn btn-outline btn-sm" onclick="document.getElementById('wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(k)} <span style="color:var(--text-muted)">${groups[k].length}</span></button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 8px">${woundCare.length} builds · ~${totalH}h total · jump to a track:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${jump}</div>
+    <div class="proj-table-wrap"><table><thead><tr>
+      <th style="width:28px">#</th>
+      <th>Build</th>
+      <th style="width:72px">Priority</th>
+      <th style="width:96px">Assignee</th>
+      <th style="width:48px">Est</th>
+      <th style="width:58px">Notes</th>
+      <th style="width:190px">Actions</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── Facility Portal Buildout ──────────────────────────────────────────────────
@@ -2637,6 +2759,7 @@ async function claimIdea(number) {
     await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects.`);
     await removeLabel(number, 'future-idea');
     await removeLabel(number, 'facility-portal');
+    await removeLabel(number, 'woundcare');
     await removeLabel(number, 'integrations');
     await removeLabel(number, 'integration:not-yet');
     await addLabel(number, 'current-project');
