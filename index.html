@@ -41,10 +41,20 @@
   .section-nav a { font-size: 13px; color: var(--primary); cursor: pointer; padding: 4px 11px; border-radius: 6px; text-decoration: none; font-weight: 500; }
   .section-nav a:hover { background: #eef2ff; }
   .section-block { scroll-margin-top: 108px; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .logo { font-weight: 700; font-size: 16px; color: var(--primary); }
+  .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .header-left img { flex-shrink: 0; }   /* never let the logo get squeezed to nothing */
+  .logo { font-weight: 700; font-size: 16px; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .logo span { color: var(--text-muted); font-weight: 400; }
-  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  /* Narrow screens: shed the subtitle, then tighten the gutters, so the 56px header keeps
+     everything on one line and .section-nav (sticky at top:56px) stays aligned to it. */
+  @media(max-width:900px){ .logo span { display: none; } }
+  @media(max-width:700px){ .lbl-wide { display: none; } }   /* trim long button labels, keep every control */
+  @media(max-width:700px){
+    header { padding: 0 12px; }
+    .section-nav { padding: 7px 12px; }
+    main { padding: 20px 12px; }
+  }
 
   /* ── Auth overlay ── */
   #auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -126,7 +136,12 @@
   .wave-group.collapsed .wave-table-wrap { display: none; }
 
   /* ── Table ── */
-  .wave-table-wrap { border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
+  .wave-table-wrap { border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px;
+    /* overflow-x:auto (not hidden) so a table too wide for the viewport SCROLLS instead of
+       having its right-hand columns clipped away unreachably. overflow-y stays hidden so the
+       Progress dropdown behaves exactly as before. */
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  .wave-table-wrap table { min-width: 960px; }
   table { width: 100%; border-collapse: collapse; background: var(--surface); }
   th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 10px; background: #fafbfc; border-bottom: 1px solid var(--border); }
   td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -254,8 +269,9 @@
   .section-divider { border: none; border-top: 2px solid var(--border); margin: 28px 0; }
 
   /* ── Project table (Current Projects + Future Ideas) ── */
-  .proj-table-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
-  .proj-table-wrap table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  .proj-table-wrap { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  .proj-table-wrap table { width: 100%; min-width: 960px; border-collapse: collapse; background: var(--surface); }
   .proj-table-wrap th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid var(--border); }
   .proj-table-wrap td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
   .proj-table-wrap tr:last-child td { border-bottom: none; }
@@ -356,9 +372,9 @@
     <div class="logo">TogoHealth <span>· Portal Development Tracker</span></div>
   </div>
   <div class="header-right">
-    <a href="https://togo-pcc-research.togohealth.workers.dev" target="_blank" class="btn btn-outline" title="PCC Marketplace research — passphrase required">🔒 PCC Research ↗</a>
+    <a href="https://togo-pcc-research.togohealth.workers.dev" target="_blank" class="btn btn-outline" title="PCC Marketplace research — passphrase required">🔒 PCC<span class="lbl-wide"> Research</span> ↗</a>
     <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
-    <button class="btn btn-outline" onclick="loadAll()">↻ Refresh</button>
+    <button class="btn btn-outline" onclick="loadAll()" title="Refresh">↻<span class="lbl-wide"> Refresh</span></button>
     <button class="btn btn-danger" onclick="clearToken()">Sign out</button>
   </div>
 </header>
