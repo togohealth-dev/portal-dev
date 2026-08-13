@@ -90,7 +90,7 @@
   .btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
   /* ── Main ── */
-  main { max-width: 1280px; margin: 0 auto; padding: 20px 24px; }
+  main { width: 100%; margin: 0 auto; padding: 20px 24px; }
   .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
   .page-header h1 { font-size: 22px; font-weight: 700; }
   .page-header p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
@@ -141,7 +141,6 @@
        having its right-hand columns clipped away unreachably. overflow-y stays hidden so the
        Progress dropdown behaves exactly as before. */
     overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-  .wave-table-wrap table { min-width: 960px; }
   table { width: 100%; border-collapse: collapse; background: var(--surface); }
   th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 10px; background: #fafbfc; border-bottom: 1px solid var(--border); }
   td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -271,7 +270,7 @@
   /* ── Project table (Current Projects + Future Ideas) ── */
   .proj-table-wrap { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
     overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-  .proj-table-wrap table { width: 100%; min-width: 960px; border-collapse: collapse; background: var(--surface); }
+  .proj-table-wrap table { width: 100%; border-collapse: collapse; background: var(--surface); }
   .proj-table-wrap th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid var(--border); }
   .proj-table-wrap td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
   .proj-table-wrap tr:last-child td { border-bottom: none; }
@@ -774,7 +773,7 @@ const CTX = {
   "(a)(4)":  { builtPct:0,  existing:"No CDS for drug-drug or drug-allergy interactions. Requires (a)(8) allergy with RxNorm + (a)(1)/(a)(7) meds with RxNorm first.", upstream:["(a)(8) allergy list with RxNorm","(a)(1)/(a)(7) medications with RxNorm codes"], enables:[], scaffold:"NLM RxNav interaction API. Drug-allergy check: compare new rxnorm_code against patient_allergy.rxnorm_code. Alert at order entry. Provider must log decision + reason.", hours:10 },
   "(g)(3)":  { builtPct:0,  existing:"No User-Centered Design process documentation. No summative usability testing report. No problem severity ratings. Pure documentation — no code required. ~40h of documentation work.", upstream:[], enables:[], scaffold:"(1) UCD Process doc. (2) Summative usability testing report (actual sessions with clinical staff required). (3) Problem log + how addressed. ONC guidance: healthit.gov/test-method/safety-enhanced-design", hours:40 },
   "(d)(10)": { builtPct:35, existing:"audit.record_version captures data changes (INSERT/UPDATE/DELETE on 5 tables). Missing: login/logout/failed-login events — not captured anywhere. ONC (d)(10) requires detecting these security-relevant events explicitly.", upstream:["(d)(2) audit infrastructure"], enables:["(d)(3) security audit report includes auth events"], scaffold:"Add auth_events table: (id, professional_id, event_type, ip_address, user_agent, ts). Log in AuthUser extractor or post-auth middleware. Include in (d)(3) filterable report.", hours:6 },
-  "(b)(2)":  { builtPct:0,  existing:"builtPct is the June-2026 audit: no C-CDA import. NOTE (2026-08-13): a working MEDICATION reconciliation workflow now exists and ships as project weight, not baseline — the AI Med Rec panel (#337, beta) compares an incoming list against the chart side by side and the provider chooses what to incorporate, with a durable evidence log (#442) written server-side in one transaction (#448). Still missing for the criterion: C-CDA ingest, and the allergy and problem lists.", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"C-CDA parser (XML → Rust types). Reconciliation UI: side-by-side comparison of incoming vs existing meds/allergies/problems. Provider selects which to incorporate.", hours:16 },
+  "(b)(2)":  { builtPct:0,  existing:"No C-CDA import or reconciliation workflow. Cannot be built until (b)(1) C-CDA generation exists.", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"C-CDA parser (XML → Rust types). Reconciliation UI: side-by-side comparison of incoming vs existing meds/allergies/problems. Provider selects which to incorporate.", hours:16 },
   "(h)(1)":  { builtPct:0,  existing:"No Direct protocol implementation. No Direct address provisioning. Downstream of (b)(1). Requires vendor selection (Surescripts, Kno2, CommonWell).", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"Direct address provisioning via vendor. Send C-CDA via Direct SMTP. Receive incoming Direct messages. Vendor selection is the first step.", hours:20 },
 };
 
@@ -826,8 +825,8 @@ const CONTRIB = {
   229: { "(a)(1)":5 },
   234: { "(b)(2)":2 },
   259: { "(a)(9)":10 },
-  282: { "(a)(1)":8, "(a)(4)":30, "(a)(7)":17, "(a)(8)":10, "(a)(9)":12, "(b)(3)":22 },
-  284: { "(a)(7)":20, "(b)(2)":12 },
+  282: { "(a)(1)":8, "(a)(4)":30, "(a)(7)":18, "(a)(8)":10, "(a)(9)":12, "(b)(3)":22 },
+  284: { "(a)(7)":22, "(b)(2)":18 },
   291: { "(a)(2)":2 },
   293: { "(a)(2)":8 },
   294: { "(a)(2)":40 },
@@ -835,13 +834,13 @@ const CONTRIB = {
   296: { "(a)(3)":5 },
   297: { "(a)(2)":2 },
   304: { "(d)(13)":10 },
-  332: { "(a)(1)":8, "(a)(4)":22, "(a)(7)":14, "(a)(8)":15, "(a)(9)":15, "(b)(3)":12 },
+  332: { "(a)(1)":8, "(a)(4)":22, "(a)(7)":15, "(a)(8)":15, "(a)(9)":15, "(b)(3)":12 },
   344: { "(a)(1)":3, "(a)(4)":25, "(a)(8)":5, "(a)(9)":12 },
   346: { "(a)(9)":10 },
-  347: { "(a)(6)":3, "(b)(2)":8 },
+  347: { "(a)(6)":3, "(b)(2)":12 },
   356: { "(g)(10)":95 },
   357: { "(b)(1)":70 },
-  358: { "(a)(6)":2, "(b)(2)":43 },
+  358: { "(a)(6)":2, "(b)(2)":63 },
   359: { "(e)(1)":90 },
   360: { "(e)(2)":90 },
   361: { "(c)(1)":85 },
@@ -858,35 +857,12 @@ const CONTRIB = {
   372: { "(g)(5)":40 },
   373: { "(a)(8)":45 },
   374: { "(b)(3)":33 },
-  375: { "(d)(2)":15 },
+  375: { "(d)(2)":20 },
   376: { "(d)(5)":20, "(d)(7)":20 },
   377: { "(d)(12)":12, "(d)(13)":5 },
   378: { "(a)(4)":5, "(a)(9)":16 },
-  379: { "(a)(1)":4, "(a)(7)":14 },
+  379: { "(a)(1)":4, "(a)(7)":15 },
   380: { "(a)(3)":13 },
-  // ── AI Med Rec (#337 family) — added 2026-08-13 ────────────────────────────
-  // These shipped and were contributing NOTHING: the map was generated before
-  // they existed, so (b)(2) read 4.5% while a beta-deployed medication
-  // reconciliation panel was in daily use. Points were taken from the
-  // allocated-but-UNBUILT owners of the same criteria (#358/#284/#347 for
-  // (b)(2), #375 for (d)(2), #282/#332/#379 for (a)(7)) — every one of those is
-  // pre-alpha with stage frac 0, so no displayed number was reduced to pay for
-  // this. Each criterion's total is unchanged.
-  //
-  // Sized as the MEDICATION slice only: (b)(2) also covers allergies and
-  // problems, and there is still no C-CDA ingest, so the panel is deliberately
-  // not credited with the whole criterion.
-  //
-  // (a)(9) is deliberately NOT claimed for #352/#353/#354. Those safety checks
-  // interrupt and require acknowledgment, but the acknowledgment lives in React
-  // state and is never persisted — (a)(9) requires the provider decision to be
-  // LOGGED. Crediting it would report a gap as closed. See the (a)(9) note filed
-  // against #353.
-  337: { "(b)(2)":15, "(a)(7)":5 },   // the reconciliation panel itself
-  351: { "(d)(2)":5 },                // audit tracking on the medication table
-  442: { "(b)(2)":6 },                // (b)(2) evidence: durable reconciliation log
-  448: { "(b)(2)":5 },                // server-authored apply + log, one transaction
-  471: { "(b)(2)":4 },                // match correctness — a missed pair is a failed reconciliation
   388: { "(b)(3)":10 },
 };
 
