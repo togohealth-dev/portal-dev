@@ -393,6 +393,8 @@
   <a onclick="jumpTo('onc')" title="Certification progress, weighted by each project's live stage">ONC<span id="onc-nav-pct"></span></a>
   <a onclick="jumpTo('done')"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
   <a onclick="jumpTo('ab')">Abandoned</a>
+  <span style="color:var(--border)">·</span>
+  <a href="contributors.html" title="Coding hours per person, measured from the contributed code">⏱️ Contributor Hours</a>
 </nav>
 
 <main>
@@ -1216,7 +1218,8 @@ function jumpToProject(num){
 }
 
 const SCOTT = 'msdrigg';
-const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg' };
+const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg',
+               'edtogohealth':'Ed', 'hannah826':'Hannah', 'olivia328':'Olivia', 'Sam54539':'Sam', 'BronsonWilks':'Bronson', 'eellsworth1234':'Eric' };
 const teamName = login => TEAM[login] || login;
 
 // ── Shared table helpers ──────────────────────────────────────────────────────
