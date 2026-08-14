@@ -1614,7 +1614,7 @@ function renderWoundCare() {
   let n = 0, rows = '';
   order.forEach(k => {
     const gH = groups[k].reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
-    rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length} · ~${gH}h)</span></td></tr>`;
+    rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · <span title="${Math.round(gH*10)/10}h × $${HOURLY_RATE}/hr">${fmtUsd(gH*HOURLY_RATE)}</span>`:''})</span></td></tr>`;
     rows += groups[k].map(p => `<tr id="proj-${p.number}">
       <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${++n}</td>
       <td>
@@ -2087,7 +2087,10 @@ function renderIntegrations() {
   // Body: per-vendor header rows (anchors) + that vendor's rows.
   let n = 0, bodyRows = '';
   order.forEach(k => {
-    bodyRows += `<tr class="int-vgroup" id="${intVendorSlug(k)}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length})</span></td></tr>`;
+    // Pooled vendor cost: every project under this vendor, summed, shown next to the count.
+    const gH = groups[k].reduce((a,p)=> a + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
+    const gCost = gH ? ` · <span title="${Math.round(gH*10)/10}h × $${HOURLY_RATE}/hr — pooled build cost for all ${groups[k].length} ${esc(k)} projects">${fmtUsd(gH*HOURLY_RATE)}</span>` : '';
+    bodyRows += `<tr class="int-vgroup" id="${intVendorSlug(k)}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gCost})</span></td></tr>`;
     bodyRows += groups[k].map(p => integrationRow(p, ++n, false)).join('');
   });
   if (!bodyRows) bodyRows = `<tr><td colspan="7" style="color:var(--text-muted);font-size:13px;padding:10px">None planned yet.</td></tr>`;
