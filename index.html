@@ -1378,12 +1378,36 @@ function clearToken() { localStorage.removeItem('gh_pat'); location.reload(); }
 
 // ── API ──────────────────────────────────────────────────────────────────────
 async function ghFetch(path, opts={}) {
-  const res = await fetch(`${API}${path}`, {
-    ...opts,
-    headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(opts.headers||{}) }
-  });
-  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message||`GitHub ${res.status}`); }
-  return res.status===204 ? null : res.json();
+  const method = (opts.method || 'GET').toUpperCase();
+  // GitHub throws transient 502/503s. Retry READS only — retrying a POST/PATCH
+  // would double-post a comment or re-apply a label.
+  const attempts = method === 'GET' ? 3 : 1;
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    const res = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(opts.headers||{}) }
+    });
+    if (res.ok) return res.status===204 ? null : res.json();
+    const e = await res.json().catch(()=>({}));
+    last = new Error(e.message || `GitHub ${res.status}`);
+    if (res.status < 500 || i === attempts - 1) throw last;
+    await new Promise(r => setTimeout(r, 400 * (i + 1)));
+  }
+  throw last;
+}
+
+// Every action button interpolates `currentUser.login`, but currentUser is only
+// populated inside the initial load. If that single /user call failed (5xx, rate
+// limit, blip) it stays null, the page still shows content, and every button dies
+// with "Cannot read properties of null (reading 'login')" — which reads to the
+// user as "the button does nothing". Establish the account on demand instead.
+async function ensureUser() {
+  if (currentUser && currentUser.login) return currentUser;
+  try { currentUser = await ghFetch('/user'); }
+  catch(e) { throw new Error(`Could not confirm your GitHub account (${e.message}). Press \u21bb Refresh, or sign out and back in.`); }
+  if (!currentUser || !currentUser.login) throw new Error('Not signed in to GitHub \u2014 press \u21bb Refresh, or sign out and back in.');
+  return currentUser;
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
@@ -2854,7 +2878,7 @@ async function claimIdea(number) {
 }
 
 async function withProjectLoading(number, fn) {
-  try { await fn(); await reloadProjects(); }
+  try { await ensureUser(); await fn(); await reloadProjects(); }
   catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
 }
 
@@ -3402,7 +3426,7 @@ function buildActions(i) {
 async function withLoading(number, fn) {
   const btns = document.querySelectorAll(`#row-${number} button`);
   btns.forEach(b=>b.disabled=true);
-  try { await fn(); await reloadOnc(); }
+  try { await ensureUser(); await fn(); await reloadOnc(); }
   catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); btns.forEach(b=>b.disabled=false); }
 }
 
