@@ -1233,19 +1233,12 @@ const teamName = login => TEAM[login] || login;
 // projects have it MEASURED from the PR diff; open ones are a rubric first pass.
 function parseEst(body){ const m=(body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i); return m ? m[1]+'h' : null; }
 
-// HOURS remain what we log on the issue (`Coding estimate: <N>h`) — they are the
-// source of truth and are still measured from the PR diff for completed work.
-// DOLLARS are purely the display unit: hours × the blended rate below. Change the
-// rate here and every column, total and tooltip in the tracker follows.
-const HOURLY_RATE = 25;
-function fmtUsd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
-function estCost(e){ const h = e ? parseFloat(e) : NaN; return isNaN(h) ? null : h * HOURLY_RATE; }
-function hoursTip(h){ return `${Math.round(h*10)/10}h × $${HOURLY_RATE}/hr`; }
-function estHtml(e){ const c = estCost(e);
-  return c === null ? `<span style="color:var(--border)">—</span>`
-    : `<span style="font-size:12px;color:var(--text-muted);font-weight:600" title="${hoursTip(parseFloat(e))}">${fmtUsd(c)}</span>`; }
+// Hours are what we log on the issue (`Coding estimate: <N>h`) and what we show —
+// measured from the PR diff for completed work, rubric-estimated for open work.
+function estHtml(e){ return e ? `<span style="font-size:12px;color:var(--text-muted);font-weight:600">${e}</span>`
+                               : `<span style="color:var(--border)">—</span>`; }
 function estTotal(list){ const t=list.reduce((s,p)=>s+(p.codingEst?parseFloat(p.codingEst):0),0);
-  return t ? `<span style="font-size:12px;font-weight:700;color:var(--text-muted)" title="${hoursTip(t)}">${fmtUsd(t*HOURLY_RATE)} total</span>` : ''; }
+  return t ? `<span style="font-size:12px;font-weight:700;color:var(--text-muted)">${Math.round(t*10)/10}h total</span>` : ''; }
 
 const TABLE_HEAD = `<thead><tr>
   <th style="width:28px">#</th>
@@ -1253,7 +1246,7 @@ const TABLE_HEAD = `<thead><tr>
   <th style="width:150px">Status</th>
   <th style="width:72px">Priority</th>
   <th style="width:72px">Assigned</th>
-  <th style="width:66px">Est $</th>
+  <th style="width:48px">Est</th>
   <th style="width:62px">PR</th>
   <th style="width:68px">ONC/MIPS</th>
   <th style="width:58px">Notes</th>
@@ -1266,7 +1259,7 @@ const FUTURE_TABLE_HEAD = `<thead><tr>
   <th style="width:150px">Status</th>
   <th style="width:72px">Priority</th>
   <th style="width:72px">Assigned</th>
-  <th style="width:66px">Est $</th>
+  <th style="width:48px">Est</th>
   <th style="width:68px">ONC/MIPS</th>
   <th style="width:58px">Notes</th>
   <th style="width:220px">Actions</th>
@@ -1614,7 +1607,7 @@ function renderWoundCare() {
   let n = 0, rows = '';
   order.forEach(k => {
     const gH = groups[k].reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
-    rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · <span title="${Math.round(gH*10)/10}h × $${HOURLY_RATE}/hr">${fmtUsd(gH*HOURLY_RATE)}</span>`:''})</span></td></tr>`;
+    rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · ~${Math.round(gH*10)/10}h`:''})</span></td></tr>`;
     rows += groups[k].map(p => `<tr id="proj-${p.number}">
       <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${++n}</td>
       <td>
@@ -1637,14 +1630,14 @@ function renderWoundCare() {
   ).join('');
 
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 8px">${woundCare.length} builds · <span title="${Math.round(totalH*10)/10}h × $${HOURLY_RATE}/hr">~${fmtUsd(totalH*HOURLY_RATE)} total</span> · jump to a track:</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 8px">${woundCare.length} builds · ~${Math.round(totalH*10)/10}h total · jump to a track:</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${jump}</div>
     <div class="proj-table-wrap"><table><thead><tr>
       <th style="width:28px">#</th>
       <th>Build</th>
       <th style="width:72px">Priority</th>
       <th style="width:96px">Assignee</th>
-      <th style="width:66px">Est $</th>
+      <th style="width:48px">Est</th>
       <th style="width:58px">Notes</th>
       <th style="width:190px">Actions</th>
     </tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1696,7 +1689,7 @@ function renderFacilityPortal() {
   const started = facilityPortal.filter(p=>p.pct>0).length;
   el.innerHTML = `
   <div style="font-size:12px;color:var(--text-muted);margin:2px 0 10px">
-    ${facilityPortal.length} builds · ${started} partially built · ${facilityPortal.length-started} not started · <span title="${Math.round(totalH*10)/10}h × $${HOURLY_RATE}/hr">~${fmtUsd(totalH*HOURLY_RATE)} remaining</span>
+    ${facilityPortal.length} builds · ${started} partially built · ${facilityPortal.length-started} not started · ~${Math.round(totalH*10)/10}h remaining
   </div>
   <div class="proj-table-wrap">
     <table><thead><tr>
@@ -1704,7 +1697,7 @@ function renderFacilityPortal() {
       <th>Build</th>
       <th style="width:110px">% Complete</th>
       <th style="width:72px">Priority</th>
-      <th style="width:66px">Est $</th>
+      <th style="width:48px">Est</th>
       <th style="width:68px">ONC/MIPS</th>
       <th style="width:58px">Notes</th>
       <th style="width:200px">Actions</th>
@@ -1858,7 +1851,7 @@ function renderCurrentProjects() {
   const head = `<thead><tr>
     <th style="width:28px">#</th><th>Build</th><th style="width:150px">Status</th>
     <th style="width:72px">Priority</th><th style="width:100px">Assigned</th>
-    <th style="width:66px">Est $</th>
+    <th style="width:48px">Est</th>
     <th style="width:62px">PR</th><th style="width:68px">ONC/MIPS</th>
     <th style="width:58px">Notes</th><th style="width:240px">Actions</th>
   </tr></thead>`;
@@ -2070,7 +2063,7 @@ function renderIntegrations() {
   if (!integrations.length) { el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No integrations yet.</div>`; return; }
   const active = integrations.filter(p => !p.notYet);
   const notYet = integrations.filter(p => p.notYet);
-  const head = `<thead><tr><th style="width:28px">#</th><th>Integration</th><th style="width:72px">Priority</th><th style="width:66px">Est $</th><th style="width:68px">ONC/MIPS</th><th style="width:58px">Notes</th><th style="width:190px">Actions</th></tr></thead>`;
+  const head = `<thead><tr><th style="width:28px">#</th><th>Integration</th><th style="width:72px">Priority</th><th style="width:48px">Est</th><th style="width:68px">ONC/MIPS</th><th style="width:58px">Notes</th><th style="width:190px">Actions</th></tr></thead>`;
 
   // Group active projects by vendor; order groups by importance (DrFirst→PCC→cHIE→…) then first #.
   const groups = {};
@@ -2089,7 +2082,7 @@ function renderIntegrations() {
   order.forEach(k => {
     // Pooled vendor cost: every project under this vendor, summed, shown next to the count.
     const gH = groups[k].reduce((a,p)=> a + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
-    const gCost = gH ? ` · <span title="${Math.round(gH*10)/10}h × $${HOURLY_RATE}/hr — pooled build cost for all ${groups[k].length} ${esc(k)} projects">${fmtUsd(gH*HOURLY_RATE)}</span>` : '';
+    const gCost = gH ? ` · <span title="Pooled build estimate for all ${groups[k].length} ${esc(k)} projects">~${Math.round(gH*10)/10}h</span>` : '';
     bodyRows += `<tr class="int-vgroup" id="${intVendorSlug(k)}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gCost})</span></td></tr>`;
     bodyRows += groups[k].map(p => integrationRow(p, ++n, false)).join('');
   });
@@ -2169,7 +2162,7 @@ function renderReferenceProjects() {
   el.innerHTML = `
   <div class="proj-table-wrap">
     <table><thead><tr>
-      <th style="width:28px">#</th><th>Reference doc</th><th style="width:66px">Est $</th><th style="width:58px">Notes</th><th style="width:300px">Actions</th>
+      <th style="width:28px">#</th><th>Reference doc</th><th style="width:48px">Est</th><th style="width:58px">Notes</th><th style="width:300px">Actions</th>
     </tr></thead><tbody>
       ${referenceProjects.map((p, idx) => `<tr id="proj-${p.number}">
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
@@ -2237,7 +2230,7 @@ function renderCompleted() {
     <th style="width:150px">Status</th>
     <th style="width:72px">Priority</th>
     <th style="width:120px">Developer<br><select onchange="setCompletedDev(this.value)" style="margin-top:4px;font-size:11px;font-weight:500;padding:2px 4px;border:1px solid var(--border);border-radius:5px;max-width:108px;cursor:pointer">${opts}</select></th>
-    <th style="width:66px">Est $</th>
+    <th style="width:48px">Est</th>
     <th style="width:62px">PR</th>
     <th style="width:68px">ONC/MIPS</th>
     <th style="width:58px">Notes</th>
@@ -3307,7 +3300,7 @@ function renderContent() {
             <th style="width:110px">Progress</th>
             <th style="width:60px">Priority</th>
             <th style="width:60px">Type</th>
-            <th style="width:66px">Est $</th>
+            <th style="width:48px">Est</th>
             <th style="width:90px">Assigned</th>
             <th style="width:58px">Notes</th>
             <th style="width:280px">Actions</th>
@@ -3348,7 +3341,7 @@ function row(i, rank) {
     <td>${progressHtml}</td>
     <td><div class="priority p${i.priority}">${dots}</div></td>
     <td>${types}</td>
-    <td style="color:var(--text-muted);font-size:12px">${(()=>{const h=ctx?ctx.hours:i.bodyHrs; return h?`<span title="${hoursTip(h)}">${fmtUsd(h*HOURLY_RATE)}</span>`:'—';})()}</td>
+    <td style="color:var(--text-muted);font-size:12px">${ctx?ctx.hours+'h':i.bodyHrs?i.bodyHrs+'h':'—'}</td>
     <td>${assignee}</td>
     <td>${notesHtml(i)}</td>
     <td><div class="actions">${actions}</div></td>
