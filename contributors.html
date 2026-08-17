@@ -79,7 +79,7 @@
 
   <div class="card">
     <h2>Every completed project <span id="cnt" style="color:var(--primary)"></span></h2>
-    <div class="hint">Chronological. Hours are measured from the PR diff; rows marked &ldquo;floor&rdquo; are known under-reports &mdash; the linked PR does not contain all of the work.</div>
+    <div class="hint">Chronological. Hours come from the per-project model above. The <b>Diff</b> column is shown for context only &mdash; it no longer drives the estimate.</div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th style="width:96px">Date</th><th style="width:56px">#</th><th>Project</th>
         <th style="width:110px">Built by</th><th style="width:96px">Diff</th><th style="width:70px">Hours</th></tr></thead>
@@ -89,37 +89,39 @@
   <div class="card">
     <h2>Method &amp; honesty notes</h2>
     <p class="note">
-      <b>Hours formula:</b> 1.5h fixed (branch setup, localhost run-through, PR write-up, tracker move)
-      + (effective lines + 0.35&times;deletions) &divide; 55 lines/hr + 0.25h per changed file + 0.2h per commit beyond the second.<br><br>
-      <b>Effective lines discount repeated boilerplate.</b> An added line that exactly duplicates another added line in the same
-      PR counts at 25%, because writing the 25th identical form field is not the same work as the first. This matters a lot on
-      form-heavy diffs &mdash; #141 is 47% duplicate lines (863 raw &rarr; 528 effective, 18h &rarr; 12h) and #191 is 41%
-      (127 &rarr; 82, 5.5h &rarr; 4.5h).<br><br>
-      <b>Attribution is by PR author, and that is imperfect.</b> Commit authorship could not be used at all &mdash; 77 of 110
-      commits in this dataset are recorded as <code>invalid-email-address</code> (an unconfigured git identity), so they map to
-      no GitHub account.<br><br>
-      <b>&#9888; All code-sync PRs are excluded as upstream work.</b> <code>/pull-pr-code-only</code> imports a diff from
-      <code>togohealth-dev</code> and rewrites authorship to whoever ran it, so the importer is recorded as the author and the
-      real provenance is destroyed at import. <b>13 of the 22 measured PRs contain a code-sync commit</b> &mdash; #20, #50,
-      #51, #52, #54, #55, #56, #57, #58, #123, #136, #151, #174. Since git cannot say who wrote that code, all thirteen are
-      treated as Scott&rsquo;s and none appear here. That is the single biggest reason these totals are small: <b>only 9 of the
-      22 measured projects were authored directly in this repo.</b><br><br>
-      <b>Six projects are floors, not point estimates.</b> Where a linked PR contains only migrations or a very small diff
-      relative to the project&rsquo;s stated scope, the real build time is higher than shown.<br><br>
-      <b>The &beta; line is nearly empty on purpose &mdash; that is a real process gap, not missing data.</b> Stage dates come
-      from GitHub&rsquo;s own label history, which covers <b>alpha-ready on 14 of 16</b> projects and <b>&gamma; production on
-      16 of 16</b>, but <b>Beta-Version on only 3 of 16</b>. Projects are being marked &gamma; straight from alpha without ever
-      carrying <code>status:beta-version</code>, so there is no date to plot. The tracker now stamps every stage date into the
-      issue body as the button is pressed, so this fills in from here forward.<br><br>
-      <b>Scott is excluded from this summary.</b> He reviews and gatekeeps rather than being counted as a build contributor here,
-      so the six completed projects whose PRs he opened (#50, #52, #54, #55, #57, #58 &mdash; 55.5h) are not shown.<br><br>
-      <b>Nineteen completed projects are missing entirely</b> &mdash; the early batch (#59&ndash;#72 and others) has no linked PR,
-      so there is no code to measure. Of the 22 that do, 13 are code syncs, leaving the 9 shown here.
+      <b>Hours are estimated per project, not per line.</b> A project that touches only the frontend counts <b>2.5h</b>;
+      one that touches the Rust backend or a migration counts <b>11h</b>. That is the whole formula &mdash; there is no
+      lines-of-code term.<br><br>
+
+      <b>Why line count was dropped.</b> Earlier versions charged a flat 55 lines/hr. Measured against what people actually
+      remember spending, that model was badly wrong in both directions: Riley wrote <b>531 effective lines in one project</b>
+      that took about <b>3h</b> (177 lines/hr), while Morgan wrote <b>405 lines across four projects</b> that took about
+      <b>10h</b> (40 lines/hr). Same file types, same stack, a 4&times; difference in rate &mdash; so lines were measuring
+      typing, not effort. What actually predicts the number is <b>how many separate projects</b> you carried and <b>whether
+      each one reached the backend</b>: understanding the problem, wiring it in, running it on localhost, and the PR round
+      trip cost roughly the same whether the diff is 14 lines or 800.<br><br>
+
+      <b>Calibration and its limits.</b> The two rates are fitted to three anecdotal totals from Greg &mdash; Greg ~50h,
+      Morgan ~10h, Riley ~3h &mdash; and reproduce them to within 0.6h in aggregate (50.5 / 10.0 / 2.5). That is
+      <b>three data points against two parameters</b>, so the fit is close to saturated: treat the <i>shape</i> (per-project
+      cost, backend multiplier ~4&times;) as the finding, and the exact 2.5 and 11 as provisional. Every completed project
+      that gets its real hours recorded tightens them.<br><br>
+
+      <b>Attribution is by PR author.</b> Commit authorship was unusable &mdash; 77 of 110 commits are recorded as
+      <code>invalid-email-address</code>, mapping to no GitHub account. <code>/pull-pr-code-only</code> rewrites authorship to
+      whoever ran the import, so a synced PR credits the importer; #20 (MFA) was corrected to Scott on that basis and is the
+      one known case. The other synced PRs are treated as their author&rsquo;s own upstream work.<br><br>
+
+      <b>Scott is excluded from this summary.</b> He reviews and gatekeeps rather than being counted as a build contributor
+      here, so the projects whose PRs he opened do not appear.<br><br>
+
+      <b>Nineteen completed projects are missing entirely</b> &mdash; the early batch (#59&ndash;#72 and others) has no linked
+      PR, so there is nothing to attribute. This page covers the 15 that have one.
     </p>
   </div>
 </main>
 <script>
-const ROWS = [{"issue":134,"title":"Fix New Visit Glitch","hours":2.0,"date":"2026-07-02","authors":["gregbaird11"],"names":["Greg"],"prs":["137"],"add":9,"del":1,"dup_pct":0,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":191,"title":"New order summary button","hours":4.5,"date":"2026-07-08","authors":["morgan477"],"names":["Morgan"],"prs":["190"],"add":127,"del":65,"dup_pct":41,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":13,"date":"2026-07-07","authors":["gregbaird11"],"names":["Greg"],"prs":["150"],"add":527,"del":165,"dup_pct":30,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":3.5,"date":"2026-07-16","authors":["gregbaird11"],"names":["Greg"],"prs":["214"],"add":32,"del":14,"dup_pct":13,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":3.5,"date":"2026-07-14","authors":["gregbaird11"],"names":["Greg"],"prs":["206"],"add":19,"del":19,"dup_pct":11,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":4.0,"date":"2026-07-17","authors":["gregbaird11"],"names":["Greg"],"prs":["217"],"add":62,"del":4,"dup_pct":8,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":12,"date":"2026-07-15","authors":["riley870"],"names":["Riley"],"prs":["210"],"add":863,"del":29,"dup_pct":47,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.0,"date":"2026-07-25","authors":["gregbaird11"],"names":["Greg"],"prs":["242"],"add":14,"del":0,"dup_pct":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":3.0,"date":"2026-08-07","authors":["gregbaird11"],"names":["Greg"],"prs":["418"],"add":32,"del":6,"dup_pct":52,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}}];
+const ROWS = [{"issue":134,"title":"Fix New Visit Glitch","hours":2.5,"deep":false,"date":"2026-07-02","names":["Greg"],"prs":["137"],"add":9,"del":1,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":56,"title":"Payroll System: complete implementation","hours":11.0,"deep":true,"date":"2026-06-27","names":["Greg"],"prs":["126"],"add":7,"del":0,"stages":{"alpha_ready":"2026-06-24","beta":null,"gamma":"2026-07-02"}},{"issue":123,"title":"CPT Code Update","hours":2.5,"deep":false,"date":"2026-06-29","names":["Greg"],"prs":["132"],"add":37,"del":2,"stages":{"alpha_ready":"2026-06-26","beta":"2026-07-07","gamma":"2026-07-07"}},{"issue":191,"title":"New order summary button","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["190"],"add":127,"del":65,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":11.0,"deep":true,"date":"2026-07-07","names":["Greg"],"prs":["150"],"add":527,"del":165,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["181"],"add":36,"del":0,"stages":{"alpha_ready":"2026-06-23","beta":null,"gamma":"2026-07-08"}},{"issue":174,"title":"Pending Notes Banner","hours":2.5,"deep":false,"date":"2026-07-07","names":["Morgan"],"prs":["175"],"add":151,"del":0,"stages":{"alpha_ready":"2026-07-07","beta":null,"gamma":"2026-07-09"}},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":2.5,"deep":false,"date":"2026-07-08","names":["Greg"],"prs":["179"],"add":489,"del":75,"stages":{"alpha_ready":"2026-07-08","beta":null,"gamma":"2026-07-09"}},{"issue":136,"title":"Antibiotic Order Checks","hours":2.5,"deep":false,"date":"2026-07-02","names":["Morgan"],"prs":["135"],"add":235,"del":4,"stages":{"alpha_ready":"2026-07-02","beta":"2026-07-07","gamma":"2026-07-09"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":11.0,"deep":true,"date":"2026-07-16","names":["Greg"],"prs":["214"],"add":32,"del":14,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":2.5,"deep":false,"date":"2026-07-14","names":["Greg"],"prs":["206"],"add":19,"del":19,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":2.5,"deep":false,"date":"2026-07-17","names":["Greg"],"prs":["217"],"add":62,"del":4,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":2.5,"deep":false,"date":"2026-07-15","names":["Riley"],"prs":["210"],"add":863,"del":29,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.5,"deep":false,"date":"2026-07-25","names":["Greg"],"prs":["242"],"add":14,"del":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":2.5,"deep":false,"date":"2026-08-07","names":["Greg"],"prs":["418"],"add":32,"del":6,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}}];
 // One hue per person; three shades of that hue = the three release stages.
 const COLORS = ['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#4f46e5','#0d9488'];
 const STAGES = [
