@@ -2666,6 +2666,7 @@ async function setPrAlphaReady(number) {
     await removeLabel(number, 'status:in-progress');
     await removeLabel(number, 'status:needs-revision');
     await addLabel(number, 'status:pr-alpha-ready');
+    await stampStage(number, 'alpha-ready');
     // Update the issue body so the PR column shows the current link. The tracker
     // displays the FIRST PR link found in the body, so a replaced PR must be
     // swapped in place — appending would leave the stale link winning.
@@ -2750,12 +2751,34 @@ async function markReadyBeta(number) {
   });
 }
 
+// ── Stage history ─────────────────────────────────────────────────────────────
+// Records WHEN a project reached each release stage, as a line in the issue body:
+//   Stages: alpha-ready 2026-08-13 · beta 2026-08-20 · gamma 2026-08-27
+// The body is used rather than the labels because every transition below REMOVES
+// the previous status label, so the live label set holds no history. Idempotent:
+// the first date for a stage wins, so re-pressing a button never rewrites history.
+async function stampStage(number, stage) {
+  try {
+    const iss = await ghFetch(`/repos/${REPO}/issues/${number}`);
+    const body = iss.body || '';
+    const today = new Date().toISOString().slice(0,10);
+    const line = body.match(/^Stages:.*$/m);
+    if (line && new RegExp(`\\b${stage} \\d{4}-\\d{2}-\\d{2}`).test(line[0])) return;  // already recorded
+    const updated = line
+      ? body.replace(line[0], `${line[0]} · ${stage} ${today}`)
+      : `${body.replace(/\s*$/,'')}\n\nStages: ${stage} ${today}`;
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: updated}) });
+  } catch(e) { /* stamping must never block the transition itself */ }
+}
+
 async function promoteBetaVersion(number) {
   await withProjectLoading(number, async () => {
     await postComment(number, `🚀 **Promoted to Beta-Version** by @${currentUser.login}.`);
     await removeLabel(number, 'status:ready-beta');
     await removeLabel(number, 'status:alpha-testing');
     await addLabel(number, 'status:beta-version');
+    await stampStage(number, 'beta');
     toast(`Promoted to Beta-Version`);
   });
 }
@@ -2765,6 +2788,7 @@ async function markProjectDone(number) {
     await postComment(number, `✅ **Shipped to γ Production (Gamma) by @${currentUser.login}.**`);
     for (const l of ['status:beta-version','status:ready-beta','status:alpha-testing','status:pr-alpha-ready','status:ready-for-production']) await removeLabel(number, l);
     await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
+    await stampStage(number, 'gamma');
     toast(`Moved to γ Production`);
   });
 }
