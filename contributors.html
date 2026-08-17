@@ -69,9 +69,10 @@
   </div>
 
   <div class="card">
-    <h2>Cumulative hours over time</h2>
-    <div class="hint">X axis is the date the code was written (last commit on the project&rsquo;s PR), in chronological order.
-      Each step up is one completed project &mdash; taller step, bigger build.</div>
+    <h2>Cumulative hours through the release pipeline</h2>
+    <div class="hint">Three lines per person, in three shades of their colour: <b>light dotted</b> = reached PR alpha-ready,
+      <b>medium dashed</b> = promoted to Beta-Version, <b>dark solid</b> = shipped to &gamma; Production. The horizontal gap
+      between a person&rsquo;s light and dark line is how long their work sat in the pipeline.</div>
     <div class="chartwrap"><svg id="chart" width="1180" height="380" role="img" aria-label="Cumulative coding hours by contributor over time"></svg></div>
     <div class="lg" id="legend"></div>
   </div>
@@ -94,6 +95,11 @@
       as <code>invalid-email-address</code> (an unconfigured git identity), so they map to no GitHub account.<br><br>
       <b>Six projects are floors, not point estimates.</b> Where a linked PR contains only migrations or a very small diff
       relative to the project&rsquo;s stated scope, the real build time is higher than shown.<br><br>
+      <b>The &beta; line is nearly empty on purpose &mdash; that is a real process gap, not missing data.</b> Stage dates come
+      from GitHub&rsquo;s own label history, which covers <b>alpha-ready on 14 of 16</b> projects and <b>&gamma; production on
+      16 of 16</b>, but <b>Beta-Version on only 3 of 16</b>. Projects are being marked &gamma; straight from alpha without ever
+      carrying <code>status:beta-version</code>, so there is no date to plot. The tracker now stamps every stage date into the
+      issue body as the button is pressed, so this fills in from here forward.<br><br>
       <b>Scott is excluded from this summary.</b> He reviews and gatekeeps rather than being counted as a build contributor here,
       so the six completed projects whose PRs he opened (#50, #52, #54, #55, #57, #58 &mdash; 55.5h) are not shown.<br><br>
       <b>Nineteen completed projects are missing entirely</b> &mdash; the early batch (#59&ndash;#72 and others) has no linked PR,
@@ -102,8 +108,19 @@
   </div>
 </main>
 <script>
-const ROWS = [{"issue":56,"title":"Payroll System: complete implementation","hours":2.5,"date":"2026-06-27","authors":["gregbaird11"],"names":["Greg"],"prs":["126"],"add":7,"del":0},{"issue":123,"title":"CPT Code Update","hours":2.5,"date":"2026-06-29","authors":["gregbaird11"],"names":["Greg"],"prs":["132"],"add":37,"del":2},{"issue":136,"title":"Antibiotic Order Checks","hours":9.5,"date":"2026-07-02","authors":["morgan477"],"names":["Morgan"],"prs":["135"],"add":235,"del":4},{"issue":134,"title":"Fix New Visit Glitch","hours":2.0,"date":"2026-07-02","authors":["gregbaird11"],"names":["Greg"],"prs":["137"],"add":9,"del":1},{"issue":20,"title":"ONC \u00a7170.315 (d)(13) \u2014 Multi-Factor Authentication","hours":57,"date":"2026-07-03","authors":["gregbaird11"],"names":["Greg"],"prs":["143"],"add":2778,"del":4},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":15,"date":"2026-07-07","authors":["gregbaird11"],"names":["Greg"],"prs":["150"],"add":527,"del":165},{"issue":174,"title":"Pending Notes Banner","hours":5.0,"date":"2026-07-07","authors":["morgan477"],"names":["Morgan"],"prs":["175"],"add":151,"del":0},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":12,"date":"2026-07-08","authors":["gregbaird11"],"names":["Greg"],"prs":["179"],"add":489,"del":75},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":6.0,"date":"2026-07-08","authors":["morgan477"],"names":["Morgan"],"prs":["181"],"add":36,"del":0},{"issue":191,"title":"New order summary button","hours":5.5,"date":"2026-07-08","authors":["morgan477"],"names":["Morgan"],"prs":["190"],"add":127,"del":65},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":3.5,"date":"2026-07-14","authors":["gregbaird11"],"names":["Greg"],"prs":["206"],"add":19,"del":19},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":18,"date":"2026-07-15","authors":["riley870"],"names":["Riley"],"prs":["210"],"add":863,"del":29},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":3.5,"date":"2026-07-16","authors":["gregbaird11"],"names":["Greg"],"prs":["214"],"add":32,"del":14},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":4.0,"date":"2026-07-17","authors":["gregbaird11"],"names":["Greg"],"prs":["217"],"add":62,"del":4},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.0,"date":"2026-07-25","authors":["gregbaird11"],"names":["Greg"],"prs":["242"],"add":14,"del":0},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":3.0,"date":"2026-08-07","authors":["gregbaird11"],"names":["Greg"],"prs":["418"],"add":32,"del":6}];
+const ROWS = [{"issue":56,"title":"Payroll System: complete implementation","hours":2.5,"date":"2026-06-27","authors":["gregbaird11"],"names":["Greg"],"prs":["126"],"add":7,"del":0,"stages":{"alpha_ready":"2026-06-24","beta":null,"gamma":"2026-07-02"}},{"issue":134,"title":"Fix New Visit Glitch","hours":2.0,"date":"2026-07-02","authors":["gregbaird11"],"names":["Greg"],"prs":["137"],"add":9,"del":1,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":123,"title":"CPT Code Update","hours":2.5,"date":"2026-06-29","authors":["gregbaird11"],"names":["Greg"],"prs":["132"],"add":37,"del":2,"stages":{"alpha_ready":"2026-06-26","beta":"2026-07-07","gamma":"2026-07-07"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":15,"date":"2026-07-07","authors":["gregbaird11"],"names":["Greg"],"prs":["150"],"add":527,"del":165,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":6.0,"date":"2026-07-08","authors":["morgan477"],"names":["Morgan"],"prs":["181"],"add":36,"del":0,"stages":{"alpha_ready":"2026-06-23","beta":null,"gamma":"2026-07-08"}},{"issue":191,"title":"New order summary button","hours":5.5,"date":"2026-07-08","authors":["morgan477"],"names":["Morgan"],"prs":["190"],"add":127,"del":65,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":136,"title":"Antibiotic Order Checks","hours":9.5,"date":"2026-07-02","authors":["morgan477"],"names":["Morgan"],"prs":["135"],"add":235,"del":4,"stages":{"alpha_ready":"2026-07-02","beta":"2026-07-07","gamma":"2026-07-09"}},{"issue":174,"title":"Pending Notes Banner","hours":5.0,"date":"2026-07-07","authors":["morgan477"],"names":["Morgan"],"prs":["175"],"add":151,"del":0,"stages":{"alpha_ready":"2026-07-07","beta":null,"gamma":"2026-07-09"}},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":12,"date":"2026-07-08","authors":["gregbaird11"],"names":["Greg"],"prs":["179"],"add":489,"del":75,"stages":{"alpha_ready":"2026-07-08","beta":null,"gamma":"2026-07-09"}},{"issue":20,"title":"ONC \u00a7170.315 (d)(13) \u2014 Multi-Factor Authentication","hours":57,"date":"2026-07-03","authors":["gregbaird11"],"names":["Greg"],"prs":["143"],"add":2778,"del":4,"stages":{"alpha_ready":"2026-06-28","beta":null,"gamma":"2026-07-16"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":3.5,"date":"2026-07-16","authors":["gregbaird11"],"names":["Greg"],"prs":["214"],"add":32,"del":14,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":3.5,"date":"2026-07-14","authors":["gregbaird11"],"names":["Greg"],"prs":["206"],"add":19,"del":19,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":4.0,"date":"2026-07-17","authors":["gregbaird11"],"names":["Greg"],"prs":["217"],"add":62,"del":4,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":18,"date":"2026-07-15","authors":["riley870"],"names":["Riley"],"prs":["210"],"add":863,"del":29,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.0,"date":"2026-07-25","authors":["gregbaird11"],"names":["Greg"],"prs":["242"],"add":14,"del":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":3.0,"date":"2026-08-07","authors":["gregbaird11"],"names":["Greg"],"prs":["418"],"add":32,"del":6,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}}];
+// One hue per person; three shades of that hue = the three release stages.
 const COLORS = ['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#4f46e5','#0d9488'];
+const STAGES = [
+  {key:'alpha_ready', label:'\u03b1 PR alpha-ready', shade:0.55,  dash:'2 3',  w:2},
+  {key:'beta',        label:'\u03b2 Beta-Version',   shade:0.00,  dash:'6 3',  w:2},
+  {key:'gamma',       label:'\u03b3 Production',     shade:-0.42, dash:'',     w:3},
+];
+function shade(hex, amt){                       // amt>0 lightens toward white, amt<0 darkens
+  const n=parseInt(hex.slice(1),16); const r=n>>16, g=(n>>8)&255, b=n&255;
+  const f=v => amt>=0 ? Math.round(v+(255-v)*amt) : Math.round(v*(1+amt));
+  return '#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
 const FLOORS = new Set([343,123,50,56,240,134]);
 const people = [...new Set(ROWS.flatMap(r => r.names))].sort();
 const color = Object.fromEntries(people.map((p,i)=>[p,COLORS[i%COLORS.length]]));
@@ -129,56 +146,63 @@ function drawTotals(){
 }
 
 function drawChart(){
-  const W=1180,H=380,L=54,R=18,T=18,B=52, iw=W-L-R, ih=H-T-B;
+  const W=1180,H=420,L=54,R=18,T=18,B=52, iw=W-L-R, ih=H-T-B;
   const shown = filter ? [filter] : people;
-  const days = ROWS.map(r=>+new Date(r.date));
-  const d0=Math.min(...days), d1=Math.max(...days), span=Math.max(1,d1-d0);
+  const allDates = ROWS.flatMap(r => STAGES.map(st=>r.stages[st.key]).filter(Boolean).concat([r.date])).map(d=>+new Date(d));
+  const d0=Math.min(...allDates), d1=Math.max(...allDates), span=Math.max(1,d1-d0);
   const x = d => L + (d-d0)/span*iw;
-  const series = shown.map(p=>{
-    let cum=0; const pts=[[d0,0]];
-    ROWS.filter(r=>r.names.includes(p)).forEach(r=>{
-      cum += r.hours/Math.max(1,r.names.length);
-      pts.push([+new Date(r.date),cum]);
+
+  const series=[];
+  shown.forEach(p=>{
+    STAGES.forEach(st=>{
+      const hits = ROWS.filter(r=>r.names.includes(p) && r.stages[st.key])
+                       .sort((a,b)=> new Date(a.stages[st.key]) - new Date(b.stages[st.key]));
+      let cum=0; const pts=[[d0,0]];
+      hits.forEach(r=>{ cum += r.hours/Math.max(1,r.names.length); pts.push([+new Date(r.stages[st.key]),cum]); });
+      pts.push([d1,cum]);
+      series.push({p, st, pts, total:cum, hits, color:shade(color[p], st.shade)});
     });
-    pts.push([d1,cum]);
-    return {p,pts,total:cum};
   });
-  const ymax = Math.max(10, ...series.map(s=>s.total))*1.08;
+  const ymax = Math.max(10, ...series.map(v=>v.total))*1.10;
   const y = v => T + ih - v/ymax*ih;
+
   let g='';
-  for(let i=0;i<=4;i++){ const v=ymax*i/4;
+  for(let k=0;k<=4;k++){ const v=ymax*k/4;
     g+=`<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W-R}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
     g+=`<text x="${L-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--muted)">${Math.round(v)}h</text>`;
   }
-  const ticks=6;
-  for(let i=0;i<=ticks;i++){ const d=d0+span*i/ticks;
+  for(let k=0;k<=6;k++){ const d=d0+span*k/6;
     const lbl=new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});
     g+=`<line x1="${x(d).toFixed(1)}" y1="${T}" x2="${x(d).toFixed(1)}" y2="${T+ih}" stroke="var(--border)" stroke-width="1" opacity=".45"/>`;
     g+=`<text x="${x(d).toFixed(1)}" y="${H-B+20}" text-anchor="middle" font-size="11" fill="var(--muted)">${lbl}</text>`;
   }
-  series.forEach(s=>{
-    // step line: hours accrue on the day the work landed
+  series.filter(v=>v.total>0).forEach(v=>{
     let d='';
-    s.pts.forEach((pt,i)=>{
+    v.pts.forEach((pt,k)=>{
       const px=x(pt[0]).toFixed(1), py=y(pt[1]).toFixed(1);
-      if(i===0){ d=`M ${px} ${py}`; }
-      else { d+=` L ${px} ${y(s.pts[i-1][1]).toFixed(1)} L ${px} ${py}`; }
+      if(k===0) d=`M ${px} ${py}`;
+      else d+=` L ${px} ${y(v.pts[k-1][1]).toFixed(1)} L ${px} ${py}`;
     });
-    g+=`<path d="${d}" fill="none" stroke="${color[s.p]}" stroke-width="2.5" stroke-linejoin="round"/>`;
-    s.pts.slice(1,-1).forEach((pt,i)=>{
-      const r=ROWS.filter(rr=>rr.names.includes(s.p))[i];
-      g+=`<circle cx="${x(pt[0]).toFixed(1)}" cy="${y(pt[1]).toFixed(1)}" r="4" fill="${color[s.p]}"><title>${esc(s.p)} — #${r.issue} ${esc(r.title)}\n${fmt(r.hours)} on ${r.date}</title></circle>`;
+    g+=`<path d="${d}" fill="none" stroke="${v.color}" stroke-width="${v.st.w}"${v.st.dash?` stroke-dasharray="${v.st.dash}"`:''} stroke-linejoin="round"/>`;
+    v.pts.slice(1,-1).forEach((pt,k)=>{
+      const r=v.hits[k];
+      g+=`<circle cx="${x(pt[0]).toFixed(1)}" cy="${y(pt[1]).toFixed(1)}" r="3.5" fill="${v.color}"><title>${esc(v.p)} \u2014 ${v.st.label}\n#${r.issue} ${esc(r.title)}\n${fmt(r.hours)} on ${r.stages[v.st.key]}</title></circle>`;
     });
-    const last=s.pts[s.pts.length-1];
-    g+=`<text x="${(x(last[0])-4).toFixed(1)}" y="${(y(last[1])-8).toFixed(1)}" text-anchor="end" font-size="12" font-weight="700" fill="${color[s.p]}">${esc(s.p)} ${fmt(s.total)}</text>`;
+    if(v.st.key==='gamma'){
+      const last=v.pts[v.pts.length-1];
+      g+=`<text x="${(x(last[0])-4).toFixed(1)}" y="${(y(last[1])-8).toFixed(1)}" text-anchor="end" font-size="12" font-weight="700" fill="${v.color}">${esc(v.p)} ${fmt(v.total)}</text>`;
+    }
   });
   g+=`<line x1="${L}" y1="${T+ih}" x2="${W-R}" y2="${T+ih}" stroke="var(--muted)" stroke-width="1"/>`;
-  g+=`<text x="${L+iw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">date the code was written &rarr;</text>`;
+  g+=`<text x="${L+iw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">date each project reached that stage \u2192</text>`;
   document.getElementById('chart').innerHTML=g;
-  document.getElementById('legend').innerHTML = people.map(p=>
-    `<span style="opacity:${!filter||filter===p?1:.35};cursor:pointer" onclick="setFilter('${p}')"><i style="background:${color[p]}"></i>${esc(p)}</span>`).join('');
-}
 
+  document.getElementById('legend').innerHTML =
+    people.map(p=>`<span style="opacity:${!filter||filter===p?1:.35};cursor:pointer;margin-right:8px" onclick="setFilter('${p}')">`
+      + STAGES.map(st=>`<i style="background:${shade(color[p],st.shade)}" title="${esc(p)} ${st.label}"></i>`).join('')
+      + ` ${esc(p)}</span>`).join('')
+    + `<span style="color:var(--muted);margin-left:8px">light dotted \u03b1 \u2192 medium dashed \u03b2 \u2192 dark solid \u03b3</span>`;
+}
 function drawRows(){
   const rs = ROWS.filter(r=>!filter||r.names.includes(filter));
   document.getElementById('cnt').textContent = `(${rs.length})`;
