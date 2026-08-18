@@ -69,6 +69,11 @@
   .oscode pre b{color:#5eead4;font-weight:700}
   .step.left .oscode{text-align:left}
 
+  /* folder-map tree */
+  .tree{margin:14px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:12px;
+    background:#0f172a;color:#e2e8f0;font-size:12.3px;line-height:1.7;overflow-x:auto;text-align:left;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
   /* ── trail (shared with the "How We Ship" guide) ── */
   .trail{position:relative;padding:56px 0 20px}
   .trail:before{
@@ -455,8 +460,36 @@ gh auth refresh -h github.com -s workflow</pre>
 </div>
 
 <div class="wrap sessions">
+  <h2>Where everything lives 📁</h2>
+  <p class="lead">Everything you do lives under one <code>~/claude/</code> root, split into <b>lanes</b>. One lane = one kind of work. Each lane carries its own <code>CLAUDE.md</code>, so a session picks up the right rules just by being opened in the right place — and Claude stops to ask if the work you hand it belongs somewhere else.</p>
+  <pre class="tree">~/claude/
+  togo/
+    togo-emr/             the EMR product — you'll live here
+    togo-facility-tools/  PointClickCare &amp; other facility systems
+  sege/                   only if you were granted SEGE access
+  personal/               your machine setup notes and side projects</pre>
+  <div class="sesscard" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <span class="badge">Everyone</span>
+    <div><h4><code>~/claude/togo/togo-emr/</code></h4><p>The EMR itself — the <code>emr-beta</code> clone, the project tracker, the strategy playbooks, and <b>every worktree under <code>~/claude/togo/togo-emr/wt/</code></b>. This is where you'll spend most of your time.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <span class="badge">Everyone</span>
+    <div><h4><code>~/claude/togo/togo-facility-tools/</code></h4><p>Tools that reach <em>out</em> to a facility's own systems — PointClickCare integration, patient sync. Separate from the EMR because this code talks to somebody else's chart. May sit empty for a while.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--green);--bg:var(--green-bg)">
+    <span class="badge">Everyone</span>
+    <div><h4><code>~/claude/personal/</code></h4><p><b>Your machine setup notes live here</b>, along with scratch work and personal side projects. Nothing from this folder belongs in a <code>togohealth-dev</code> repo — teammates can read those.</p></div>
+  </div>
+  <div class="sesscard" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <span class="badge">Optional · access-gated</span>
+    <div><h4><code>~/claude/sege/</code></h4><p>SEGE command center, staffing, business, recruiting. You only get this folder if you asked for and received SEGE access.</p></div>
+  </div>
+  <div class="loop"><span class="ic">🛤️</span><div><b>Two rules that keep it tidy.</b> Worktrees go in <code>~/claude/togo/togo-emr/wt/</code>, <em>never</em> loose in a parent folder — forty worktrees in one directory makes the folder picker useless. And <b>the containers aren't lanes</b>: <code>~</code>, <code>~/claude</code> and <code>~/claude/togo</code> just hold things, so open your session <em>inside</em> an actual lane folder or Claude loads no lane rules at all.</div></div>
+</div>
+
+<div class="wrap sessions">
   <h2>Which session is which?</h2>
-  <p class="lead">By the end of today you'll have named, separate Claude sessions. Keep them separate — that's what makes each one easy to pick back up.</p>
+  <p class="lead">By the end of today you'll have named, separate Claude sessions. Keep them separate — that's what makes each one easy to pick back up. Open each one <b>inside the lane folder it belongs to</b>, so it loads the right rules.</p>
   <div class="sesscard" style="--c:var(--green);--bg:var(--green-bg)">
     <span class="badge">Setup · once</span>
     <div><h4>New-hire machine setup</h4><p>The big one-time run — Copy Prompt from the tracker's Reference section, paste into a fresh session. You won't reuse this session after today.</p></div>
@@ -471,7 +504,7 @@ gh auth refresh -h github.com -s workflow</pre>
   </div>
   <div class="sesscard" style="--c:var(--orange);--bg:var(--orange-bg)">
     <span class="badge">Optional</span>
-    <div><h4>SEGE Command Center</h4><p>Only if you asked for and received access. A separate session, a separate repo, nothing to do with the EMR.</p></div>
+    <div><h4>SEGE Command Center</h4><p>Only if you asked for and received access. A separate session, opened in <code>~/claude/sege/</code>, a separate repo — nothing to do with the EMR.</p></div>
   </div>
 </div>
 
