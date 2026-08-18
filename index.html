@@ -1537,7 +1537,10 @@ async function loadFutureIdeas() {
       const oncRefs = extractOncRefs(issue.title + ' ' + (issue.body||''));
       const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
       const codingEst = estMatch ? estMatch[1] + 'h' : null;
-      return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login), codingEst, commentCount: issue.comments };
+      // Same `**Track:**` convention WoundCare already groups by — one shared mechanism, not a second one.
+      const trackMatch = (issue.body||'').match(/\*\*Track:\*\*\s*([^\n*]+)/i);
+      const track = trackMatch ? trackMatch[1].trim() : null;
+      return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login), codingEst, track, commentCount: issue.comments };
     }).sort((a,b) => b.priority - a.priority);
     renderFutureIdeas();
     document.getElementById('fi-loading').style.display = 'none';
@@ -2124,16 +2127,8 @@ function renderIntegrations() {
     <div class="proj-table-wrap"><table>${head}<tbody>${bodyRows}</tbody></table></div>`;
 }
 
-function renderFutureIdeas() {
-  const el = document.getElementById('fi-content');
-  if (!futureIdeas.length) {
-    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No ideas yet. <button class="btn btn-outline" onclick="openAddModal('future')" style="margin-left:8px">+ Add First Idea</button></div>`;
-    return;
-  }
-  el.innerHTML = `
-  <div class="proj-table-wrap">
-    <table>${FUTURE_TABLE_HEAD}<tbody>
-      ${futureIdeas.map((p, idx) => `<tr id="proj-${p.number}">
+function futureIdeaRow(p, idx) {
+  return `<tr id="proj-${p.number}">
         <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx+1}</td>
         <td>
           <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
@@ -2151,9 +2146,40 @@ function renderFutureIdeas() {
           <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this idea and move it to Current Projects">Claim</button>
           <button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>
         </div></td>
-      </tr>`).join('')}
-    </tbody></table>
-  </div>`;
+      </tr>`;
+}
+
+function renderFutureIdeas() {
+  const el = document.getElementById('fi-content');
+  if (!futureIdeas.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No ideas yet.</div>`;
+    return;
+  }
+  // Group by the **Track:** line so the categories are visible instead of one flat
+  // priority-sorted list. Ideas with no track fall into "Uncategorised", shown last.
+  const UNTRACKED = 'Uncategorised';
+  const groups = {};
+  futureIdeas.forEach(p => { const k = p.track || UNTRACKED; (groups[k] = groups[k] || []).push(p); });
+  const order = Object.keys(groups).sort((a,b) =>
+      (a === UNTRACKED) - (b === UNTRACKED)                 // untracked always last
+   || groups[b].length - groups[a].length                    // then biggest track first
+   || a.localeCompare(b));
+
+  let bodyRows = '';
+  for (const k of order) {
+    const gH = groups[k].reduce((t,p)=> t + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
+    bodyRows += `<tr class="int-vgroup" id="fi-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="9">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · ~${Math.round(gH*10)/10}h`:''})</span></td></tr>`;
+    groups[k].forEach((p, idx) => { bodyRows += futureIdeaRow(p, idx + 1); });
+  }
+  const jump = order.map(k =>
+    `<button class="btn btn-outline btn-sm" onclick="document.getElementById('fi-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(k)} <span style="color:var(--text-muted)">${groups[k].length}</span></button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px">${jump}</div>
+    <div class="proj-table-wrap">
+      <table>${FUTURE_TABLE_HEAD}<tbody>${bodyRows}</tbody></table>
+    </div>`;
 }
 
 // ── Developer Reference Projects (issues labeled `reference`) ──────────────────
