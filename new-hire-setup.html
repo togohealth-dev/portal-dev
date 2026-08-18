@@ -468,6 +468,45 @@ gh auth refresh -h github.com -s workflow</pre>
     togo-facility-tools/  PointClickCare &amp; other facility systems
   sege/                   only if you were granted SEGE access
   personal/               your machine setup notes and side projects</pre>
+
+  <p class="lead"><b>Create it now — one command.</b> Do this before you clone anything, so every repo lands in the right lane
+     from the start. Moving a repo later means moving its worktrees too, and that is genuinely annoying.</p>
+  <div class="oscode">
+  <div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button></div>
+  <pre class="os-mac show"><b># the three folders everyone gets</b>
+mkdir -p ~/claude/togo/togo-emr ~/claude/togo/togo-facility-tools ~/claude/personal
+
+<b># worktrees live here — make it now so nobody is tempted to scatter them</b>
+mkdir -p ~/claude/togo/togo-emr/wt
+
+<b># SEGE — ONLY if you asked for and were granted SEGE Command Center access.</b>
+<b># If you were not, skip this line entirely. Do not create an empty sege folder.</b>
+mkdir -p ~/claude/sege
+
+<b># check it</b>
+find ~/claude -maxdepth 2 -type d | sort</pre>
+  <pre class="os-pc"><b># the three folders everyone gets</b>
+mkdir "$HOME\claude\togo\togo-emr", "$HOME\claude\togo\togo-facility-tools", "$HOME\claude\personal" -Force
+
+<b># worktrees live here — make it now so nobody is tempted to scatter them</b>
+mkdir "$HOME\claude\togo\togo-emr\wt" -Force
+
+<b># SEGE — ONLY if you asked for and were granted SEGE Command Center access.</b>
+<b># If you were not, skip this line entirely. Do not create an empty sege folder.</b>
+mkdir "$HOME\claude\sege" -Force
+
+<b># check it</b>
+Get-ChildItem "$HOME\claude" -Directory -Depth 1 | Select-Object FullName</pre>
+  </div>
+
+  <div class="optcall"><span class="ic">🚫</span><div><b>No <code>sege</code> folder unless you have SEGE access.</b>
+     An empty <code>~/claude/sege/</code> is worse than no folder: a session opened there loads the SEGE lane rules and looks
+     ready to work, but you have no repo and no access. Ask first — then create it.</div></div>
+
+  <div class="loop"><span class="ic">📌</span><div><b>Open sessions at the lane, not at <code>~/claude</code>.</b>
+     <code>~/claude</code>, <code>~/claude/togo</code> and your home folder are <em>containers</em>, not lanes — a session opened
+     in one of them loads no lane rules and should not start lane work. In the Claude Code app you will see
+     <code>togo-emr</code> and <code>togo-facility-tools</code> as separate projects; that is the point.</div></div>
   <div class="sesscard" style="--c:var(--purple);--bg:var(--purple-bg)">
     <span class="badge">Everyone</span>
     <div><h4><code>~/claude/togo/togo-emr/</code></h4><p>The EMR itself — the <code>emr-beta</code> clone, the project tracker, the strategy playbooks, and <b>every worktree under <code>~/claude/togo/togo-emr/wt/</code></b>. This is where you'll spend most of your time.</p></div>
