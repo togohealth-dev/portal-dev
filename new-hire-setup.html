@@ -383,7 +383,7 @@ gh auth refresh -h github.com -s workflow</pre>
       <h3>Your <em>localhost</em> login — a new account + passkey 🩺</h3>
       <p>Partway through, Claude will have you open <code>localhost:3000</code> for the first time. This is a <b>separate account from Google/GitHub</b> — it's your login for the sandbox EMR itself.</p>
       <p>Click <b>Forgot your password?</b> → type in your <b>@togohealth.com email</b> → a 6-digit code arrives in your inbox → set a password → sign in → enroll <b>Touch ID / Windows Hello</b> as your second passkey (the "MFA" one from Phase 3).</p>
-      <div class="loop"><span class="ic">📧</span><div>The code is a real email, so give it a few seconds and check spam. If it never arrives, your machine's mail password isn't set yet — tell Claude, which pulls it from the team secret store. Don't keep re-clicking "resend."</div></div>
+      <div class="loop"><span class="ic">📧</span><div><b>This is a real email</b> — sent from the shared support mailbox to your own inbox, the same way production sends it. Give it a few seconds and check spam before assuming anything is wrong.<br><br>If it truly never arrives, it is almost always one thing: the mail password on your machine isn't set. It's the single credential a dev machine needs, and the setup script pulls it from the team secret store automatically — <b>tell Claude and it will re-run that step</b>. If Claude reports a permissions error, you haven't been granted access to that secret yet: <b>ask Greg or Morgan</b>, then have Claude retry. Don't keep re-clicking "resend."<br><br><b>Nobody should ever send you this password</b> — not in chat, not by email. If someone offers, ask for access to the secret store instead.</div></div>
     </div>
   </div>
 
@@ -572,8 +572,8 @@ Get-ChildItem "$HOME\claude" -Directory -Depth 1 | Select-Object FullName</pre>
       <p>Alpha, beta, and gamma look almost identical — a bookmarks bar with all three visible stops you from testing on the wrong one.</p>
     </div>
     <div class="rule" style="--c:var(--blue)">
-      <h4>📧 Localhost email issues are common</h4>
-      <p>If the reset code never arrives, your machine's mail password isn't set yet — mention it to Claude rather than clicking resend a dozen times.</p>
+      <h4>📧 No reset code? It's the mail password</h4>
+      <p>The code is real email, so check spam first. If it's genuinely missing, your machine's mail password isn't set — Claude fetches it from the team secret store, so ask it to re-run that step rather than clicking resend a dozen times. A permissions error means you need access to that secret: ask Greg or Morgan. Never accept the password itself over chat or email.</p>
     </div>
     <div class="rule" style="--c:var(--teal)">
       <h4>🪟 PC vs 🍎 Mac — same destination</h4>
