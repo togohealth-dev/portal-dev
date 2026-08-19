@@ -214,7 +214,17 @@
 
 <div class="wrap">
   <div class="warnbar">
-    <b>Before you touch a terminal:</b> ask Greg or Morgan for three things — a <b>GitHub account</b> added to the <code>togohealth-dev</code> org, a <b>@togohealth.com Google account</b>, and to be told when both are ready. Everything below assumes you have them.
+    <b>Before you touch a terminal:</b> ask Greg or Morgan for two things — a <b>GitHub account</b> added to the <code>togohealth-dev</code> org and a <b>@togohealth.com Google account</b> — and to be told when both are ready. Everything below assumes you have them.
+    <br><br>
+    <b>Then answer these two, before anything gets installed.</b> They decide which folders you create and which whole sections you skip, so settling them now saves undoing things later. <b>If you're unsure, the answer is no</b> — a normal EMR developer needs neither, and both are easy to add whenever that changes.
+    <br><br>
+    <b>1. Do you need SEGE access?</b> (staffing, recruiting, business — a separate product from the EMR).<br>
+    <span style="opacity:.85">Yes → ask Greg for it, and create the <code>~/claude/sege</code> folder in the lane setup below. No → skip that line and every SEGE step; don't create an empty folder "just in case."</span>
+    <br><br>
+    <b>2. Do you need Tailscale and the <code>togo-mini</code> Mac mini?</b> (only if your work touches PHI storage or the automation that runs there).<br>
+    <span style="opacity:.85">Yes → ask Greg or Morgan for a Tailscale invite and accept it with your @togohealth.com account. No → don't install Tailscale and skip the mini section entirely. <b>Nothing in the core setup needs it</b> — your localhost EMR works fully without it.</span>
+    <br><br>
+    Tell Claude both answers at the start of the setup session; the prompt asks for them in its very first phase and follows them the rest of the way.
   </div>
 </div>
 
