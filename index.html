@@ -3174,10 +3174,16 @@ function extractPastePrompt(body) {
   if (!body) return '';
   const idx = body.search(/PASTE FROM HERE/i);
   if (idx >= 0) {
-    return body.slice(idx)
+    let out = body.slice(idx)
       .replace(/^PASTE FROM HERE[^\n]*\n/i, '')   // drop the marker line
-      .replace(/^(?:[═=\-\s]*\n)+/, '')           // drop leading border/blank lines
-      .trim();
+      .replace(/^(?:[═=\-\s]*\n)+/, '');          // drop leading border/blank lines
+    // Stop at the closing marker. Without this the copy ran to the end of the
+    // issue, so a new hire pasted the border, the "keep this issue current"
+    // note meant for whoever maintains the doc, and any appendix below it —
+    // maintainer instructions an agent can just as easily read as its own task.
+    const endIdx = out.search(/PASTE TO HERE/i);
+    if (endIdx >= 0) out = out.slice(0, endIdx).replace(/(?:[═=\-\s]*\n)+$/, '');
+    return out.trim();
   }
   const m = body.match(/###\s*Claude prompt\s*\n```[^\n]*\n([\s\S]*?)```/i);
   if (m) return m[1].trim();
