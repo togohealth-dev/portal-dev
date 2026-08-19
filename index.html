@@ -709,13 +709,10 @@
     </div>
     <div class="modal-field" style="margin-top:12px">
       <label>Assignee</label>
+      <!-- Options are filled from TEAM at init — a hand-kept copy drifted and left
+           half the team unselectable, which silently blanked their assignment on save. -->
       <select id="edit-assignee">
         <option value="">— Unassigned —</option>
-        <option value="gregbaird11">Greg</option>
-        <option value="morgan477">Morgan</option>
-        <option value="msdrigg">Scott</option>
-        <option value="Jordan-togoclaude">Jordan</option>
-        <option value="riley870">Riley</option>
       </select>
     </div>
     <div class="modal-field" style="margin-top:12px">
@@ -1226,6 +1223,16 @@ const SCOTT = 'msdrigg';
 const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg',
                'edtogohealth':'Ed', 'hannah826':'Hannah', 'olivia328':'Olivia', 'Sam54539':'Sam', 'BronsonWilks':'Bronson', 'eellsworth1234':'Eric' };
 const teamName = login => TEAM[login] || login;
+
+// Keep the edit-modal Assignee dropdown in sync with TEAM. openEditModal assigns
+// `select.value = <current assignee>`; a login with no matching <option> falls back
+// to "" (Unassigned), so a missing name meant saving the modal quietly unassigned them.
+function populateAssigneeOptions() {
+  const sel = document.getElementById('edit-assignee');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Unassigned —</option>' +
+    Object.entries(TEAM).map(([login, name]) => `<option value="${login}">${name}</option>`).join('');
+}
 
 // ── Shared table helpers ──────────────────────────────────────────────────────
 // ── Coding hours ──────────────────────────────────────────────────────────────
@@ -2903,9 +2910,26 @@ async function claimIdea(number) {
   });
 }
 
+// A project action runs 4-6 sequential GitHub writes (assign, comment, labels)
+// before reloadProjects() first shows the busy chip — several seconds in which the
+// row looks completely inert. That reads as "the Claim button does nothing", and the
+// re-clicks it invites each fire a full duplicate run: #173 collected four identical
+// "Claimed by" comments that way. Show the chip and disable the row up front, and
+// ignore repeat clicks on a project already mid-action.
+const _projectsInFlight = new Set();
 async function withProjectLoading(number, fn) {
+  if (_projectsInFlight.has(number)) return;
+  _projectsInFlight.add(number);
+  const btns = document.querySelectorAll(`#proj-${number} button`);
+  btns.forEach(b => b.disabled = true);
+  setBusy(true, 'Saving…');
   try { await ensureUser(); await fn(); await reloadProjects(); }
-  catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
+  catch(e) { toast(`Error: ${e.message}`, true); }
+  finally {
+    setBusy(false);
+    _projectsInFlight.delete(number);
+    btns.forEach(b => b.disabled = false);   // no-op once reloadProjects re-renders the row
+  }
 }
 
 // ── Add New Modal ─────────────────────────────────────────────────────────────
@@ -3666,6 +3690,7 @@ function toast(msg, err=false) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
+  populateAssigneeOptions();
   await handleOAuthCallback();
   if (getToken()) {
     document.getElementById('auth-overlay').style.display = 'none';
