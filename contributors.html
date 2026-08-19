@@ -58,9 +58,10 @@
 </header>
 <main>
   <h1>Who built what, and how long it took</h1>
-  <p class="sub">Coding hours on <b>completed</b> projects, derived from the actual contributed code &mdash; not self-reported.
-     Each project&rsquo;s hours come from its pull request diff (additions, deletions, files touched, and commit count as a rework signal),
-     and are attributed to the engineer who opened the PR. Click any name to filter the timeline and the table.</p>
+  <p class="sub">Coding hours on every project with a linked PR &mdash; <b>15 shipped, 2 still in the pipeline</b> &mdash; not self-reported.
+     Hours come from the <b>per-project</b> model below (2.5h frontend, 11h if it reaches the Rust backend or a migration);
+     the diff is reported for context but no longer drives the number. Work is attributed to the engineer who opened the PR.
+     Click any name to filter the timeline and the table.</p>
 
   <div class="card">
     <h2>Total hours by contributor</h2>
@@ -78,8 +79,8 @@
   </div>
 
   <div class="card">
-    <h2>Every completed project <span id="cnt" style="color:var(--primary)"></span></h2>
-    <div class="hint">Chronological. Hours come from the per-project model above. The <b>Diff</b> column is shown for context only &mdash; it no longer drives the estimate.</div>
+    <h2>Every project with a linked PR <span id="cnt" style="color:var(--primary)"></span></h2>
+    <div class="hint">Chronological. Hours come from the per-project model above. The <b>Diff</b> column is shown for context only &mdash; it no longer drives the estimate. Rows marked <b>in pipeline</b> have reached &alpha; but have not shipped to &gamma; yet, so they count toward the dotted line only.</div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th style="width:96px">Date</th><th style="width:56px">#</th><th>Project</th>
         <th style="width:110px">Built by</th><th style="width:96px">Diff</th><th style="width:70px">Hours</th></tr></thead>
@@ -116,12 +117,31 @@
       here, so the projects whose PRs he opened do not appear.<br><br>
 
       <b>Nineteen completed projects are missing entirely</b> &mdash; the early batch (#59&ndash;#72 and others) has no linked
-      PR, so there is nothing to attribute. This page covers the 15 that have one.
+      PR, so there is nothing to attribute. This page covers the 15 shipped projects that have one, plus <b>2 still in the
+      pipeline</b>.<br><br>
+
+      <b>Two contributors are &alpha;-only so far.</b> Jordan (#486, scheduling capacity targets, &alpha; 17 Aug) and Eric
+      (#344 Part 1, Allergies + GFR above the order box, &alpha; 19 Aug) have each reached PR alpha-ready without shipping to
+      &gamma;, so they appear on the dotted line and nowhere else. That is the chart working as intended rather than a gap in
+      the data &mdash; but it does mean their totals are a <b>floor</b>: the &beta; and &gamma; lines will pick the same hours
+      up again as Scott promotes the work, and the horizontal run of their dotted line is pipeline latency, not idle time.<br><br>
+
+      <b>Eric has three more PRs open that are not counted yet</b> &mdash; #510 and #514 (UHIN contract and pull-side design,
+      docs) and #512 (the HL7 parser, Rust backend). Their cards #173 and #307 are still <code>status:in-progress</code>, so
+      they have no &alpha; date to plot. #307 is a backend project, so it will add <b>11h</b> the moment it reaches alpha
+      &mdash; more than four times what Part 1 of #344 scored. His <code>cargo fmt</code> sweep + CI gate (#513) has no
+      tracker card at all and so cannot be attributed under a per-project model.<br><br>
+
+      <b>Neither new contributor is calibrated.</b> The 2.5h / 11h rates were fitted to Greg's recollection of his own,
+      Morgan's and Riley's time. Eric's and Jordan's hours are the model's prediction with nothing anecdotal behind them
+      &mdash; both happen to be frontend-only projects, so both land on 2.5h, and neither has been checked against what they
+      actually spent. The model also has <b>no rate for documentation</b>: Eric's #510 is 815 lines of partner-facing API
+      spec, which is neither frontend nor backend, and would score 2.5h by default if its card reached alpha today.
     </p>
   </div>
 </main>
 <script>
-const ROWS = [{"issue":134,"title":"Fix New Visit Glitch","hours":2.5,"deep":false,"date":"2026-07-02","names":["Greg"],"prs":["137"],"add":9,"del":1,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":56,"title":"Payroll System: complete implementation","hours":11.0,"deep":true,"date":"2026-06-27","names":["Greg"],"prs":["126"],"add":7,"del":0,"stages":{"alpha_ready":"2026-06-24","beta":null,"gamma":"2026-07-02"}},{"issue":123,"title":"CPT Code Update","hours":2.5,"deep":false,"date":"2026-06-29","names":["Greg"],"prs":["132"],"add":37,"del":2,"stages":{"alpha_ready":"2026-06-26","beta":"2026-07-07","gamma":"2026-07-07"}},{"issue":191,"title":"New order summary button","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["190"],"add":127,"del":65,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":11.0,"deep":true,"date":"2026-07-07","names":["Greg"],"prs":["150"],"add":527,"del":165,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["181"],"add":36,"del":0,"stages":{"alpha_ready":"2026-06-23","beta":null,"gamma":"2026-07-08"}},{"issue":174,"title":"Pending Notes Banner","hours":2.5,"deep":false,"date":"2026-07-07","names":["Morgan"],"prs":["175"],"add":151,"del":0,"stages":{"alpha_ready":"2026-07-07","beta":null,"gamma":"2026-07-09"}},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":2.5,"deep":false,"date":"2026-07-08","names":["Greg"],"prs":["179"],"add":489,"del":75,"stages":{"alpha_ready":"2026-07-08","beta":null,"gamma":"2026-07-09"}},{"issue":136,"title":"Antibiotic Order Checks","hours":2.5,"deep":false,"date":"2026-07-02","names":["Morgan"],"prs":["135"],"add":235,"del":4,"stages":{"alpha_ready":"2026-07-02","beta":"2026-07-07","gamma":"2026-07-09"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":11.0,"deep":true,"date":"2026-07-16","names":["Greg"],"prs":["214"],"add":32,"del":14,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":2.5,"deep":false,"date":"2026-07-14","names":["Greg"],"prs":["206"],"add":19,"del":19,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":2.5,"deep":false,"date":"2026-07-17","names":["Greg"],"prs":["217"],"add":62,"del":4,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":2.5,"deep":false,"date":"2026-07-15","names":["Riley"],"prs":["210"],"add":863,"del":29,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.5,"deep":false,"date":"2026-07-25","names":["Greg"],"prs":["242"],"add":14,"del":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":2.5,"deep":false,"date":"2026-08-07","names":["Greg"],"prs":["418"],"add":32,"del":6,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}}];
+const ROWS = [{"issue":56,"title":"Payroll System: complete implementation","hours":11.0,"deep":true,"date":"2026-06-27","names":["Greg"],"prs":["126"],"add":7,"del":0,"stages":{"alpha_ready":"2026-06-24","beta":null,"gamma":"2026-07-02"}},{"issue":123,"title":"CPT Code Update","hours":2.5,"deep":false,"date":"2026-06-29","names":["Greg"],"prs":["132"],"add":37,"del":2,"stages":{"alpha_ready":"2026-06-26","beta":"2026-07-07","gamma":"2026-07-07"}},{"issue":134,"title":"Fix New Visit Glitch","hours":2.5,"deep":false,"date":"2026-07-02","names":["Greg"],"prs":["137"],"add":9,"del":1,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":136,"title":"Antibiotic Order Checks","hours":2.5,"deep":false,"date":"2026-07-02","names":["Morgan"],"prs":["135"],"add":235,"del":4,"stages":{"alpha_ready":"2026-07-02","beta":"2026-07-07","gamma":"2026-07-09"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":11.0,"deep":true,"date":"2026-07-07","names":["Greg"],"prs":["150"],"add":527,"del":165,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":174,"title":"Pending Notes Banner","hours":2.5,"deep":false,"date":"2026-07-07","names":["Morgan"],"prs":["175"],"add":151,"del":0,"stages":{"alpha_ready":"2026-07-07","beta":null,"gamma":"2026-07-09"}},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["181"],"add":36,"del":0,"stages":{"alpha_ready":"2026-06-23","beta":null,"gamma":"2026-07-08"}},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":2.5,"deep":false,"date":"2026-07-08","names":["Greg"],"prs":["179"],"add":489,"del":75,"stages":{"alpha_ready":"2026-07-08","beta":null,"gamma":"2026-07-09"}},{"issue":191,"title":"New order summary button","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["190"],"add":127,"del":65,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":2.5,"deep":false,"date":"2026-07-14","names":["Greg"],"prs":["206"],"add":19,"del":19,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":2.5,"deep":false,"date":"2026-07-15","names":["Riley"],"prs":["210"],"add":863,"del":29,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":11.0,"deep":true,"date":"2026-07-16","names":["Greg"],"prs":["214"],"add":32,"del":14,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":2.5,"deep":false,"date":"2026-07-17","names":["Greg"],"prs":["217"],"add":62,"del":4,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.5,"deep":false,"date":"2026-07-25","names":["Greg"],"prs":["242"],"add":14,"del":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":2.5,"deep":false,"date":"2026-08-07","names":["Greg"],"prs":["418"],"add":32,"del":6,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}},{"issue":486,"title":"Scheduling capacity targets: warn when a week drifts outside 65\u201385% of census","hours":2.5,"deep":false,"date":"2026-08-17","names":["Jordan"],"prs":["487"],"add":838,"del":8,"stages":{"alpha_ready":"2026-08-17","beta":null,"gamma":null}},{"issue":344,"title":"Order-entry safety: Allergies + GFR above the New Order box (Part 1)","hours":2.5,"deep":false,"date":"2026-08-19","names":["Eric"],"prs":["518"],"add":335,"del":2,"stages":{"alpha_ready":"2026-08-19","beta":null,"gamma":null}}];
 // One hue per person; three shades of that hue = the three release stages.
 const COLORS = ['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#4f46e5','#0d9488'];
 const STAGES = [
@@ -136,7 +156,11 @@ function shade(hex, amt){                       // amt>0 lightens toward white, 
 }
 const FLOORS = new Set([343,123,50,56,240,134]);
 const people = [...new Set(ROWS.flatMap(r => r.names))].sort();
-const color = Object.fromEntries(people.map((p,i)=>[p,COLORS[i%COLORS.length]]));
+// Hues are PINNED per person. Assigning by sorted index meant every new contributor
+// reshuffled everyone's colour — Greg went blue→green the moment an "Eric" appeared.
+const HUE = { Greg:'#2563eb', Morgan:'#16a34a', Riley:'#f59e0b', Eric:'#dc2626', Jordan:'#7c3aed' };
+const spare = COLORS.filter(c => !Object.values(HUE).includes(c));
+const color = Object.fromEntries(people.map(p => [p, HUE[p] || spare.shift() || COLORS[0]]));
 const totals = {};
 ROWS.forEach(r => r.names.forEach(n => totals[n] = (totals[n]||0) + r.hours/Math.max(1,r.names.length)));
 let filter = null;
@@ -189,6 +213,14 @@ function drawChart(){
     g+=`<line x1="${x(d).toFixed(1)}" y1="${T}" x2="${x(d).toFixed(1)}" y2="${T+ih}" stroke="var(--border)" stroke-width="1" opacity=".45"/>`;
     g+=`<text x="${x(d).toFixed(1)}" y="${H-B+20}" text-anchor="middle" font-size="11" fill="var(--muted)">${lbl}</text>`;
   }
+  // Label the HIGHEST stage each person has actually reached, not gamma unconditionally:
+  // an alpha-only contributor has no gamma series and was drawing as an anonymous line.
+  const rank = {alpha_ready:0, beta:1, gamma:2};
+  const topStage = {};
+  series.filter(v=>v.total>0).forEach(v=>{
+    if (topStage[v.p]===undefined || rank[v.st.key] > rank[topStage[v.p]]) topStage[v.p] = v.st.key;
+  });
+  const labels = [];
   series.filter(v=>v.total>0).forEach(v=>{
     let d='';
     v.pts.forEach((pt,k)=>{
@@ -201,10 +233,17 @@ function drawChart(){
       const r=v.hits[k];
       g+=`<circle cx="${x(pt[0]).toFixed(1)}" cy="${y(pt[1]).toFixed(1)}" r="3.5" fill="${v.color}"><title>${esc(v.p)} \u2014 ${v.st.label}\n#${r.issue} ${esc(r.title)}\n${fmt(r.hours)} on ${r.stages[v.st.key]}</title></circle>`;
     });
-    if(v.st.key==='gamma'){
+    if(v.st.key===topStage[v.p]){
       const last=v.pts[v.pts.length-1];
-      g+=`<text x="${(x(last[0])-4).toFixed(1)}" y="${(y(last[1])-8).toFixed(1)}" text-anchor="end" font-size="12" font-weight="700" fill="${v.color}">${esc(v.p)} ${fmt(v.total)}</text>`;
+      // Text always takes the darkest shade — the pale alpha stroke is unreadable as type.
+      labels.push({x:x(last[0])-4, y:y(last[1])-8, color:shade(color[v.p], STAGES[2].shade), text:`${v.p} ${fmt(v.total)}`,
+                   suffix:v.st.key==='gamma' ? '' : ` (\u03b1)`});
     }
+  });
+  // Nudge apart labels that land on the same hours — three people now sit at 2.5h.
+  labels.sort((a,b)=>a.y-b.y).forEach((lb,i,arr)=>{
+    if(i>0 && lb.y - arr[i-1].y < 14) lb.y = arr[i-1].y + 14;
+    g+=`<text x="${lb.x.toFixed(1)}" y="${lb.y.toFixed(1)}" text-anchor="end" font-size="12" font-weight="700" fill="${lb.color}">${esc(lb.text)}${lb.suffix}</text>`;
   });
   g+=`<line x1="${L}" y1="${T+ih}" x2="${W-R}" y2="${T+ih}" stroke="var(--muted)" stroke-width="1"/>`;
   g+=`<text x="${L+iw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">date each project reached that stage \u2192</text>`;
@@ -222,7 +261,7 @@ function drawRows(){
   document.getElementById('rows').innerHTML = rs.map(r=>`<tr>
     <td style="color:var(--muted);white-space:nowrap">${r.date}</td>
     <td><a href="https://github.com/togohealth-dev/emr-beta/issues/${r.issue}" target="_blank">#${r.issue}</a></td>
-    <td>${esc(r.title)}${FLOORS.has(r.issue)?' <span style="color:#b45309;font-size:11px;font-weight:700" title="The linked PR does not contain all of the work — real time is higher">floor</span>':''}</td>
+    <td>${esc(r.title)}${FLOORS.has(r.issue)?' <span style="color:#b45309;font-size:11px;font-weight:700" title="The linked PR does not contain all of the work — real time is higher">floor</span>':''}${!r.stages.gamma?' <span style="color:var(--muted);font-size:11px;font-weight:700;border:1px solid var(--line);border-radius:3px;padding:0 4px" title="Reached PR alpha-ready but has not shipped to \u03b3 Production yet">in pipeline</span>':''}</td>
     <td>${r.names.map(n=>`<span class="pill" style="background:${color[n]}">${esc(n)}</span>`).join(' ')}</td>
     <td style="color:var(--muted);font-size:12px;white-space:nowrap">+${r.add}/-${r.del}</td>
     <td class="hrs">${fmt(r.hours)}</td></tr>`).join('');
