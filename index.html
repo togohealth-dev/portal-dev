@@ -2176,7 +2176,7 @@ function renderFutureIdeas() {
   for (const k of order) {
     const gH = groups[k].reduce((t,p)=> t + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
     bodyRows += `<tr class="int-vgroup" id="fi-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="9">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · ~${Math.round(gH*10)/10}h`:''})</span></td></tr>`;
-    groups[k].forEach((p, idx) => { bodyRows += futureIdeaRow(p, idx + 1); });
+    groups[k].forEach((p, idx) => { bodyRows += futureIdeaRow(p, idx); });   // futureIdeaRow renders idx+1
   }
   const jump = order.map(k =>
     `<button class="btn btn-outline btn-sm" onclick="document.getElementById('fi-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(k)} <span style="color:var(--text-muted)">${groups[k].length}</span></button>`
