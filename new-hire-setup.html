@@ -382,8 +382,8 @@ gh auth refresh -h github.com -s workflow</pre>
       <span class="who">You</span>
       <h3>Your <em>localhost</em> login — a new account + passkey 🩺</h3>
       <p>Partway through, Claude will have you open <code>localhost:3000</code> for the first time. This is a <b>separate account from Google/GitHub</b> — it's your login for the sandbox EMR itself.</p>
-      <p>Click <b>Forgot your password?</b> → type in your <b>@togohealth.com email</b> → a 6-digit code arrives → set a password → sign in → enroll <b>Touch ID / Windows Hello</b> as your second passkey (the "MFA" one from Phase 3).</p>
-      <div class="loop"><span class="ic">📧</span><div>If the code never arrives, that's a one-line fix in your local backend's email setup — tell Claude and it'll sort it out before you try again. Don't keep re-clicking "resend."</div></div>
+      <p>Click <b>Forgot your password?</b> → type in your <b>@togohealth.com email</b> → read the 6-digit code at <b>localhost:8025</b> → set a password → sign in → enroll <b>Touch ID / Windows Hello</b> as your second passkey (the "MFA" one from Phase 3).</p>
+      <div class="loop"><span class="ic">📧</span><div><b>Don't check your inbox — this mail never leaves your laptop.</b> Your dev machine sends to a local mail catcher instead of a real mail server, so the code shows up at <b>localhost:8025</b>, usually within a second. That's deliberate: it means no laptop has to hold a shared mail password. If nothing appears there, tell Claude rather than re-clicking "resend."</div></div>
     </div>
   </div>
 
@@ -573,7 +573,7 @@ Get-ChildItem "$HOME\claude" -Directory -Depth 1 | Select-Object FullName</pre>
     </div>
     <div class="rule" style="--c:var(--blue)">
       <h4>📧 Localhost email issues are common</h4>
-      <p>If the reset code never arrives, it's a known, one-line fix in the backend's email config — mention it to Claude rather than clicking resend a dozen times.</p>
+      <p>The reset code goes to the local mail catcher at <b>localhost:8025</b>, not to your real inbox. If nothing lands there, mention it to Claude rather than clicking resend a dozen times.</p>
     </div>
     <div class="rule" style="--c:var(--teal)">
       <h4>🪟 PC vs 🍎 Mac — same destination</h4>
