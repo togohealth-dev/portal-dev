@@ -73,7 +73,8 @@
     <h2>Cumulative hours through the release pipeline</h2>
     <div class="hint">Three lines per person, in three shades of their colour: <b>light dotted</b> = reached PR alpha-ready,
       <b>medium dashed</b> = promoted to Beta-Version, <b>dark solid</b> = shipped to &gamma; Production. The horizontal gap
-      between a person&rsquo;s light and dark line is how long their work sat in the pipeline.</div>
+      between a person&rsquo;s light and dark line is how long their work sat in the pipeline. A project that reached a later
+      stage counts as having passed the earlier ones, so the three lines always nest.</div>
     <div class="chartwrap"><svg id="chart" width="1180" height="380" role="img" aria-label="Cumulative coding hours by contributor over time"></svg></div>
     <div class="lg" id="legend"></div>
   </div>
@@ -120,6 +121,15 @@
       PR, so there is nothing to attribute. This page covers the 15 shipped projects that have one, plus <b>2 still in the
       pipeline</b>.<br><br>
 
+      <b>Stage lines count &ldquo;reached this stage or beyond&rdquo;, not &ldquo;carries this label&rdquo;.</b> Only 3 of the
+      15 shipped projects ever got a <code>status:beta-version</code> label and two (#191, #141) never got an alpha one &mdash;
+      the labels record what someone clicked, not what the code did. Matching labels exactly left the &beta; line dangling
+      <i>below</i> the &gamma; line (Greg at 5h beta against 50.5h shipped) and gave Riley no &alpha; line at all, which made
+      the pipeline gap unreadable and put stray green and blue segments down in the 2.5h band where they looked like someone
+      else&rsquo;s work. A row now counts toward every stage it reached or passed, dated by its own label when there is one and
+      otherwise by the earliest later stage on record. The cost of that fix: where a &beta; label is missing, the dashed line
+      steps on the production date, so it reads as &ldquo;no recorded time in beta&rdquo; rather than a measured beta date.<br><br>
+
       <b>Two contributors are &alpha;-only so far.</b> Jordan (#486, scheduling capacity targets, &alpha; 17 Aug) and Eric
       (#344 Part 1, Allergies + GFR above the order box, &alpha; 19 Aug) have each reached PR alpha-ready without shipping to
       &gamma;, so they appear on the dotted line and nowhere else. That is the chart working as intended rather than a gap in
@@ -158,7 +168,7 @@ const FLOORS = new Set([343,123,50,56,240,134]);
 const people = [...new Set(ROWS.flatMap(r => r.names))].sort();
 // Hues are PINNED per person. Assigning by sorted index meant every new contributor
 // reshuffled everyone's colour — Greg went blue→green the moment an "Eric" appeared.
-const HUE = { Greg:'#2563eb', Morgan:'#16a34a', Riley:'#f59e0b', Eric:'#dc2626', Jordan:'#7c3aed' };
+const HUE = { Greg:'#16a34a', Morgan:'#2563eb', Riley:'#f59e0b', Eric:'#dc2626', Jordan:'#7c3aed' };
 const spare = COLORS.filter(c => !Object.values(HUE).includes(c));
 const color = Object.fromEntries(people.map(p => [p, HUE[p] || spare.shift() || COLORS[0]]));
 const totals = {};
@@ -189,15 +199,26 @@ function drawChart(){
   const d0=Math.min(...allDates), d1=Math.max(...allDates), span=Math.max(1,d1-d0);
   const x = d => L + (d-d0)/span*iw;
 
+  // A project that shipped to gamma necessarily PASSED alpha and beta, even when the
+  // label was never applied — 12 of the shipped rows carry no beta label and two carry
+  // no alpha. Counting only exact-label matches left the beta line hanging below the
+  // gamma line (Greg beta 5h vs gamma 50.5h) and gave Riley no alpha line at all, which
+  // made the caption's "gap between the light and dark line" impossible to read.
+  // So each stage counts every row that reached it OR BEYOND, dated by its own label when
+  // present and otherwise by the earliest later stage on record.
+  const LATER = {alpha_ready:['alpha_ready','beta','gamma'], beta:['beta','gamma'], gamma:['gamma']};
+  const stageDate = (r,key) => { for(const k of LATER[key]) if(r.stages[k]) return r.stages[k]; return null; };
+
   const series=[];
   shown.forEach(p=>{
     STAGES.forEach(st=>{
-      const hits = ROWS.filter(r=>r.names.includes(p) && r.stages[st.key])
-                       .sort((a,b)=> new Date(a.stages[st.key]) - new Date(b.stages[st.key]));
+      const hits = ROWS.filter(r=>r.names.includes(p) && stageDate(r,st.key))
+                       .sort((a,b)=> new Date(stageDate(a,st.key)) - new Date(stageDate(b,st.key)));
       let cum=0; const pts=[[d0,0]];
-      hits.forEach(r=>{ cum += r.hours/Math.max(1,r.names.length); pts.push([+new Date(r.stages[st.key]),cum]); });
+      hits.forEach(r=>{ cum += r.hours/Math.max(1,r.names.length); pts.push([+new Date(stageDate(r,st.key)),cum]); });
       pts.push([d1,cum]);
-      series.push({p, st, pts, total:cum, hits, color:shade(color[p], st.shade)});
+      series.push({p, st, pts, total:cum, hits, imputed:hits.filter(r=>!r.stages[st.key]).length,
+                   color:shade(color[p], st.shade)});
     });
   });
   const ymax = Math.max(10, ...series.map(v=>v.total))*1.10;
@@ -241,8 +262,10 @@ function drawChart(){
     }
   });
   // Nudge apart labels that land on the same hours — three people now sit at 2.5h.
-  labels.sort((a,b)=>a.y-b.y).forEach((lb,i,arr)=>{
-    if(i>0 && lb.y - arr[i-1].y < 14) lb.y = arr[i-1].y + 14;
+  // Stack UPWARD from the lowest one: that cluster sits on the 2.5h line, and pushing
+  // down would run the last label through the x-axis and its date ticks.
+  labels.sort((a,b)=>b.y-a.y).forEach((lb,i,arr)=>{
+    if(i>0 && arr[i-1].y - lb.y < 14) lb.y = Math.max(T+10, arr[i-1].y - 14);
     g+=`<text x="${lb.x.toFixed(1)}" y="${lb.y.toFixed(1)}" text-anchor="end" font-size="12" font-weight="700" fill="${lb.color}">${esc(lb.text)}${lb.suffix}</text>`;
   });
   g+=`<line x1="${L}" y1="${T+ih}" x2="${W-R}" y2="${T+ih}" stroke="var(--muted)" stroke-width="1"/>`;
