@@ -72,3 +72,82 @@
       }
     });
   });
+
+  // ── email the command list ─────────────────────────────────────────────────
+  // The body is BUILT FROM THE PAGE's own command blocks (the [data-step] ones,
+  // in order, using whichever OS variant is showing), so the email can never
+  // drift from the guide it was sent from.
+  // This is a static site with no server, so nothing is sent from here: we open
+  // a pre-filled draft and the sender presses Send. The UI says exactly that.
+  (function(){
+    var box = document.querySelector('.sendbox');
+    if (!box) return;
+    var input = box.querySelector('input'), btn = box.querySelector('.send'),
+        msg = box.querySelector('.sendmsg');
+
+    function commands(){
+      var blocks = [].slice.call(document.querySelectorAll('.oscode[data-step]'));
+      blocks.sort(function(a,b){ return (+a.dataset.step) - (+b.dataset.step); });
+      return blocks.map(function(b){
+        var pre = b.querySelector('pre.show') || b.querySelector('pre');
+        return { n:b.dataset.step, label:b.dataset.label || '', cmd:pre.innerText.replace(/\s+$/,'') };
+      });
+    }
+    function bodyText(){
+      var os = document.querySelector('.oscode .tab.active');
+      var lines = [
+        'Here are the setup commands for your new machine.',
+        '',
+        'HOW TO RUN THEM: open Terminal, then paste ONE command, press Return, and',
+        'wait for it to finish before pasting the next. Do not paste them as a block',
+        '- two of them stop and wait for you, and one needs the shell state that the',
+        'command before it creates.',
+        ''
+      ];
+      commands().forEach(function(c){
+        lines.push(c.n + ') ' + c.label);
+        lines.push(c.cmd);
+        lines.push('');
+      });
+      lines.push('That last one starts Claude Code. Sign in with your work Claude account.');
+      lines.push('');
+      lines.push('The illustrated version of this - what each command should print, what to');
+      lines.push('do when one fails, and the card to run next - is here:');
+      // Canonical URL on purpose, NOT location.origin: this body is going to someone
+      // else's machine, so a link built from a localhost preview would be useless there.
+      lines.push('https://togohealth-dev.github.io/portal-dev/setup-a.html');
+      if (os && os.dataset.os === 'pc') lines.push('', '(Sent with the PC commands selected.)');
+      return lines.join('\n');
+    }
+    var SUBJECT = 'Your TogoHealth machine setup - six commands, one at a time';
+
+    function show(html, isErr){ msg.innerHTML = html; msg.classList.toggle('err', !!isErr); }
+
+    btn.addEventListener('click', function(){
+      var to = (input.value || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) {
+        input.classList.add('bad'); input.focus();
+        show('That does not look like an email address - check it and click Send again.', true);
+        return;
+      }
+      input.classList.remove('bad');
+      var q = 'to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent(SUBJECT) +
+              '&body=' + encodeURIComponent(bodyText());
+      var gmail = 'https://mail.google.com/mail/?view=cm&fs=1&' + q;
+      var mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(SUBJECT) +
+                   '&body=' + encodeURIComponent(bodyText());
+      window.open(gmail, '_blank', 'noopener');
+      show('Draft opened in Gmail for <b>' + to.replace(/[<&>]/g,'') + '</b> \u2014 <b>press Send there</b> to actually send it. ' +
+           'Nothing leaves this page on its own. <a href="' + mailto + '">Use my mail app instead</a>.');
+    });
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') btn.click(); });
+
+    var copyAll = box.querySelector('[data-copyall]');
+    if (copyAll) copyAll.addEventListener('click', function(){
+      var text = commands().map(function(c){ return '# ' + c.n + ') ' + c.label + '\n' + c.cmd; }).join('\n\n');
+      var after = function(ok){ show(ok ? 'All six commands copied \u2014 paste them into any message you like.'
+                                        : 'Could not reach the clipboard \u2014 select the blocks below instead.', !ok); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function(){after(true);},function(){after(false);});
+      else after(false);
+    });
+  })();
