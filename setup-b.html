@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setup B · Hand it to Claude — TogoHealth Dev Trail</title>
+<link rel="icon" type="image/png" href="icons/togo-favicon.png">
+<link rel="stylesheet" href="setup-guide.css">
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="paws">
+    <div class="paw" style="left:7%;top:16%">🤖</div><div class="paw" style="left:88%;top:24%;animation-delay:1.4s">📦</div>
+    <div class="paw" style="left:16%;top:68%;animation-delay:2.6s">🐾</div><div class="paw" style="left:79%;top:72%;animation-delay:.8s">🔧</div>
+    <div class="paw" style="left:47%;top:8%;animation-delay:3.4s">❄️</div>
+  </div>
+  <div class="wrap">
+    <div class="logo-badge">
+      <img src="icons/togo-logo.png" alt="TogoHealth">
+      <div style="text-align:left"><b>TogoHealth</b><span>Machine Setup B · Hand it to Claude</span></div>
+    </div>
+    <h1>Paste once.<br>Claude does the rest.</h1>
+    <p class="tagline">Lane folders, the toolchain and its four traps, the repos, and a <b>localhost login that actually works</b> — all from one prompt.</p>
+    <p class="subtle">This page is the walkthrough of what Claude will be doing, so you can follow along and catch a wrong turn.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warnbar"><b>Card A first.</b> This one assumes <code>claude</code> is already running — Homebrew, Node and Claude Code installed by hand. <a href="setup-a.html" style="color:#7f1d1d;font-weight:800">Go do card A →</a><br><br><b>No scoping questions here either.</b> Tailscale (card C) and SEGE (card D) are optional and come afterwards. Nothing below depends on either.</div>
+</div>
+
+<div class="wrap trail" id="trail">
+  <div class="trail-fill" id="fill"></div>
+  <div class="phase" style="--c:var(--purple)"><span>Phase 0 · Paste the prompt</span><small>you do this once, then read along</small></div>
+  <div class="step left" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">📌</div>
+    <div class="card">
+      <h3>Paste card B into the session from card A</h3>
+      <span class="who" style="background:var(--purple-bg);color:var(--purple)">[YOU]</span>
+      <p>Open <a href="https://github.com/togohealth-dev/emr-beta/issues/520" target="_blank">card B on GitHub</a> and copy everything between the <b>PASTE FROM HERE</b> markers. Paste it into the running <code>claude</code>.</p>
+      <p>Claude then works top to bottom and <b>stops at every [USER] step</b> to wait for you. The rest of this page is what it will be doing, so you can follow along and catch a wrong turn.</p>
+      <div class="optcall"><span class="ic">❓</span><div>The prompt tells Claude <b>not</b> to ask whether you need Tailscale or SEGE. If it asks anyway, say “separate card” and carry on.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Lanes before clones</span></div>
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">📁</div>
+    <div class="card">
+      <h3>The folder hierarchy</h3>
+      <span class="who" style="background:var(--blue-bg);color:var(--blue)">[CLAUDE]</span>
+      <p>All work lives under one <code>~/claude/</code> root, split into <b>lanes</b>. One lane = one kind of work, each with its own <code>CLAUDE.md</code>.</p>
+      <div class="tree">~/claude/
+  togo/
+    togo-emr/             the EMR product — you will live here
+      wt/                 every worktree goes in here
+    togo-facility-tools/  PointClickCare and other facility systems
+  personal/               your notes and side projects</div>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">mkdir -p ~/claude/togo/togo-emr/wt ~/claude/togo/togo-facility-tools ~/claude/personal</pre>
+      <pre class="os-pc">mkdir -p ~/claude/togo/togo-emr/wt ~/claude/togo/togo-facility-tools ~/claude/personal</pre></div>
+      <div class="optcall"><span class="ic">🚫</span><div><b>No <code>sege</code> folder here on purpose.</b> An empty one is worse than none: a session opened there loads the SEGE lane rules and looks ready to work with no repo and no access.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">🧭</div>
+    <div class="card">
+      <h3>Three rules that make lanes worth it</h3>
+      <ul><li><b>Worktrees go in <code>~/claude/togo/togo-emr/wt/</code></b>, never in your home directory — forty loose worktrees make the folder picker useless.</li><li><b>The containers are not lanes.</b> <code>~</code>, <code>~/claude</code> and <code>~/claude/togo</code> just hold things; a session opened in one loads no rules at all.</li><li><b>Never write one lane’s files into another lane’s tree.</b></li></ul>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--teal)"><span>Phase 2 · The toolchain and its four traps</span></div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">🛠️</div>
+    <div class="card">
+      <h3>Install the rest</h3>
+      <span class="who" style="background:var(--teal-bg);color:var(--teal)">[CLAUDE]</span>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">brew install git gh oven-sh/bun/bun colima docker \
+  docker-compose libpq rustup</pre>
+      <pre class="os-pc">brew install git gh oven-sh/bun/bun colima docker \
+  docker-compose libpq rustup</pre></div>
+      <p>Then the three that installing alone does not finish:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">brew link --force libpq
+rustup default stable
+cargo install sqlx-cli --version ^0.8 \
+  --no-default-features --features rustls,postgres</pre>
+      <pre class="os-pc">brew link --force libpq
+rustup default stable
+cargo install sqlx-cli --version ^0.8 \
+  --no-default-features --features rustls,postgres</pre></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--red);--bg:var(--red-bg)">
+    <div class="node">🪓</div>
+    <div class="card">
+      <h3>The four traps — each one bit a real machine</h3>
+      <ul><li><b><code>docker-compose</code> is a separate formula.</b> <code>brew install docker</code> gives only the CLI; with no compose plugin <code>docker compose up</code> prints usage and <b>exits 0</b> — a script “succeeds” while the database never starts.</li><li><b><code>libpq</code> is keg-only.</b> Without <code>brew link --force libpq</code>, <code>psql</code> stays off PATH and the keep-alive script aborts.</li><li><b>The formula is <code>rustup</code>, not <code>rustup-init</code>.</b> Then <code>rustup default stable</code> — installing rustup does <i>not</i> create a toolchain.</li><li><b><code>sqlx-cli</code></b> applies the migrations your login depends on.</li></ul>
+      <div class="checkline"><span class="ic">✅</span><div>You do not have to do these by hand — <code>machine-setup/install.sh</code> opens with a preflight that installs and verifies every one and reports what is missing.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--purple)"><span>Phase 3 · Claude everywhere</span></div>
+  <div class="step right" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">🌐</div>
+    <div class="card">
+      <h3>The other two surfaces</h3>
+      <span class="who" style="background:var(--purple-bg);color:var(--purple)">[YOU]</span>
+      <p>Same <b>work Claude account</b> as the CLI, so sessions and settings line up.</p>
+      <ul><li><b>Claude Desktop</b> — <a href="https://claude.ai/download" target="_blank">claude.ai/download</a>. Claude Code runs inside it with a GUI.</li><li><b>Claude on the web</b> — <a href="https://claude.ai" target="_blank">claude.ai</a>, and Claude Code at <a href="https://claude.ai/code" target="_blank">claude.ai/code</a>.</li><li><b>Claude in Chrome</b> — the sidebar extension, for working alongside a web app.</li></ul>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--orange)"><span>Phase 4 · Identity</span></div>
+  <div class="step left" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <div class="node">🪪</div>
+    <div class="card">
+      <h3>git, GitHub CLI, SSH key</h3>
+      <p><b>[CLAUDE]</b> sets your git identity; <b>[YOU]</b> complete the two logins.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">git config --global user.name &quot;Your Name&quot;
+git config --global user.email &quot;you@togohealth.com&quot;</pre>
+      <pre class="os-pc">git config --global user.name &quot;Your Name&quot;
+git config --global user.email &quot;you@togohealth.com&quot;</pre></div>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">gh auth login
+gh auth refresh -h github.com -s workflow</pre>
+      <pre class="os-pc">gh auth login
+gh auth refresh -h github.com -s workflow</pre></div>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">ssh-keygen -t ed25519 -C &quot;you@togohealth.com&quot; -N &quot;&quot; \
+  -f ~/.ssh/id_ed25519</pre>
+      <pre class="os-pc">ssh-keygen -t ed25519 -C &quot;you@togohealth.com&quot; -N &quot;&quot; \
+  -f ~/.ssh/id_ed25519</pre></div>
+      <div class="mail"><span class="ic">📧</span><div>Add <code>~/.ssh/id_ed25519.pub</code> to GitHub → Settings → SSH keys. <b>Keep this key</b> — card C uses it if you ever do that one.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--green)"><span>Phase 5 · Repos + the lane rules</span></div>
+  <div class="step right" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">📦</div>
+    <div class="card">
+      <h3>Clone, then install the lane files</h3>
+      <span class="who" style="background:var(--green-bg);color:var(--green)">[CLAUDE]</span>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">git clone https://github.com/togohealth-dev/strategy-sessions \
+  ~/claude/togo/togo-emr/strategy-sessions-repo
+git clone https://github.com/togohealth-dev/emr-beta \
+  ~/claude/togo/togo-emr/togohealth-emr</pre>
+      <pre class="os-pc">git clone https://github.com/togohealth-dev/strategy-sessions \
+  ~/claude/togo/togo-emr/strategy-sessions-repo
+git clone https://github.com/togohealth-dev/emr-beta \
+  ~/claude/togo/togo-emr/togohealth-emr</pre></div>
+      <p>Then install the lane rules <b>from the repo</b> — nothing copied from a teammate:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">bash ~/claude/togo/togo-emr/strategy-sessions-repo/\
+  lane-claude/install-lanes.sh</pre>
+      <pre class="os-pc">bash ~/claude/togo/togo-emr/strategy-sessions-repo/\
+  lane-claude/install-lanes.sh</pre></div>
+      <p>That places the lane router at <code>~/.claude/CLAUDE.md</code>, the per-lane rules for <code>togo-emr</code> and <code>togo-facility-tools</code>, and the <b>lane-check</b> hook that reports which lane a session started in.</p>
+      <div class="optcall"><span class="ic">📝</span><div>Your <code>personal</code> lane file is yours to write and is never committed. The <b>SEGE</b> one is not in the repo at all — see card D.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--red)"><span>Phase 6 · A localhost login that actually works</span></div>
+  <div class="step left" style="--c:var(--red);--bg:var(--red-bg)">
+    <div class="node">🔄</div>
+    <div class="card">
+      <h3>One idempotent command</h3>
+      <p>Fully self-contained: <b>local Docker Postgres (<code>:5434</code>, sandbox data) → Rust backend → Next.js frontends.</b> No gcloud, no Cloud SQL, nothing shared.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">cd ~/claude/togo/togo-emr/strategy-sessions-repo &amp;&amp; git pull
+bash machine-setup/bootstrap-dev-login.sh</pre>
+      <pre class="os-pc">cd ~/claude/togo/togo-emr/strategy-sessions-repo &amp;&amp; git pull
+bash machine-setup/bootstrap-dev-login.sh</pre></div>
+      <p>It asks for your @togohealth.com email and does the rest: Colima and the sandbox Postgres up, <code>portal/backend/.env</code> written, the mail password fetched from Secret Manager, migrations applied, a seeded provider row linked to a <code>local_auth</code> account, and the launchd keep-alive installed.</p>
+      <div class="loop"><span class="ic">🔁</span><div><b>It is idempotent.</b> If a step fails, fix what it names and run the whole thing again — do not try to hand-finish the remaining steps.</div></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--red);--bg:var(--red-bg)">
+    <div class="node">🔐</div>
+    <div class="card">
+      <h3>Nothing here is hand-delivered</h3>
+      <ul><li><b>Your <code>.env</code> is generated</b> from a template in the repo, not from someone else’s machine.</li><li><b>Login codes are real email</b> to your own inbox, from the shared <code>support@togohealth.com</code> mailbox — the same path production uses.</li><li><b>Your login backend is yours alone</b> — name, database and port derive from your email, so parallel worktrees never churn each other’s password.</li><li><b>The frontend finds it</b> through a gitignored <code>portal/web/.env.local</code>. Never edit <code>forceProd</code>.</li></ul>
+      <div class="optcall"><span class="ic">🔒</span><div>The mailbox password is the one true secret. Claude may run the bootstrap that fetches it, but <b>must never print it into the session</b>. If the fetch 403s, ask Greg or Scott for <code>secretAccessor</code> on <code>support-mailer-password</code>.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--red);--bg:var(--red-bg)">
+    <div class="node">🚪</div>
+    <div class="card">
+      <h3>Log in before you build anything</h3>
+      <span class="who" style="background:var(--red-bg);color:var(--red)">[YOU]</span>
+      <p><code>localhost:3000</code> → <b>Forgot your password?</b> → your @togohealth.com email → the 6-digit code arrives in your inbox → set a password → register a passkey (Touch ID) for MFA.</p>
+      <div class="checkline"><span class="ic">✅</span><div><b>Password first, then passkey.</b> That order matters — the passkey is the second factor, not the way in.</div></div>
+      <p><b>If it does not work, the failure names itself:</b></p>
+      <ul><li>A <code>FAIL</code> line from the bootstrap says exactly what to fix.</li><li><code>missing required env var(s)</code> — <code>config.rs</code> gained a variable the template lacks. Add it to <code>.env</code>, <b>then</b> add it to the template so the next hire never sees it.</li><li><b>404 on <code>/auth/*</code></b> — the backend build predates <code>local_auth</code>. Rebuild; do not work around it.</li><li><b>“Not authorized with any role”</b> — the seed did not link your <code>professional</code> row to a <code>local_auth</code> account.</li></ul>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--blue)"><span>Phase 7 · Tracker, then a smoke test</span></div>
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">📋</div>
+    <div class="card">
+      <h3>Join the tracker</h3>
+      <p><b>[YOU]</b> open the <a href="index.html">project tracker</a> and <b>Sign in with GitHub</b>. Confirm projects load.</p>
+      <p>Then skim the playbooks in <code>strategy-sessions-repo/</code> — <code>SESSION-STARTER.md</code> first, then the strategy file for your role.</p>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">✅</div>
+    <div class="card">
+      <h3>First real session</h3>
+      <p>Start a fresh <code>claude</code> in <code>~/claude/togo/togo-emr/togohealth-emr</code>. It should auto-load SESSION-STARTER.md and the relevant strategy files, and the lane-check hook should report the <b>togo-emr</b> lane.</p>
+      <div class="checkline"><span class="ic">✅</span><div>Ask it the deployment order. Correct answer: <b>localhost → alpha → beta → gamma.</b></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="wrap">
+  <div class="rules">
+    <h2>Six rules Claude is also told</h2>
+    <p class="lead">These are in the prompt, but they outlive the setup — they apply to every session you ever run here.</p>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🔒 Never invent or commit a secret</h4>
+      <p>Your dev <code>.env</code> ships <code>dev-placeholder</code> for every vendor key. Real values come from Secret Manager, per person and revocable — never from a teammate’s laptop, an issue, or a chat.</p>
+    </div>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🧠 AI on PHI means OpenAI</h4>
+      <p>TogoHealth has a signed BAA with OpenAI, so it is the approved provider. Server-side (Rust backend) only, minimum-necessary PHI, and a clinician confirms every write.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🗃️ Localhost is sandbox-only</h4>
+      <p>Never point it at the production database. PHI stays on the Mac mini.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🔥 Do not touch Firebase</h4>
+      <p>Auth is MFA. Firebase is being removed — treat it as frozen. Persistent state goes in Postgres.</p>
+    </div>
+    <div class="rule" style="--c:var(--purple)">
+      <h4>🗄️ One shared database across α/β/γ</h4>
+      <p>Each environment has its own frontend <i>and</i> backend; only the DATABASE is shared. So a test <b>row</b> shows up in production the moment it exists — gate one that would confuse real users.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>📖 Read “How We Ship” next</h4>
+      <p>Your laptop is ready. <a href="workflow.html">How We Ship</a> explains what happens to a project once you start building.</p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="btns">
+      <a class="btn" href="workflow.html">📖 Read “How We Ship” next →</a>
+      <a class="btn ghost" href="setup-a.html">← Card A</a>
+      <a class="btn ghost" href="new-hire-setup.html">All four cards</a>
+
+    </div>
+    <p>Stuck on any step? Ask Greg or Scott — that's always faster than guessing.<br>
+    <span style="font-size:12px;opacity:.75">TogoHealth · named for Togo, the sled dog who ran the hardest leg and got none of the credit.</span></p>
+  </div>
+</footer>
+
+<script src="setup-guide.js"></script>
+</body>
+</html>
