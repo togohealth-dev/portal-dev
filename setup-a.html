@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setup A · Before Claude — TogoHealth Dev Trail</title>
+<link rel="icon" type="image/png" href="icons/togo-favicon.png">
+<link rel="stylesheet" href="setup-guide.css">
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="paws">
+    <div class="paw" style="left:7%;top:16%">💻</div><div class="paw" style="left:88%;top:24%;animation-delay:1.4s">🖱️</div>
+    <div class="paw" style="left:16%;top:68%;animation-delay:2.6s">🐾</div><div class="paw" style="left:79%;top:72%;animation-delay:.8s">⌨️</div>
+    <div class="paw" style="left:47%;top:8%;animation-delay:3.4s">❄️</div>
+  </div>
+  <div class="wrap">
+    <div class="logo-badge">
+      <img src="icons/togo-logo.png" alt="TogoHealth">
+      <div style="text-align:left"><b>TogoHealth</b><span>Machine Setup A · Before Claude</span></div>
+    </div>
+    <h1>Six commands<br>to a working Claude</h1>
+    <p class="tagline">Everything you do on a brand-new Mac <b>before Claude exists on it</b> — two apps, one login, and six commands you paste one at a time.</p>
+    <p class="subtle">No Claude in this card. It is all you, and it ends with Claude Code running so you can hand the rest over.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warnbar"><b>Before you touch a terminal:</b> ask Greg or Morgan for two things — a <b>GitHub account</b> added to the <code>togohealth-dev</code> org, and a <b>@togohealth.com Google account</b>.<br><br><b>Nothing else is asked of you.</b> No “do you need Tailscale?”, no “do you need SEGE?” — those are separate optional cards you do afterwards. This one builds the same machine either way.</div>
+</div>
+
+<div class="wrap trail" id="trail">
+  <div class="trail-fill" id="fill"></div>
+  <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Two apps and a login</span><small>all clicking — no terminal yet</small></div>
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">🌍</div>
+    <div class="card">
+      <h3>🖱️ Install Chrome, then pin it</h3>
+      <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
+      <p>Download from <a href="https://www.google.com/chrome" target="_blank">google.com/chrome</a>, open the <code>.dmg</code>, drag <b>Google Chrome</b> into <b>Applications</b>, then eject the disk image.</p>
+      <p>Open it, then <b>right-click the Dock icon → Options → Keep in Dock</b>.</p>
+      <div class="optcall"><span class="ic">📌</span><div>You will live in this browser: the tracker, claude.ai, the portal on localhost, and the Google account below all run here.</div></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">🔑</div>
+    <div class="card">
+      <h3>Sign in with @togohealth.com</h3>
+      <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
+      <p>Chrome → profile icon (top right) → <b>Sign in</b> → your <b>@togohealth.com</b> address. Leave that profile open.</p>
+      <p>This one account gets you the portal login, the tracker, Drive — and Tailscale later, if you ever do card C.</p>
+      <div class="optcall"><span class="ic">⚠️</span><div><b>The single most common way a new machine ends up half-working:</b> signing in here with a personal Gmail. The tracker loads, the portal login does not, and nothing tells you why.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">⌨️</div>
+    <div class="card">
+      <h3>Pin Terminal to the Dock too</h3>
+      <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
+      <p><b>Finder → Applications → Utilities → Terminal.</b> Open it, then <b>right-click the Dock icon → Options → Keep in Dock</b>.</p>
+      <p>You do not need to understand the terminal. You need to be able to <i>find</i> it, and paste into it.</p>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--teal)"><span>Phase 2 · Six commands, one at a time</span><small>paste → Return → wait → next</small></div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">📋</div>
+    <div class="card">
+      <h3>How to run these</h3>
+      <p><b>Paste one command, press Return, wait for it to finish, then paste the next.</b> Every block below has a <b>&#10697; Copy</b> button — click it, then paste into Terminal with <code>⌘V</code>.</p>
+      <div class="stopline"><span class="ic">✋</span><div><b>Do not paste them as a block.</b> Two of them stop and wait for you, and one needs a shell state that the command before it creates. Pasted together, they interleave and fail in a way that is genuinely hard to read.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">1️⃣</div>
+    <div class="card">
+      <h3>Apple command line tools</h3>
+      <p><span class="cmdno" style="--c:var(--teal)">1</span>This is also where <code>git</code> comes from.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">xcode-select --install</pre>
+      <pre class="os-pc">xcode-select --install</pre></div>
+      <p>A GUI installer window opens. <b>Click through it and wait</b> — several minutes and several GB.</p>
+      <div class="checkline"><span class="ic">✅</span><div>If it says <b>“command line tools are already installed”</b>, that is a pass. Move on.</div></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">2️⃣</div>
+    <div class="card">
+      <h3>Homebrew — installs everything else</h3>
+      <p><span class="cmdno" style="--c:var(--teal)">2</span>The package manager the rest of the setup leans on.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;</pre>
+      <pre class="os-pc">/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;</pre></div>
+      <div class="stopline"><span class="ic">✋</span><div>It <b>asks for your Mac password</b> and pauses for a Return. That is expected — it is not stuck.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">3️⃣</div>
+    <div class="card">
+      <h3>Put Homebrew on your PATH</h3>
+      <p><span class="cmdno" style="--c:var(--teal)">3</span>Homebrew prints a message telling you to do this and <b>does not do it for you.</b></p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">echo &#39;eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;&#39; &gt;&gt; ~/.zprofile &amp;&amp; eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;</pre>
+      <pre class="os-pc">echo &#39;eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;&#39; &gt;&gt; ~/.zprofile &amp;&amp; eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;</pre></div>
+      <div class="optcall"><span class="ic">⚠️</span><div>Skip this and the next command fails with <code>brew: command not found</code> on a machine where Homebrew is definitely installed. It is the most confusing five minutes of the whole setup.</div></div>
+      <p>Then check it took:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">brew --version</pre>
+      <pre class="os-pc">brew --version</pre></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">4️⃣</div>
+    <div class="card">
+      <h3>Node</h3>
+      <p><span class="cmdno" style="--c:var(--teal)">4</span>Claude Code runs on it.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">brew install node</pre>
+      <pre class="os-pc">brew install node</pre></div>
+      <div class="checkline"><span class="ic">✅</span><div><code>node --version</code> prints something like <b>v22.x</b>.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">5️⃣</div>
+    <div class="card">
+      <h3>Claude Code</h3>
+      <p><span class="cmdno" style="--c:var(--purple)">5</span>The CLI itself.</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">npm install -g @anthropic-ai/claude-code</pre>
+      <pre class="os-pc">npm install -g @anthropic-ai/claude-code</pre></div>
+      <div class="checkline"><span class="ic">✅</span><div><code>claude --version</code> prints a version and <b>(Claude Code)</b>.</div></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--purple);--bg:var(--purple-bg)">
+    <div class="node">6️⃣</div>
+    <div class="card">
+      <h3>Start it</h3>
+      <p><span class="cmdno" style="--c:var(--purple)">6</span></p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">claude</pre>
+      <pre class="os-pc">claude</pre></div>
+      <p>First run walks you through signing in.</p>
+      <div class="mail"><span class="ic">📧</span><div><b>Use your work Claude account</b> — the same one you will use at claude.ai and in the Chrome extension, so sessions, history and settings line up.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--green)"><span>Done · Hand it over</span></div>
+  <div class="step left" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">🏁</div>
+    <div class="card">
+      <h3>You are finished when Claude answers you</h3>
+      <p><code>claude</code> is running in a terminal window and responds.</p>
+      <p><b>Now open card B and paste its prompt into this session.</b> Claude does the entire rest of the setup: lane folders, the toolchain, the repos, a working localhost login, and the tracker.</p>
+      <p><a href="setup-b.html">→ Card B · Hand the rest to Claude</a></p>
+    </div>
+  </div>
+
+</div>
+
+<div class="wrap">
+  <div class="rules">
+    <h2>Five things that trip people here</h2>
+    <p class="lead">Every one of these has cost a real person real hours on this exact card.</p>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🔒 Never paste a credential into Claude</h4>
+      <p>Claude fetches what it needs from Secret Manager itself. If any step seems to want you to paste a password or key into the session, stop and ask Greg.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>❓ It asks you nothing about Tailscale or SEGE</h4>
+      <p>On purpose. Those are cards C and D, done afterwards only if someone has told you that you need them. If nobody has, you don’t.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🛑 One command at a time, really</h4>
+      <p>The six are ordered because each one needs the last to have finished. Batch-pasting is the single most common way this phase goes wrong.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>🍎 Mac first</h4>
+      <p>These steps are written for a Mac. On a PC the Dock steps become taskbar pins and the installers differ — switch the tab on any code block, and ask Greg before improvising.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>📖 Then read “How We Ship”</h4>
+      <p>This card gets your laptop ready. <a href="workflow.html">How We Ship</a> explains what happens to a project once you start building.</p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="btns">
+      <a class="btn" href="setup-b.html">Next → Card B · Hand it to Claude</a>
+      <a class="btn ghost" href="new-hire-setup.html">← All four setup cards</a>
+
+    </div>
+    <p>Stuck on any step? Ask Greg or Scott — that's always faster than guessing.<br>
+    <span style="font-size:12px;opacity:.75">TogoHealth · named for Togo, the sled dog who ran the hardest leg and got none of the credit.</span></p>
+  </div>
+</footer>
+
+<script src="setup-guide.js"></script>
+</body>
+</html>
