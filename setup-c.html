@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setup C · Tailscale + the Mac mini — TogoHealth Dev Trail</title>
+<link rel="icon" type="image/png" href="icons/togo-favicon.png">
+<link rel="stylesheet" href="setup-guide.css">
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="paws">
+    <div class="paw" style="left:7%;top:16%">🖥️</div><div class="paw" style="left:88%;top:24%;animation-delay:1.4s">🔒</div>
+    <div class="paw" style="left:16%;top:68%;animation-delay:2.6s">🐾</div><div class="paw" style="left:79%;top:72%;animation-delay:.8s">🌐</div>
+    <div class="paw" style="left:47%;top:8%;animation-delay:3.4s">❄️</div>
+  </div>
+  <div class="wrap">
+    <div class="logo-badge">
+      <img src="icons/togo-logo.png" alt="TogoHealth">
+      <div style="text-align:left"><b>TogoHealth</b><span>Machine Setup C · Optional</span></div>
+    </div>
+    <h1>Tailscale<br>and the mini</h1>
+    <p class="tagline">How to reach <code>togo-mini</code> — the always-on box where <b>PHI stays</b> and the scheduled automation runs.</p>
+    <p class="subtle">Optional. Most people never need this, and cards A and B no longer ask.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warnbar"><b>Optional card.</b> Do this only if your work touches PHI storage or the automation on the mini. <b>Cards A and B build a complete EMR machine without it.</b><br><br><b>Prerequisite:</b> cards A and B are done — you need the SSH key from card B.</div>
+</div>
+
+<div class="wrap trail" id="trail">
+  <div class="trail-fill" id="fill"></div>
+  <div class="phase" style="--c:var(--orange)"><span>First · Check that you need this</span></div>
+  <div class="step left" style="--c:var(--orange);--bg:var(--orange-bg)">
+    <div class="node">🤔</div>
+    <div class="card">
+      <h3>Do you actually need the mini?</h3>
+      <p>The mini (<code>togo-mini</code>) is the always-on shared box: <b>PHI stays there</b> and the scheduled automation runs there.</p>
+      <p><b>You need it if</b> your work touches PHI storage, the recruiting/CMS scrapers, the patient-sync agents, or a production extract.</p>
+      <div class="checkline"><span class="ic">✅</span><div><b>You do not need it to develop the EMR.</b> Nothing in card B depends on it — localhost is fully self-contained on sandbox data.</div></div>
+      <div class="stopline"><span class="ic">✋</span><div>If nobody has told you that you need the mini, <b>you don’t</b>. Close this page; it is ten minutes to add later.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Get on the tailnet</span></div>
+  <div class="step right" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">✉️</div>
+    <div class="card">
+      <h3>Ask for an invite</h3>
+      <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
+      <p>Ask <b>Greg or Morgan</b> for a Tailscale invite.</p>
+      <div class="optcall"><span class="ic">⚠️</span><div><b>Accept it with your @togohealth.com account</b>, not a personal one. The tailnet is keyed to the work domain — an invite accepted with a personal Gmail joins the wrong tailnet and then fails in a way that looks exactly like a network problem.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
+    <div class="node">🔓</div>
+    <div class="card">
+      <h3>Install and connect</h3>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">brew install tailscale</pre>
+      <pre class="os-pc">brew install tailscale</pre></div>
+      <p>Bring it up and sign in:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">sudo tailscale up</pre>
+      <pre class="os-pc">sudo tailscale up</pre></div>
+      <p>Verify — the mini should be listed:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">tailscale status</pre>
+      <pre class="os-pc">tailscale status</pre></div>
+      <div class="optcall"><span class="ic">🧭</span><div>Card B deliberately leaves <code>tailscale</code> out of its install line. An unused VPN client that silently fails to connect is a red herring that costs a day on a machine that never needed it.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--teal)"><span>Phase 2 · Reach the mini</span></div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">🏷️</div>
+    <div class="card">
+      <h3>Hostname, never an IP</h3>
+      <p>The mini is always:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">togo-mini.tail027aaa.ts.net</pre>
+      <pre class="os-pc">togo-mini.tail027aaa.ts.net</pre></div>
+      <p>That is Tailscale MagicDNS — it resolves to the right address even when the underlying IP changes.</p>
+      <div class="stopline"><span class="ic">✋</span><div><b>Never hardcode an IP</b> in a script, a config, or a note. They do change, and the failure shows up weeks later as “the mini is down”.</div></div>
+    </div>
+  </div>
+  <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">🔑</div>
+    <div class="card">
+      <h3>SSH access</h3>
+      <span class="who" style="background:var(--teal-bg);color:var(--teal)">[YOU]</span>
+      <p>Send <b>Greg</b> your public key from card B:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">cat ~/.ssh/id_ed25519.pub</pre>
+      <pre class="os-pc">cat ~/.ssh/id_ed25519.pub</pre></div>
+      <p>He adds it to the <code>togomini</code> account. Then test:</p>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">ssh togomini@togo-mini.tail027aaa.ts.net</pre>
+      <pre class="os-pc">ssh togomini@togo-mini.tail027aaa.ts.net</pre></div>
+    </div>
+  </div>
+  <div class="step right" style="--c:var(--green);--bg:var(--green-bg)">
+    <div class="node">🚫</div>
+    <div class="card">
+      <h3>Nothing to install for monitoring</h3>
+      <p>The old laptop-side monitor (<code>com.togohealth.minicheck</code> / <code>check-mini.sh</code>) was <b>retired 2026-07-17</b>.</p>
+      <div class="stopline"><span class="ic">✋</span><div><b>Do not reinstate it.</b> It fired an alert on every laptop whenever any laptop’s own VPN dropped — which is not the mini being down.</div></div>
+    </div>
+  </div>
+  <div class="phase" style="--c:var(--red)"><span>When it says “the mini is down”</span></div>
+  <div class="step left" style="--c:var(--red);--bg:var(--red-bg)">
+    <div class="node">🔍</div>
+    <div class="card">
+      <h3>Run one command before anything else</h3>
+      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <pre class="os-mac show">tailscale status</pre>
+      <pre class="os-pc">tailscale status</pre></div>
+      <ul><li><b>It errors, or the mini is not listed</b> → it is <i>your</i> Tailscale. Open the app or <code>sudo tailscale up</code>.</li><li><b>The mini is listed but SSH hangs</b> → your key is not on the <code>togomini</code> account yet, or the mini is genuinely offline. Ask Greg before assuming the second.</li></ul>
+      <div class="optcall"><span class="ic">📈</span><div>The order matters: <b>almost every “mini is down” report has turned out to be the reporter’s own tailnet session having expired.</b></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="wrap">
+  <div class="rules">
+    <h2>Four rules for the mini</h2>
+    <p class="lead">Short list, and the first one is the reason the box exists at all.</p>
+    <div class="rule" style="--c:var(--red)">
+      <h4>🔒 PHI lives there, not here</h4>
+      <p>That is the whole reason the box exists. Do not copy PHI down to your laptop to “work on it locally”.</p>
+    </div>
+    <div class="rule" style="--c:var(--orange)">
+      <h4>🧭 It is usually a lane boundary too</h4>
+      <p>Work that reaches the mini normally belongs in <code>togo-facility-tools</code> or <code>personal</code>, not the EMR lane. Check which lane you are in before you start.</p>
+    </div>
+    <div class="rule" style="--c:var(--blue)">
+      <h4>🏷️ MagicDNS name, always</h4>
+      <p><code>togo-mini.tail027aaa.ts.net</code>. If you find a hardcoded IP anywhere, replace it — that is a latent outage.</p>
+    </div>
+    <div class="rule" style="--c:var(--teal)">
+      <h4>💼 @togohealth.com, always</h4>
+      <p>Both the Tailscale invite and the sign-in. A personal account silently joins the wrong tailnet.</p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="btns">
+      <a class="btn" href="setup-d.html">Card D · SEGE access →</a>
+      <a class="btn ghost" href="new-hire-setup.html">← All four cards</a>
+
+    </div>
+    <p>Stuck on any step? Ask Greg or Scott — that's always faster than guessing.<br>
+    <span style="font-size:12px;opacity:.75">TogoHealth · named for Togo, the sled dog who ran the hardest leg and got none of the credit.</span></p>
+  </div>
+</footer>
+
+<script src="setup-guide.js"></script>
+</body>
+</html>
