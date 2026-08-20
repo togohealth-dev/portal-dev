@@ -65,11 +65,22 @@
   </div>
   <div class="phase" style="--c:var(--teal)"><span>Phase 2 · Six commands, one at a time</span><small>paste → Return → wait → next</small></div>
   <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
-    <div class="node">📋</div>
+    <div class="node">📤</div>
     <div class="card">
-      <h3>How to run these</h3>
-      <p><b>Paste one command, press Return, wait for it to finish, then paste the next.</b> Every block below has a <b>&#10697; Copy</b> button — click it, then paste into Terminal with <code>⌘V</code>.</p>
-      <div class="stopline"><span class="ic">✋</span><div><b>Do not paste them as a block.</b> Two of them stop and wait for you, and one needs a shell state that the command before it creates. Pasted together, they interleave and fail in a way that is genuinely hard to read.</div></div>
+      <h3>Two ways to run these</h3>
+      <p><b>Copy them one at a time from this page</b> — every block below has a <b>&#10697; Copy</b> button; click it, then paste into Terminal with <code>⌘V</code>.</p>
+      <p><b>Or email the whole list to whoever is setting up the machine</b> and let them follow it there. Same six commands, same order, with a link back to this page.</p>
+      <div class="sendbox">
+        <span class="lbl">📧 Email these commands</span>
+        <div class="emailrow">
+          <input type="email" inputmode="email" autocomplete="email" spellcheck="false"
+                 placeholder="newhire@togohealth.com" aria-label="Email address to send the commands to">
+          <button class="send" type="button">Send</button>
+        </div>
+        <div class="sendmsg">Opens a pre-filled draft — <b>you press Send</b>. This page has no server and never sends anything by itself.</div>
+        <div class="sendalt">Not emailing? <button type="button" data-copyall>Copy all six commands instead</button></div>
+      </div>
+      <div class="stopline"><span class="ic">✋</span><div><b>Whichever route you take: do not paste them as a block.</b> Two of them stop and wait for you, and one needs a shell state that the command before it creates. Pasted together they interleave and fail in a way that is genuinely hard to read.</div></div>
     </div>
   </div>
   <div class="step left" style="--c:var(--teal);--bg:var(--teal-bg)">
@@ -77,7 +88,7 @@
     <div class="card">
       <h3>Apple command line tools</h3>
       <p><span class="cmdno" style="--c:var(--teal)">1</span>This is also where <code>git</code> comes from.</p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="1" data-label="Apple command line tools (includes git)"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">xcode-select --install</pre>
       <pre class="os-pc">xcode-select --install</pre></div>
       <p>A GUI installer window opens. <b>Click through it and wait</b> — several minutes and several GB.</p>
@@ -89,7 +100,7 @@
     <div class="card">
       <h3>Homebrew — installs everything else</h3>
       <p><span class="cmdno" style="--c:var(--teal)">2</span>The package manager the rest of the setup leans on.</p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="2" data-label="Homebrew (it will ask for your Mac password)"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;</pre>
       <pre class="os-pc">/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;</pre></div>
       <div class="stopline"><span class="ic">✋</span><div>It <b>asks for your Mac password</b> and pauses for a Return. That is expected — it is not stuck.</div></div>
@@ -100,7 +111,7 @@
     <div class="card">
       <h3>Put Homebrew on your PATH</h3>
       <p><span class="cmdno" style="--c:var(--teal)">3</span>Homebrew prints a message telling you to do this and <b>does not do it for you.</b></p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="3" data-label="Put Homebrew on your PATH (Homebrew does NOT do this for you)"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">echo &#39;eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;&#39; &gt;&gt; ~/.zprofile &amp;&amp; eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;</pre>
       <pre class="os-pc">echo &#39;eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;&#39; &gt;&gt; ~/.zprofile &amp;&amp; eval &quot;$(/opt/homebrew/bin/brew shellenv)&quot;</pre></div>
       <div class="optcall"><span class="ic">⚠️</span><div>Skip this and the next command fails with <code>brew: command not found</code> on a machine where Homebrew is definitely installed. It is the most confusing five minutes of the whole setup.</div></div>
@@ -115,7 +126,7 @@
     <div class="card">
       <h3>Node</h3>
       <p><span class="cmdno" style="--c:var(--teal)">4</span>Claude Code runs on it.</p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="4" data-label="Node (Claude Code runs on it)"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">brew install node</pre>
       <pre class="os-pc">brew install node</pre></div>
       <div class="checkline"><span class="ic">✅</span><div><code>node --version</code> prints something like <b>v22.x</b>.</div></div>
@@ -126,7 +137,7 @@
     <div class="card">
       <h3>Claude Code</h3>
       <p><span class="cmdno" style="--c:var(--purple)">5</span>The CLI itself.</p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="5" data-label="Claude Code"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">npm install -g @anthropic-ai/claude-code</pre>
       <pre class="os-pc">npm install -g @anthropic-ai/claude-code</pre></div>
       <div class="checkline"><span class="ic">✅</span><div><code>claude --version</code> prints a version and <b>(Claude Code)</b>.</div></div>
@@ -137,7 +148,7 @@
     <div class="card">
       <h3>Start it</h3>
       <p><span class="cmdno" style="--c:var(--purple)">6</span></p>
-      <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
+      <div class="oscode" data-step="6" data-label="Start it"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">claude</pre>
       <pre class="os-pc">claude</pre></div>
       <p>First run walks you through signing in.</p>
