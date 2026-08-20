@@ -237,3 +237,33 @@
     text-transform:uppercase;padding:3px 9px;border-radius:999px;
     background:var(--bg,var(--blue-bg));color:var(--c,var(--blue));
   }
+
+  /* ── email-the-commands form (card A) ── */
+  .sendbox{margin-top:13px;padding:13px 14px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:12px}
+  .sendbox .lbl{display:block;font-size:11px;font-weight:850;letter-spacing:.5px;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
+  .emailrow{display:flex;gap:8px;flex-wrap:wrap}
+  .emailrow input{
+    flex:1 1 190px;min-width:0;padding:9px 12px;border:1px solid #bfdbfe;border-radius:9px;
+    font:inherit;font-size:13.5px;color:var(--ink);background:#fff;
+  }
+  .emailrow input:focus{outline:2px solid var(--blue);outline-offset:-1px}
+  .emailrow input.bad{border-color:#fca5a5;background:#fff5f5}
+  .emailrow .send{
+    flex:none;padding:9px 17px;border:0;border-radius:9px;background:var(--blue);color:#fff;
+    font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:.15s;
+  }
+  .emailrow .send:hover{background:#1d4ed8}
+  .emailrow .send:focus-visible{outline:2px solid #1e3a8a;outline-offset:2px}
+  /* once the row wraps, a 68px button alone on a line reads as stranded */
+  @media (max-width:520px){ .emailrow .send{flex:1 1 100%;padding:11px 17px} }
+  .sendmsg{margin-top:9px;font-size:12.5px;line-height:1.55;color:#1e40af}
+  .sendmsg a{color:var(--blue);font-weight:700}
+  .sendmsg.err{color:#b91c1c}
+  .sendalt{
+    margin-top:8px;font-size:11.5px;color:#3b6bb8;display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+  }
+  .sendalt button{
+    background:none;border:0;padding:0;font:inherit;font-size:11.5px;font-weight:800;
+    color:var(--blue);cursor:pointer;text-decoration:underline;
+  }
+  .sendalt button:hover{color:#1d4ed8}
