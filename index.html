@@ -2197,6 +2197,11 @@ async function loadReferenceProjects() {
   try {
     const raw = await ghFetch(`/repos/${REPO}/issues?labels=reference&state=all&per_page=100`);
     referenceProjects = raw.map(i => ({ number: i.number, title: i.title, body: i.body||'', url: i.html_url, labels: i.labels.map(l=>l.name), codingEst: parseEst(i.body), commentCount: i.comments }));
+    // Read order, not creation order: the machine-setup cards run A -> B -> C -> D.
+    // The API returns newest-first, which listed D first — the reverse of the order
+    // a new hire is meant to follow. Everything else keeps newest-first below them.
+    const setupRank = t => { const m = (t||'').match(/^Machine setup ([A-Z])\b/); return m ? m[1].charCodeAt(0) - 65 : 99; };
+    referenceProjects.sort((a,b) => setupRank(a.title) - setupRank(b.title) || b.number - a.number);
     renderReferenceProjects();
     if (loading) loading.style.display = 'none';
     if (content) content.style.display = 'block';
