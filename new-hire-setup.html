@@ -216,15 +216,21 @@
   <div class="warnbar">
     <b>Before you touch a terminal:</b> ask Greg or Morgan for two things — a <b>GitHub account</b> added to the <code>togohealth-dev</code> org and a <b>@togohealth.com Google account</b> — and to be told when both are ready. Everything below assumes you have them.
     <br><br>
-    <b>Then answer these two, before anything gets installed.</b> They decide which folders you create and which whole sections you skip, so settling them now saves undoing things later. <b>If you're unsure, the answer is no</b> — a normal EMR developer needs neither, and both are easy to add whenever that changes.
+    <b>Nothing else is asked of you up front.</b> The setup used to open with two questions &mdash; do you need SEGE, do you
+    need Tailscale &mdash; and those two were the part people kept getting wrong. They are now separate, optional cards you do
+    <i>afterwards</i>, only if someone has told you that you need them. The core setup below builds a complete working machine
+    without either.
     <br><br>
-    <b>1. Do you need SEGE access?</b> (staffing, recruiting, business — a separate product from the EMR).<br>
-    <span style="opacity:.85">Yes → ask Greg for it, and create the <code>~/claude/sege</code> folder in the lane setup below. No → skip that line and every SEGE step; don't create an empty folder "just in case."</span>
+    <b>A</b> &mdash; everything before Claude exists on the Mac: Chrome, the work login, Terminal, and six commands that end with
+    <code>claude</code> running. <span style="opacity:.85">That is the first half of this page.</span><br>
+    <b>B</b> &mdash; paste one prompt and Claude does the rest: folders, toolchain, repos, a localhost login that works, the tracker.
+    <span style="opacity:.85">The second half.</span><br>
+    <b>C</b> &mdash; Tailscale + the <code>togo-mini</code> Mac mini. <span style="opacity:.85">Only for work that touches PHI
+    storage or the scheduled automation &mdash; not needed to develop the EMR.</span><br>
+    <b>D</b> &mdash; SEGE Command Center access. <span style="opacity:.85">Only for staffing, recruiting or business work; it is a
+    separate product, granted per person.</span>
     <br><br>
-    <b>2. Do you need Tailscale and the <code>togo-mini</code> Mac mini?</b> (only if your work touches PHI storage or the automation that runs there).<br>
-    <span style="opacity:.85">Yes → ask Greg or Morgan for a Tailscale invite and accept it with your @togohealth.com account. No → don't install Tailscale and skip the mini section entirely. <b>Nothing in the core setup needs it</b> — your localhost EMR works fully without it.</span>
-    <br><br>
-    Tell Claude both answers at the start of the setup session; the prompt asks for them in its very first phase and follows them the rest of the way.
+    If nobody has told you that you need C or D, <b>you don't</b> &mdash; and either is about ten minutes to add later.
   </div>
 </div>
 
