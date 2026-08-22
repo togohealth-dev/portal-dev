@@ -1509,7 +1509,7 @@ async function loadCurrentProjects() {
   document.getElementById('cp-content').style.display = 'none';
   try {
     await loadBetaVersionUrl();
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`);
     // Fetch latest comment for each open project (for Scott's feedback / beta URL)
     currentProjects = await Promise.all(raw.map(async issue => {
       const labels = issue.labels.map(l => l.name);
@@ -1538,7 +1538,7 @@ async function loadFutureIdeas() {
   document.getElementById('fi-loading').style.display = 'block';
   document.getElementById('fi-content').style.display = 'none';
   try {
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=future-idea&state=open&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=future-idea&state=open&per_page=100`);
     futureIdeas = raw.map(issue => {
       const labels = issue.labels.map(l => l.name);
       const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
@@ -1576,7 +1576,7 @@ async function loadWoundCare() {
   loading.style.display = 'block';
   content.style.display = 'none';
   try {
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=woundcare&state=open&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=woundcare&state=open&per_page=100`);
     woundCare = raw.map(issue => {
       const labels = issue.labels.map(l => l.name);
       const body = issue.body || '';
@@ -1688,7 +1688,7 @@ async function loadFacilityPortal() {
   document.getElementById('fp-loading').style.display = 'block';
   document.getElementById('fp-content').style.display = 'none';
   try {
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=facility-portal&state=open&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=facility-portal&state=open&per_page=100`);
     facilityPortal = raw.map(issue => {
       const labels = issue.labels.map(l => l.name);
       const body = issue.body || '';
@@ -2043,6 +2043,24 @@ function intVendorRank(t){ t=(t||'').toLowerCase();
 // list has to read 1 → 2 → 3 downward, so scanning from the top tells you what is
 // next: when 1/3 finishes and leaves the section, 2/3 becomes that bundle's top
 // row instead of being buried by priority or by last-updated.
+// GitHub caps per_page at 100 and does not say inline that there is more — so a
+// section with 115 issues rendered exactly 100 and the other 15 simply were not
+// there. That reads as "the card doesn't exist" rather than as an error, and it is
+// how a numbered bundle appeared to have missing members (PM 9/14 was on page 2).
+// Every list load goes through here.
+async function ghFetchAll(path, cap = 10) {
+  const sep = path.includes('?') ? '&' : '?';
+  let out = [], page = 1;
+  while (page <= cap) {
+    const batch = await ghFetch(`${path}${sep}page=${page}`);
+    if (!Array.isArray(batch) || !batch.length) break;
+    out = out.concat(batch);
+    if (batch.length < 100) break;   // short page = last page
+    page++;
+  }
+  return out;
+}
+
 function bundleOf(title){
   let m = (title||'').match(/^\[(\d+)\/(\d+)\]/);
   if (m) return { track: '[]', pos: +m[1], total: +m[2] };
@@ -2080,7 +2098,7 @@ async function loadIntegrations() {
   if (!load || !cont) return;
   load.style.display = 'block'; cont.style.display = 'none';
   try {
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=integrations&state=open&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=integrations&state=open&per_page=100`);
     integrations = raw.map(issue => {
       const labels = issue.labels.map(l => l.name);
       const body = issue.body || '';
@@ -2252,7 +2270,7 @@ async function loadReferenceProjects() {
   const loading = document.getElementById('ref-loading');
   const content = document.getElementById('ref-content');
   try {
-    const raw = await ghFetch(`/repos/${REPO}/issues?labels=reference&state=all&per_page=100`);
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=reference&state=all&per_page=100`);
     referenceProjects = raw.map(i => ({ number: i.number, title: i.title, body: i.body||'', url: i.html_url, labels: i.labels.map(l=>l.name), codingEst: parseEst(i.body), commentCount: i.comments }));
     // Read order, not creation order: the machine-setup cards run A -> B -> C -> D.
     // The API returns newest-first, which listed D first — the reverse of the order
