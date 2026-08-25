@@ -1647,7 +1647,7 @@ function renderWoundCare() {
     const gH = groups[k].reduce((s,p)=> s + (p.codingEst ? parseFloat(p.codingEst) : 0), 0);
     rows += `<tr class="int-vgroup" id="wc-t-${k.toLowerCase().replace(/[^a-z0-9]+/g,'-')}"><td colspan="7">${esc(k)} <span style="font-weight:500;color:var(--text-muted)">(${groups[k].length}${gH?` · ~${Math.round(gH*10)/10}h`:''})</span></td></tr>`;
     rows += groups[k].map(p => `<tr id="proj-${p.number}">
-      <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${++n}</td>
+      <td style="font-size:12px;font-weight:600;white-space:nowrap">${p.url ? `<a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none" title="Open issue #${p.number} on GitHub">#${p.number}</a>` : `#${p.number}`}</td>
       <td>
         ${p.rank ? `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:1px 6px;margin-right:6px" title="Stated build order — ${p.rank === 1 ? 'most important build in this track' : 'rank ' + p.rank}">★${p.rank}</span>` : ''}<a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
         <div class="proj-desc">${esc(wcBlurb(p.body))}</div>
@@ -2126,7 +2126,7 @@ async function loadIntegrations() {
 }
 function integrationRow(p, idx, notYet) {
   return `<tr id="proj-${p.number}">
-    <td style="font-size:12px;font-weight:600;color:var(--text-muted)">${idx}</td>
+    <td style="font-size:12px;font-weight:600;white-space:nowrap">${p.url ? `<a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none" title="Open issue #${p.number} on GitHub">#${p.number}</a>` : `#${p.number}`}</td>
     <td>
       <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
       <div class="proj-desc">${esc((p.body||'').split('\n')[0].replace(/^#+\s*/,'').slice(0,120))}</div>
