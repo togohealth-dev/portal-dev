@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archive · TogoHealth Portal Development Tracker</title>
+<link rel="icon" href="icons/togo-logo.png">
+<style>
+  :root {
+    --bg:#f8fafc; --surface:#fff; --border:#e2e8f0; --text:#0f172a; --text-muted:#64748b;
+    --green:#16a34a; --green-bg:#dcfce7; --gray:#6b7280; --gray-bg:#f1f5f9;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px;
+           padding:14px 24px; background:var(--surface); border-bottom:1px solid var(--border);
+           position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .logo { font-weight:700; }
+  .logo span { color:var(--text-muted); font-weight:500; }
+  .btn { border:1px solid var(--border); background:var(--surface); color:var(--text);
+         padding:6px 12px; border-radius:7px; font-size:13px; cursor:pointer; text-decoration:none;
+         display:inline-block; }
+  .btn:hover { background:var(--gray-bg); }
+  main { max-width:1200px; margin:0 auto; padding:20px 24px 60px; }
+  .section { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+             padding:16px 18px; margin-bottom:20px; }
+  h2 { font-size:16px; margin:0 0 2px; display:flex; align-items:center; gap:8px; }
+  .sub { font-size:12px; color:var(--text-muted); margin:0 0 12px; }
+  .count { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;
+           background:var(--gray-bg); color:var(--text-muted); }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+       color:var(--text-muted); border-bottom:1px solid var(--border); padding:6px 8px; font-weight:600; }
+  td { padding:7px 8px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td.num, td.meta { white-space:nowrap; color:var(--text-muted); font-size:12px; }
+  a { color:var(--text); }
+  a.plain { text-decoration:none; }
+  a.plain:hover { text-decoration:underline; }
+  .chip { font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px; white-space:nowrap; }
+  .chip-done { background:var(--green-bg); color:var(--green); }
+  .chip-ab { background:var(--gray-bg); color:var(--gray); }
+  .filter { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  input[type=search] { flex:1; min-width:200px; padding:7px 10px; border:1px solid var(--border);
+                       border-radius:7px; font-size:13px; }
+  .status { color:var(--text-muted); font-size:13px; padding:8px 0; }
+  footer { max-width:1200px; margin:0 auto; padding:0 24px 40px; font-size:11px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <img src="icons/togo-logo.png" alt="" style="height:32px;width:auto;display:block">
+    <div class="logo">🗄️ Archive <span>· Portal Development Tracker</span></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn" href="index.html">&larr; Landing page</a>
+    <a class="btn" href="legacy.html">Full tracker</a>
+    <a class="btn" href="contributors.html">📊 Completed stats</a>
+    <a class="btn" href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+is%3Aclosed" target="_blank">GitHub ↗</a>
+  </div>
+</header>
+
+<main>
+  <div class="filter">
+    <input type="search" id="q" placeholder="Filter by title, number, developer…" oninput="render()">
+  </div>
+
+  <div class="section">
+    <h2>✅ Production — Completed <span class="count" id="done-count"></span></h2>
+    <p class="sub">Shipped to full production (closed issues).</p>
+    <div id="done-body"><div class="status">Loading…</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Abandoned <span class="count" id="ab-count"></span></h2>
+    <p class="sub">Projects that were stopped. Kept for the record — a closed card is not the same as a dropped one.</p>
+    <div id="ab-body"><div class="status">Loading…</div></div>
+  </div>
+</main>
+
+<footer>
+  Signed in with the same GitHub token as the tracker (localStorage only · no PHI).
+  PR links are read from the issue body, so a project whose PR was only ever named in a comment shows no link here — open the issue for the full history.
+</footer>
+
+<script>
+const REPO = 'togohealth-dev/emr-beta';
+const getToken = () => localStorage.getItem('gh_pat');
+let rows = [];
+
+async function ghFetchAll(path, cap = 10) {
+  const sep = path.includes('?') ? '&' : '?';
+  let out = [], page = 1;
+  while (page <= cap) {
+    const r = await fetch(`https://api.github.com${path}${sep}page=${page}`, {
+      headers: { Authorization: `Bearer ${getToken()}`, Accept: 'application/vnd.github+json' }
+    });
+    if (!r.ok) throw new Error(`GitHub ${r.status}`);
+    const batch = await r.json();
+    out = out.concat(batch);
+    if (batch.length < 100) break;   // last page
+    page++;
+  }
+  return out;
+}
+
+function normalize(issue) {
+  const labels = (issue.labels || []).map(l => l.name);
+  const body = issue.body || '';
+  const pr = body.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
+  const est = body.match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
+  return {
+    number: issue.number,
+    title: issue.title,
+    url: issue.html_url,
+    labels,
+    abandoned: labels.includes('status:abandoned'),
+    reference: labels.includes('reference'),
+    prNum: pr ? pr[1] : null,
+    est: est ? est[1] + 'h' : null,
+    who: (issue.assignees || []).map(a => a.login),
+    closedAt: issue.closed_at,
+  };
+}
+
+function table(list, chipClass, chipText) {
+  if (!list.length) return `<div class="status">None.</div>`;
+  return `<table>
+    <thead><tr><th>#</th><th>Project</th><th>PR</th><th>Est.</th><th>Developer</th><th>Closed</th></tr></thead>
+    <tbody>${list.map(p => `<tr>
+      <td class="num"><a class="plain" href="${p.url}" target="_blank">#${p.number}</a></td>
+      <td><a class="plain" href="${p.url}" target="_blank">${p.title}</a>
+          <span class="chip ${chipClass}">${chipText}</span></td>
+      <td class="meta">${p.prNum ? `<a class="plain" href="https://github.com/${REPO}/pull/${p.prNum}" target="_blank">#${p.prNum}</a>` : '—'}</td>
+      <td class="meta">${p.est || '—'}</td>
+      <td class="meta">${p.who.join(', ') || '—'}</td>
+      <td class="meta">${p.closedAt ? new Date(p.closedAt).toLocaleDateString() : '—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function render() {
+  const q = (document.getElementById('q').value || '').toLowerCase().trim();
+  const match = p => !q || `${p.number} ${p.title} ${p.who.join(' ')}`.toLowerCase().includes(q);
+  // Reference-flagged cards live in the tracker's Reference section, not here.
+  const done = rows.filter(p => !p.abandoned && !p.reference).filter(match);
+  const ab   = rows.filter(p =>  p.abandoned).filter(match);
+  document.getElementById('done-body').innerHTML = table(done, 'chip-done', 'production');
+  document.getElementById('ab-body').innerHTML   = table(ab, 'chip-ab', 'abandoned');
+  document.getElementById('done-count').textContent = done.length;
+  document.getElementById('ab-count').textContent = ab.length;
+}
+
+(async () => {
+  if (!getToken()) {
+    document.getElementById('done-body').innerHTML =
+      `<div class="status">Not signed in. <a href="index.html">Open the tracker</a> and sign in with GitHub first — this page reuses that session.</div>`;
+    document.getElementById('ab-body').innerHTML = '';
+    return;
+  }
+  try {
+    // Closed current-projects, plus anything explicitly labelled abandoned (which
+    // can still be open — abandoning a card does not require closing the issue).
+    const [closed, abandoned] = await Promise.all([
+      ghFetchAll(`/repos/${REPO}/issues?labels=current-project&state=closed&per_page=100`),
+      ghFetchAll(`/repos/${REPO}/issues?labels=status:abandoned&state=all&per_page=100`),
+    ]);
+    const seen = new Map();
+    for (const i of [...closed, ...abandoned]) if (!seen.has(i.number)) seen.set(i.number, i);
+    rows = [...seen.values()].map(normalize)
+      .sort((a, b) => new Date(b.closedAt || 0) - new Date(a.closedAt || 0) || b.number - a.number);
+    render();
+  } catch (e) {
+    const msg = /401|bad credentials/i.test(e.message)
+      ? `Session expired. <a href="index.html">Sign in again on the tracker</a>.`
+      : `Error: ${e.message}`;
+    document.getElementById('done-body').innerHTML = `<div class="status">${msg}</div>`;
+    document.getElementById('ab-body').innerHTML = '';
+  }
+})();
+</script>
+</body>
+</html>
