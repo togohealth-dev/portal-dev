@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Togo Build Board · Admin View</title>
+<link rel="icon" href="icons/togo-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:#f6f7f9; --surface:#ffffff; --ink:#151d27; --muted:#5b6a7b; --faint:#8996a5;
+    --rule:#e2e7ed; --accent:#4a7fc7; --wash:#e9f0fa;
+    --attention:#a94f3b; --review:#9b7420; --live:#2e7357;
+    --serif:"Newsreader", ui-serif, Georgia, serif;
+    --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0e151d; --surface:#161f29; --ink:#e4eaf1; --muted:#8695a6; --faint:#6b7a8b;
+      --rule:#25313f; --accent:#7ba9e6; --wash:#1c2938;
+      --attention:#d98a72; --review:#c9a24e; --live:#5ba585;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e151d; --surface:#161f29; --ink:#e4eaf1; --muted:#8695a6; --faint:#6b7a8b;
+    --rule:#25313f; --accent:#7ba9e6; --wash:#1c2938;
+    --attention:#d98a72; --review:#c9a24e; --live:#5ba585;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans);
+         font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 72px; }
+  a { color:inherit; }
+
+  /* Auth gate */
+  #auth-overlay { position:fixed; inset:0; background:var(--ground); display:flex;
+                  align-items:center; justify-content:center; z-index:100; padding:24px; }
+  .auth-card { background:var(--surface); border:1px solid var(--rule); border-radius:6px;
+               padding:30px; max-width:420px; }
+  .auth-card h1 { font-family:var(--serif); font-size:22px; font-weight:500; margin:0 0 10px; }
+  .auth-card p { font-size:13.5px; color:var(--muted); margin:0 0 18px; }
+  .btn { font-family:var(--sans); font-size:13.5px; border:1px solid var(--rule);
+         background:var(--surface); color:var(--ink); padding:8px 14px; border-radius:4px;
+         cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; width:100%; text-align:center; }
+  .btn-primary:hover { color:#fff; opacity:.92; }
+  #auth-error { color:var(--attention); font-size:12.5px; margin-top:12px; display:none; }
+
+  .masthead { display:flex; align-items:baseline; justify-content:space-between; gap:20px;
+              flex-wrap:wrap; padding:26px 0 18px; border-bottom:1px solid var(--rule); }
+  .brand { display:flex; align-items:baseline; gap:10px; }
+  .brand .mark { font-family:var(--serif); font-size:21px; font-weight:500; letter-spacing:-.01em; }
+  .brand .sub { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); }
+  .masthead nav { display:flex; gap:16px; flex-wrap:wrap; align-items:baseline; }
+  .masthead nav a { font-size:13px; color:var(--muted); text-decoration:none;
+                    border-bottom:1px solid transparent; padding-bottom:1px; }
+  .masthead nav a:hover { color:var(--accent); border-bottom-color:var(--accent); }
+  .masthead nav a:focus-visible, .btn:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+
+  .today { padding:34px 0 28px; }
+  .today .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:.11em;
+                    color:var(--faint); margin-bottom:12px; }
+  .today p { font-family:var(--serif); font-size:clamp(25px,4vw,38px); line-height:1.24;
+             font-weight:400; margin:0; max-width:28ch; text-wrap:balance; }
+  .today p em { font-style:italic; color:var(--accent); }
+
+  .needs { background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+           padding:4px 20px 8px; margin-bottom:34px; }
+  .needs .hdr { display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+                padding:14px 0 10px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+  .needs h2 { font-family:var(--serif); font-size:17px; font-weight:500; margin:0; }
+  .needs .hdr span.hint { font-size:12px; color:var(--faint); }
+  .row { display:flex; align-items:baseline; gap:14px; padding:11px 0; border-bottom:1px solid var(--rule); }
+  .row:last-child { border-bottom:0; }
+  .row .id { font-family:var(--mono); font-size:12px; color:var(--faint);
+             font-variant-numeric:tabular-nums; flex:none; width:46px; }
+  .row .what { flex:1; min-width:0; }
+  .row .what a { text-decoration:none; }
+  .row .what a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+  .row .why { display:block; font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .tag { flex:none; font-size:11px; font-weight:500; padding:2px 9px; border-radius:2px;
+         white-space:nowrap; border:1px solid currentColor; }
+  .tag.attention { color:var(--attention); }
+  .tag.review { color:var(--review); }
+  .tag.build { color:var(--accent); }
+  .tag.queued { color:var(--faint); }
+  .tag.live-t { color:var(--live); }
+
+  section > h2.sec { font-family:var(--serif); font-size:19px; font-weight:500; margin:0 0 3px; }
+  section > p.sec-sub { font-size:13px; color:var(--muted); margin:0 0 16px; max-width:64ch; }
+  .rail-scroll { overflow-x:auto; margin-bottom:38px; padding-bottom:4px; }
+  .rail { display:grid; grid-template-columns:repeat(6, minmax(160px,1fr)); border:1px solid var(--rule);
+          border-radius:4px; background:var(--surface); min-width:960px; }
+  .stage { padding:0 15px 14px; border-right:1px solid var(--rule); }
+  .stage:last-child { border-right:0; }
+  .stage .cap { display:flex; align-items:center; gap:7px; padding:13px 0 9px;
+                border-bottom:1px solid var(--rule); margin-bottom:9px; }
+  .stage .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .stage .name { font-size:11.5px; font-weight:600; }
+  .stage .n { margin-left:auto; font-family:var(--mono); font-size:16px; font-weight:500;
+              font-variant-numeric:tabular-nums; }
+  .stage ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .stage li { font-size:12.5px; line-height:1.4; }
+  .stage li a { font-weight:500; text-decoration:none; }
+  .stage li a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+  .stage .more { font-size:11.5px; color:var(--faint); margin-top:8px; }
+
+  .alarm { border:1px solid var(--rule); border-left:2px solid var(--attention);
+           background:var(--surface); padding:13px 16px; font-size:13.5px; line-height:1.55;
+           margin-bottom:16px; border-radius:0 4px 4px 0; }
+  .alarm b { font-weight:600; }
+  .alarm .count { font-family:var(--mono); font-weight:500; color:var(--attention); }
+  .tbl-scroll { overflow-x:auto; }
+  table.bundles { width:100%; border-collapse:collapse; background:var(--surface);
+                  border:1px solid var(--rule); border-radius:4px; min-width:780px; }
+  table.bundles th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.09em;
+                     color:var(--faint); font-weight:600; padding:10px 14px;
+                     border-bottom:1px solid var(--rule); white-space:nowrap; }
+  table.bundles td { padding:10px 14px; border-bottom:1px solid var(--rule); font-size:13px;
+                     vertical-align:baseline; }
+  table.bundles tr:last-child td { border-bottom:0; }
+  td.bt { font-weight:500; white-space:nowrap; }
+  td.bn { font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--muted);
+          white-space:nowrap; font-size:12.5px; }
+  .pos { font-family:var(--mono); font-size:11.5px; color:var(--accent); font-weight:500; }
+  .bid { font-family:var(--mono); font-size:11.5px; color:var(--faint); }
+  td a { text-decoration:none; }
+  td a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+
+  .lanes { border:1px solid var(--rule); border-radius:4px; background:var(--surface); margin-bottom:14px; }
+  .lane { display:grid; grid-template-columns:154px 1fr auto; gap:18px; align-items:center;
+          padding:15px 20px; border-bottom:1px solid var(--rule); }
+  .lane:last-child { border-bottom:0; }
+  .lane .vendor { font-family:var(--serif); font-size:16px; }
+  .lane .vendor small { display:block; font-family:var(--sans); font-size:11px; color:var(--faint);
+                        letter-spacing:.06em; text-transform:uppercase; margin-top:2px; }
+  .lane .next { font-size:13px; min-width:0; }
+  .lane .next .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+                     color:var(--faint); display:block; margin-bottom:2px; }
+  .lane .cards { font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; }
+  .bundle-note { background:var(--wash); border-radius:4px; padding:13px 16px; font-size:13px;
+                 margin-bottom:38px; line-height:1.5; }
+
+  .elsewhere { display:flex; flex-wrap:wrap; gap:10px 26px; padding:2px 0 26px; }
+  .elsewhere a { font-size:13.5px; text-decoration:none; border-bottom:1px solid var(--rule); padding-bottom:2px; }
+  .elsewhere a:hover { border-bottom-color:var(--accent); color:var(--accent); }
+  .elsewhere a span { color:var(--faint); font-family:var(--mono); font-size:11.5px; }
+  details.machinery { border-top:1px solid var(--rule); padding-top:16px; font-size:13px; color:var(--muted); }
+  details.machinery summary { cursor:pointer; font-size:12px; text-transform:uppercase;
+                              letter-spacing:.09em; color:var(--faint); list-style:none; }
+  details.machinery summary::-webkit-details-marker { display:none; }
+  details.machinery summary::before { content:"▸ "; }
+  details.machinery[open] summary::before { content:"▾ "; }
+  details.machinery summary:hover { color:var(--accent); }
+  .maptable { width:100%; border-collapse:collapse; margin-top:14px; max-width:660px; }
+  .maptable td { padding:5px 12px 5px 0; border-bottom:1px solid var(--rule); font-size:12.5px; }
+  .maptable td:first-child { color:var(--ink); }
+  .maptable td:last-child { font-family:var(--mono); font-size:11.5px; color:var(--faint); }
+  footer { font-size:12px; color:var(--faint); padding-top:26px; }
+  .loading { font-size:13px; color:var(--faint); padding:10px 0; }
+  @media (max-width:640px) {
+    .wrap { padding:0 18px 56px; }
+    .lane { grid-template-columns:1fr; gap:8px; }
+    .row { flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h1>Togo Build Board</h1>
+    <p>Sign in with GitHub. Only members of <strong>togohealth-dev</strong> can open the tracker.</p>
+    <button class="btn btn-primary" onclick="startOAuth()">Sign in with GitHub</button>
+    <p id="auth-error"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand"><span class="mark">Togo Health</span><span class="sub">Admin view</span></div>
+    <nav>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#bundles">Bundles</a>
+      <a href="#lanes">Integrations</a>
+      <a href="index.html" title="The full tracker — every project, every action">&larr;&nbsp;Full tracker</a>
+      <a href="archive.html">Archive</a>
+      <a onclick="loadAll()" style="cursor:pointer" title="Reload from GitHub">Refresh</a>
+    </nav>
+  </header>
+
+  <div class="today">
+    <div class="eyebrow" id="today-date"></div>
+    <p id="today-line" class="loading">Loading the board&hellip;</p>
+  </div>
+
+  <div class="needs">
+    <div class="hdr"><h2>What needs you</h2><span class="hint">Everything else can wait</span></div>
+    <div id="needs-body"><div class="loading">Loading&hellip;</div></div>
+  </div>
+
+  <section id="pipeline">
+    <h2 class="sec">Where everything is</h2>
+    <p class="sec-sub">Left to right is the road to production. A project moves when its card is relabelled, so this is always current. Click any name to open its issue; the <a href="index.html">full tracker</a> is where you change things.</p>
+    <div class="rail-scroll"><div class="rail" id="rail"></div></div>
+  </section>
+
+  <section id="bundles">
+    <h2 class="sec">What's next in each bundle</h2>
+    <p class="sec-sub">A bundle is a numbered run of cards that ships in order. This is the one card in each that is genuinely next.</p>
+    <div id="bundle-alarm"></div>
+    <div class="tbl-scroll"><table class="bundles">
+      <thead><tr><th>Bundle</th><th>Shipped</th><th>Moving</th><th>Next card</th><th>Stage</th></tr></thead>
+      <tbody id="bundle-body"><tr><td colspan="5" class="loading">Loading&hellip;</td></tr></tbody>
+    </table></div>
+    <p class="sec-sub" style="margin-top:12px">&ldquo;Moving&rdquo; counts cards in that bundle already being built, in review, on alpha or on beta &mdash; a bundle with a queued next card but several moving cards is being worked out of order.</p>
+  </section>
+
+  <section id="lanes">
+    <h2 class="sec">The three lanes we're pushing</h2>
+    <p class="sec-sub">DrFirst, PCC and Health Gorilla. Everything else in Future Builds is parked.</p>
+    <div class="lanes" id="lane-body"><div class="lane"><div class="loading">Loading&hellip;</div></div></div>
+    <div class="bundle-note"><b>Being re-cut into bundles.</b> A lane that starts with an auth card puts nothing on screen &mdash; so there is nothing to test and everything behind it waits. Each lane is being regrouped so every bundle ends in something you can look at: &ldquo;see a lab result land in a chart&rdquo; rather than &ldquo;OAuth2 + sandbox&rdquo;.</div>
+  </section>
+
+  <section id="elsewhere">
+    <h2 class="sec">Everything else</h2>
+    <p class="sec-sub">Still here, just not in your way.</p>
+    <div class="elsewhere">
+      <a href="index.html">Full tracker <span>every project + actions</span></a>
+      <a href="index.html#sec-onc">Certification <span>ONC · MIPS</span></a>
+      <a href="index.html#sec-fb">Future builds <span>catalogue</span></a>
+      <a href="archive.html">Archive <span>shipped + abandoned</span></a>
+      <a href="contributors.html">Contributor hours</a>
+      <a href="workflow.html">Workflow</a>
+      <a href="new-hire-setup.html">New-hire setup</a>
+      <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank">All issues on GitHub ↗</a>
+    </div>
+    <details class="machinery">
+      <summary>Show the label machinery</summary>
+      <p>The plain words above are GitHub labels underneath, and the issue is the only source of truth &mdash; edit here or on the legacy page and both reflect it on their next load. Relabelling a card <em>is</em> the update, including the certification percentages.</p>
+      <table class="maptable">
+        <tr><td>Queued</td><td>status:draft · no status label</td></tr>
+        <tr><td>Being built</td><td>status:in-progress · assigned</td></tr>
+        <tr><td>Needs changes</td><td>status:needs-revision</td></tr>
+        <tr><td>With Scott</td><td>status:pr-alpha-ready</td></tr>
+        <tr><td>On alpha</td><td>status:alpha-testing</td></tr>
+        <tr><td>On beta</td><td>status:ready-beta · status:beta-version</td></tr>
+        <tr><td>Live</td><td>closed</td></tr>
+      </table>
+    </details>
+  </section>
+
+  <footer id="foot">Token stored in localStorage only · no PHI · <a href="index.html">full tracker</a></footer>
+</div>
+
+<script>
+const REPO = 'togohealth-dev/emr-beta';
+const OAUTH_CLIENT_ID  = 'Ov23liafXkUifpOmizDR';
+const OAUTH_WORKER_URL = 'https://portal-oauth.morgan-0a4.workers.dev';
+const ISSUE = n => `https://github.com/${REPO}/issues/${n}`;
+const getToken = () => localStorage.getItem('gh_pat');
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+// The OAuth app's callback is registered against the directory, not a filename,
+// so every page in this folder redirects to the directory and shares the token
+// through localStorage.
+function startOAuth() {
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+  location.href = 'https://github.com/login/oauth/authorize?' + new URLSearchParams({
+    client_id: OAUTH_CLIENT_ID,
+    redirect_uri: location.origin + location.pathname.replace(/[^/]*$/, ''),
+    scope: 'repo', state,
+  });
+}
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code'), state = params.get('state');
+  if (!code) return false;
+  const saved = sessionStorage.getItem('oauth_state');
+  sessionStorage.removeItem('oauth_state');
+  if (state !== saved) { showAuthError('OAuth state mismatch — please try again.'); return false; }
+  history.replaceState({}, '', location.pathname);
+  try {
+    const resp = await fetch(OAUTH_WORKER_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code }),
+    });
+    const data = await resp.json();
+    if (data.access_token) { localStorage.setItem('gh_pat', data.access_token); return true; }
+    showAuthError(data.error || 'Sign-in failed — please try again.');
+  } catch (e) { showAuthError(e.message); }
+  return false;
+}
+
+async function ghFetchAll(path, cap = 6) {
+  const sep = path.includes('?') ? '&' : '?';
+  let out = [], page = 1;
+  while (page <= cap) {
+    const r = await fetch(`https://api.github.com${path}${sep}page=${page}`, {
+      headers:{ Authorization:`Bearer ${getToken()}`, Accept:'application/vnd.github+json' },
+    });
+    if (!r.ok) throw new Error(r.status === 401 ? '401 bad credentials' : `GitHub ${r.status}`);
+    const batch = await r.json();
+    out = out.concat(batch);
+    if (batch.length < 100) break;
+    page++;
+  }
+  return out;
+}
+
+// ── Stage: one plain word per card, derived from labels + state ───────────────
+const STAGES = {
+  queued:   { label:'Queued',        color:'var(--faint)',     tag:'queued'    },
+  building: { label:'Being built',   color:'var(--accent)',    tag:'build'     },
+  changes:  { label:'Needs changes', color:'var(--attention)', tag:'attention' },
+  review:   { label:'With Scott',    color:'var(--review)',    tag:'review'    },
+  alpha:    { label:'On alpha',      color:'var(--accent)',    tag:'build'     },
+  beta:     { label:'On beta',       color:'var(--live)',      tag:'live-t'    },
+};
+const RAIL_ORDER = ['queued','building','changes','review','alpha','beta'];
+const MOVING = new Set(['building','changes','review','alpha','beta']);
+
+function stageOf(issue, labels) {
+  if (labels.includes('status:abandoned')) return 'abandoned';
+  if (issue.state === 'closed') return 'live';
+  if (labels.includes('status:beta-version') || labels.includes('status:ready-beta')) return 'beta';
+  if (labels.includes('status:alpha-testing')) return 'alpha';
+  if (labels.includes('status:pr-alpha-ready')) return 'review';
+  if (labels.includes('status:needs-revision')) return 'changes';
+  if (labels.includes('status:in-progress')) return 'building';
+  if ((issue.assignees||[]).length) return 'building';
+  return 'queued';
+}
+
+// A bundle member is titled "<Track> N/M · …".
+const BUNDLE_RE = /^(.+?)\s+(\d+)\s*\/\s*(\d+)\s*·\s*(.*)$/;
+
+let cards = [];       // every card we know about, normalised
+let integrations = [];
+
+function normalise(issue) {
+  const labels = (issue.labels||[]).map(l => l.name);
+  const m = BUNDLE_RE.exec(issue.title);
+  return {
+    number: issue.number, title: issue.title, labels,
+    stage: stageOf(issue, labels),
+    bundle: m ? { track:m[1], pos:+m[2], of:+m[3], rest:m[4] } : null,
+    priority: +(labels.find(l => l.startsWith('priority-'))?.slice(9) || 0),
+    notYet: labels.includes('integration:not-yet'),
+  };
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderToday() {
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' });
+  const changes = cards.filter(c => c.stage === 'changes').length;
+  const review  = cards.filter(c => c.stage === 'review').length;
+  const line = document.getElementById('today-line');
+  line.classList.remove('loading');
+  const n = w => `<em>${w}</em>`;
+  line.innerHTML = changes || review
+    ? `${changes ? `${changes} project${changes===1?'':'s'} need${changes===1?'s':''} ${n('your')} changes.` : ''}
+       ${review ? `${changes ? ' ' : ''}${review} ${review===1?'is':'are'} waiting on Scott.` : ''}`
+    : `Nothing needs you right now.`;
+}
+
+function needsRow(c, why) {
+  const st = STAGES[c.stage];
+  return `<div class="row">
+    <span class="id">${c.number}</span>
+    <span class="what"><a href="${ISSUE(c.number)}" target="_blank">${esc(c.title)}</a>
+      <span class="why">${why}</span></span>
+    <span class="tag ${st.tag}">${st.label}</span>
+  </div>`;
+}
+function renderNeeds() {
+  const changes = cards.filter(c => c.stage === 'changes');
+  const review  = cards.filter(c => c.stage === 'review');
+  const rows = [
+    ...changes.map(c => needsRow(c, 'Scott asked for changes — a brand-new PR supersedes the closed one')),
+    ...review.map(c => needsRow(c, 'PR open, waiting on review — nothing needed from you')),
+  ];
+  document.getElementById('needs-body').innerHTML =
+    rows.length ? rows.join('') : `<div class="loading">Nothing waiting. Pick up the next bundle card below.</div>`;
+}
+
+function renderRail() {
+  document.getElementById('rail').innerHTML = RAIL_ORDER.map(key => {
+    const st = STAGES[key];
+    const items = cards.filter(c => c.stage === key);
+    const top = items.slice(0, 3);
+    return `<div class="stage">
+      <div class="cap"><span class="dot" style="background:${st.color}"></span>
+        <span class="name">${st.label}</span><span class="n">${items.length}</span></div>
+      <ul>${top.map(c => `<li><a href="${ISSUE(c.number)}" target="_blank">${esc(c.title.slice(0,58))}</a></li>`).join('')}</ul>
+      ${items.length > 3 ? `<div class="more">+${items.length-3} more</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderBundles() {
+  const tracks = new Map();
+  for (const c of cards.concat(integrations)) {
+    if (!c.bundle) continue;
+    if (!tracks.has(c.bundle.track)) tracks.set(c.bundle.track, []);
+    tracks.get(c.bundle.track).push(c);
+  }
+  const rows = [];
+  let totalCards = 0, totalShipped = 0;
+  for (const [track, members] of tracks) {
+    members.sort((a,b) => a.bundle.pos - b.bundle.pos);
+    const of = Math.max(...members.map(m => m.bundle.of));
+    const shipped = members.filter(m => m.stage === 'live').length;
+    const moving  = members.filter(m => MOVING.has(m.stage)).length;
+    // Next = the lowest-numbered card that is neither finished nor abandoned.
+    const next = members.find(m => m.stage !== 'live' && m.stage !== 'abandoned');
+    totalCards += members.length; totalShipped += shipped;
+    rows.push({ track, of, shipped, moving, next });
+  }
+  rows.sort((a,b) => b.moving - a.moving || b.of - a.of);
+  document.getElementById('bundle-body').innerHTML = rows.map(r => {
+    const st = r.next ? STAGES[r.next.stage] : null;
+    return `<tr>
+      <td class="bt">${esc(r.track)}</td>
+      <td class="bn">${r.shipped} / ${r.of}</td>
+      <td class="bn">${r.moving}</td>
+      <td>${r.next
+        ? `<span class="pos">${r.next.bundle.pos}/${r.of}</span>
+           <a href="${ISSUE(r.next.number)}" target="_blank"><span class="bid">#${r.next.number}</span>
+           ${esc(r.next.bundle.rest.slice(0,64))}</a>`
+        : '<span class="bn">— complete —</span>'}</td>
+      <td>${st ? `<span class="tag ${st.tag}">${st.label}</span>` : ''}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="loading">No numbered bundles found.</td></tr>`;
+
+  const firstCards = rows.filter(r => r.next && r.next.bundle.pos === 1).length;
+  document.getElementById('bundle-alarm').innerHTML = totalShipped === 0
+    ? `<div class="alarm"><b>Nothing has finished in any bundle yet.</b>
+        ${rows.length} bundles · ${totalCards} cards · <span class="count">0</span> shipped${
+        firstCards ? ` — and ${firstCards} of them are still on <b>card 1</b>` : ''}.
+        Card 1 is usually plumbing nobody can look at, so it never quite lands and everything behind it waits.
+        That is what the re-cut into viewable bundles is meant to fix.</div>`
+    : `<div class="alarm" style="border-left-color:var(--live)"><b>${totalShipped} of ${totalCards}
+        bundle cards shipped</b> across ${rows.length} bundles.</div>`;
+}
+
+const LANES = [
+  { name:'DrFirst',        sub:'e-prescribing',   test:t => /^drfirst/i.test(t) },
+  { name:'PCC',            sub:'facility system', test:t => /^(pcc|pointclickcare)/i.test(t) },
+  { name:'Health Gorilla', sub:'labs & imaging',  test:t => /^health gorilla/i.test(t) },
+];
+function renderLanes() {
+  document.getElementById('lane-body').innerHTML = LANES.map(l => {
+    const mine = integrations.filter(c => l.test(c.title));
+    const next = mine.find(c => !c.notYet && !/umbrella|overview/i.test(c.title));
+    return `<div class="lane">
+      <div class="vendor">${l.name}<small>${esc(l.sub)}</small></div>
+      <div class="next"><span class="lbl">Next up</span>${next
+        ? `<a href="${ISSUE(next.number)}" target="_blank"><span class="bid">#${next.number}</span>
+           ${esc((next.bundle ? `${next.bundle.pos}/${next.bundle.of} · ${next.bundle.rest}` : next.title).slice(0,72))}</a>`
+        : '<span class="bn">nothing queued</span>'}</div>
+      <div class="cards">${mine.length} card${mine.length===1?'':'s'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Load ─────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    const [cp, fut, ints] = await Promise.all([
+      ghFetchAll(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`),
+      ghFetchAll(`/repos/${REPO}/issues?labels=future-idea&state=all&per_page=100`),
+      ghFetchAll(`/repos/${REPO}/issues?labels=integrations&state=open&per_page=100`),
+    ]);
+    // A card can carry both labels; de-duplicate so counts are not doubled.
+    const seen = new Map();
+    for (const i of [...cp, ...fut]) if (!seen.has(i.number)) seen.set(i.number, i);
+    cards = [...seen.values()].map(normalise).filter(c => c.stage !== 'abandoned');
+    integrations = ints.map(normalise);
+    integrations.sort((a,b) => (a.bundle && b.bundle && a.bundle.track === b.bundle.track)
+      ? a.bundle.pos - b.bundle.pos
+      : (b.priority - a.priority || a.number - b.number));
+    renderToday(); renderNeeds(); renderRail(); renderBundles(); renderLanes();
+  } catch (e) {
+    if (/401/.test(e.message)) {
+      localStorage.removeItem('gh_pat');
+      document.getElementById('auth-overlay').style.display = 'flex';
+      showAuthError('Your session expired. Please sign in again.');
+      return;
+    }
+    document.getElementById('today-line').textContent = `Could not load: ${e.message}`;
+  }
+}
+
+(async () => {
+  await handleOAuthCallback();
+  if (getToken()) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    loadAll();
+  }
+})();
+</script>
+</body>
+</html>
