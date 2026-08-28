@@ -391,9 +391,9 @@
 
 <nav class="section-nav">
   <span class="nav-label">Jump to</span>
-  <a onclick="jumpTo('cp-progress')" title="Drafts / In Progress / Needs Revision">🛠️ Drafts &amp; In Progress</a>
-  <a onclick="jumpTo('cp-alpha')" title="Alpha Testing"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</a>
   <a onclick="jumpTo('cp-beta')" title="Beta-Version"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta</a>
+  <a onclick="jumpTo('cp-alpha')" title="Alpha Testing"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</a>
+  <a onclick="jumpTo('cp-progress')" title="In Progress / Needs Revision / Drafts">🛠️ In Progress</a>
   <span style="color:var(--border)">·</span>
   <a onclick="jumpTo('ref')">📚 Reference</a>
   <a onclick="jumpTo('fb')">Future Builds</a>
@@ -413,7 +413,7 @@
   <div class="section-block" id="sec-cp">
     <div class="section-hdr">
       <h2>Current Projects</h2>
-      <p>Rollout flow: 🛠️ Drafts / In Progress / Needs Revision → <img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing (PR alpha-ready → live alpha build on prod DB) → <img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version (Ready for Beta → combined build) → <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production (Completed). <span style="color:var(--text-muted)">Reading down the page follows the road forward: drafts first, then alpha, then beta, with the archive last.</span></p>
+      <p>Rollout flow: 🛠️ Drafts / In Progress / Needs Revision → <img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing (PR alpha-ready → live alpha build on prod DB) → <img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version (Ready for Beta → combined build) → <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production (Completed). <span style="color:var(--text-muted)">Newest stage sits at the top of Current Projects; within a stage, live builds sit above queued ones. Beta starts collapsed — click its chevron to open it.</span></p>
       <button class="btn btn-primary" onclick="openAddModal('current')">+ Add Project</button>
       <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
@@ -1842,22 +1842,23 @@ const statusBadge = (s, alphaUrl, betaVersionUrl) => {
 //  • Alpha Testing: [live alpha builds on prod DB] — gap — [PR alpha-ready, awaiting deploy]
 //  • In Progress / Needs Revision / Drafts: [in progress + needs revision] — gap — [drafts]
 const CP_GROUPS = [
-  // Top-to-bottom follows the road forward — Drafts → In Progress → Alpha →
-  // Beta, with the Archive (gamma / production) card last on the page.
-  { key:'progress', anchor:'cp-progress', title:'🛠️ Drafts / In Progress / Needs Revision',
+  // Newest stage first: Beta → Alpha → In Progress → Drafts, all above Future
+  // Builds. Within a group the further-along tier sits on top too (live beta
+  // above queued-for-beta, live alpha above awaiting-deploy).
+  { key:'beta', anchor:'cp-beta', title:'<img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version',
     tiers:[
-      { statuses:['draft','planning'],             note:'Drafts — not started yet' },
-      { statuses:['in_progress','needs_revision'], note:'In progress and needs-revision' },
+      { statuses:['beta_version'], note:'In the combined Beta-Version (shared beta build)' },
+      { statuses:['ready_beta'],   note:'Ready for Beta — alpha-tested, queued for the next promotion' },
     ] },
   { key:'alpha', anchor:'cp-alpha', title:'<img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing',
     tiers:[
-      { statuses:['pr_alpha_ready'], note:'PR alpha-ready — awaiting Scott\u2019s alpha deploy' },
       { statuses:['alpha_testing'],  note:'Live alpha builds — each on the production database' },
+      { statuses:['pr_alpha_ready'], note:'PR alpha-ready — awaiting Scott\u2019s alpha deploy' },
     ] },
-  { key:'beta', anchor:'cp-beta', title:'<img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version',
+  { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision / Drafts',
     tiers:[
-      { statuses:['ready_beta'],   note:'Ready for Beta — alpha-tested, queued for the next promotion' },
-      { statuses:['beta_version'], note:'In the combined Beta-Version (shared beta build)' },
+      { statuses:['in_progress','needs_revision'], note:'In progress and needs-revision' },
+      { statuses:['draft','planning'],             note:'Drafts — not started yet' },
     ] },
 ];
 
@@ -3781,10 +3782,16 @@ function applySectionState() {
 }
 
 const CP_GROUP_KEY = 'tracker_cp_groups_v1';
+// Beta is the longest list and the least often acted on, so it starts closed;
+// the stages you actually work in start open. An explicit choice always wins.
+const CP_COLLAPSED_BY_DEFAULT = ['beta'];
 function cpGroupState() {
   try { return JSON.parse(localStorage.getItem(CP_GROUP_KEY) || '{}'); } catch { return {}; }
 }
-function cpGroupClosed(key) { return cpGroupState()[key] === 'closed'; }
+function cpGroupClosed(key) {
+  const remembered = cpGroupState()[key];
+  return remembered ? remembered === 'closed' : CP_COLLAPSED_BY_DEFAULT.includes(key);
+}
 function toggleCpGroup(key) {
   const el = document.querySelector(`.cp-group#cp-${key}`);
   if (!el) return;
