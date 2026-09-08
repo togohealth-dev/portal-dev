@@ -3127,13 +3127,13 @@ function buildProjectPrompt(proj) {
 GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${proj.number}
 
 ━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
-1. ~/strategy-sessions-repo/SESSION-STARTER.md
-2. ~/strategy-sessions-repo/strategy-1-portal-onc.md
+1. ~/claude/togo/togo-emr/strategy-sessions-repo/SESSION-STARTER.md
+2. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-1-portal-onc.md
    → ONC DEPENDENCY MAP, BUILD-WITH-END-IN-MIND PROTOCOL
-3. ~/strategy-sessions-repo/strategy-5-developer-integration.md
+3. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-5-developer-integration.md
    → PR REVIEW STANDARDS, CONSTRAINTS, FRONTEND-FIRST RULE
-4. ~/strategy-sessions-repo/strategy-2.md  (if this touches facility/scheduling)
-5. ~/strategy-sessions-repo/strategy-3.md  (if this touches clinical protocols)
+4. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-2-facility-tools.md  (if this touches facility/scheduling)
+5. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-3-clinical-protocols.md  (if this touches clinical protocols)
 
 ─── WHAT THIS BUILD DOES ─────────────────────────────
 ${firstLine}
@@ -3229,8 +3229,8 @@ function copyFuturePrompt(number) {
 GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${number}
 
 ━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
-1. ~/strategy-sessions-repo/SESSION-STARTER.md
-2. ~/strategy-sessions-repo/strategy-5-developer-integration.md → PROJECT OVERLAP CHECK, PR REVIEW STANDARDS
+1. ~/claude/togo/togo-emr/strategy-sessions-repo/SESSION-STARTER.md
+2. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-5-developer-integration.md → PROJECT OVERLAP CHECK, PR REVIEW STANDARDS
 3. The area CLAUDE.md before you touch that area — portal/web/CLAUDE.md (frontend) or portal/backend/CLAUDE.md (Rust); the repo-root CLAUDE.md indexes the rest.
 
 ━━━ BEFORE YOU OPEN THE PR ━━━
@@ -3671,10 +3671,10 @@ GitHub Issue: ${issue.url}
 Estimated effort: ~${ctx.hours} Claude Code session hours
 
 Before writing any code:
-1. Read ~/strategy-sessions-repo/SESSION-STARTER.md
-2. Read ~/strategy-sessions-repo/strategy-1-portal-onc.md
+1. Read ~/claude/togo/togo-emr/strategy-sessions-repo/SESSION-STARTER.md
+2. Read ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-1-portal-onc.md
    → ONC DEPENDENCY MAP / BUILD-WITH-END-IN-MIND PROTOCOL
-3. Read ~/strategy-sessions-repo/strategy-5-developer-integration.md
+3. Read ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-5-developer-integration.md
    → ONC CERTIFICATION GATE
 
 ─── WHAT EXISTS TODAY ────────────────────────────────
@@ -3718,8 +3718,8 @@ GitHub Issue: ${issue.url}
 Two beta testers have confirmed this criterion is working. I need you to evaluate whether it is truly ready for ATL submission.
 
 Before evaluating:
-1. Read ~/strategy-sessions-repo/strategy-1-portal-onc.md → ONC DEPENDENCY MAP
-2. Read ~/strategy-sessions-repo/strategy-5-developer-integration.md → ONC CERTIFICATION GATE
+1. Read ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-1-portal-onc.md → ONC DEPENDENCY MAP
+2. Read ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-5-developer-integration.md → ONC CERTIFICATION GATE
 3. Review what was actually built for this criterion in the emr-beta codebase
 
 What was expected to be built:
