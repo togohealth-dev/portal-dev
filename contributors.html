@@ -58,10 +58,11 @@
 </header>
 <main>
   <h1>Who built what, and how long it took</h1>
-  <p class="sub">Coding hours on every project with a linked PR &mdash; <b>15 shipped, 2 still in the pipeline</b> &mdash; not self-reported.
-     Hours come from the <b>per-project</b> model below (2.5h frontend, 11h if it reaches the Rust backend or a migration);
-     the diff is reported for context but no longer drives the number. Work is attributed to the engineer who opened the PR.
+  <p class="sub">Coding hours on every project with a linked PR &mdash; <b><span id="s-projects">—</span> projects, <span id="s-shipped">—</span> shipped to &gamma; production and <span id="s-pipeline">—</span>
+     still in the pipeline</b> &mdash; not self-reported. Hours come from the <b>per-project</b> model below (2.5h frontend,
+     11h if it reaches the Rust backend or a migration). Work is attributed to the engineer who opened the PR.
      Click any name to filter the timeline and the table.</p>
+  <p class="sub" id="live" style="font-size:12px"></p>
 
   <div class="card">
     <h2>Total hours by contributor</h2>
@@ -74,7 +75,9 @@
     <div class="hint">Three lines per person, in three shades of their colour: <b>light dotted</b> = reached PR alpha-ready,
       <b>medium dashed</b> = promoted to Beta-Version, <b>dark solid</b> = shipped to &gamma; Production. The horizontal gap
       between a person&rsquo;s light and dark line is how long their work sat in the pipeline. A project that reached a later
-      stage counts as having passed the earlier ones, so the three lines always nest.</div>
+      stage counts as having passed the earlier ones, so the three lines always nest &mdash; which is why the figure on each
+      label sits on the <b>dotted &alpha; line</b> and matches that person&rsquo;s tile above, with the share of it that has
+      actually shipped to &gamma; in brackets.</div>
     <div class="chartwrap"><svg id="chart" width="1180" height="380" role="img" aria-label="Cumulative coding hours by contributor over time"></svg></div>
     <div class="lg" id="legend"></div>
   </div>
@@ -91,67 +94,80 @@
   <div class="card">
     <h2>Method &amp; honesty notes</h2>
     <p class="note">
+      <b>This page reads itself from GitHub.</b> The numbers below are not maintained by hand. On load the page renders a
+      baked-in snapshot (<b>8 Sep 2026</b>) so it works for anyone, then &mdash; if you are signed in on the
+      <a href="index.html">Tracker</a>, whose GitHub token it borrows from the same browser &mdash; it recomputes every row
+      from the live API and replaces the snapshot. Stage dates come from each card's <code>LABELED_EVENT</code> history,
+      hours from whether the PR touched Rust or a migration, credit from the PR author. So a project moving to
+      &beta; or closing to &gamma; shows up here the next time someone opens the page, with nothing committed to this repo.
+      The previous version of this page was a hardcoded list of 17 rows that stopped on 19 Aug; it now finds <span id="s-projects2">—</span>.<br><br>
+
       <b>Hours are estimated per project, not per line.</b> A project that touches only the frontend counts <b>2.5h</b>;
       one that touches the Rust backend or a migration counts <b>11h</b>. That is the whole formula &mdash; there is no
-      lines-of-code term.<br><br>
+      lines-of-code term. Of the projects here, <b><span id="s-deep">—</span> reach the backend and <span id="s-front">—</span> do not</b>. The <b>Diff</b> column is
+      shown for context only and no longer drives the number.<br><br>
 
       <b>Why line count was dropped.</b> Earlier versions charged a flat 55 lines/hr. Measured against what people actually
-      remember spending, that model was badly wrong in both directions: Riley wrote <b>531 effective lines in one project</b>
+      remember spending, that model was wrong in both directions: Riley wrote <b>531 effective lines in one project</b>
       that took about <b>3h</b> (177 lines/hr), while Morgan wrote <b>405 lines across four projects</b> that took about
-      <b>10h</b> (40 lines/hr). Same file types, same stack, a 4&times; difference in rate &mdash; so lines were measuring
-      typing, not effort. What actually predicts the number is <b>how many separate projects</b> you carried and <b>whether
-      each one reached the backend</b>: understanding the problem, wiring it in, running it on localhost, and the PR round
-      trip cost roughly the same whether the diff is 14 lines or 800.<br><br>
+      <b>10h</b> (40 lines/hr). Same stack, a 4&times; difference in rate &mdash; lines were measuring typing, not effort.
+      What predicts the number is <b>how many separate projects</b> you carried and <b>whether each reached the
+      backend</b>: understanding the problem, wiring it in, running it on localhost and the PR round trip cost about the
+      same whether the diff is 14 lines or 800.<br><br>
 
-      <b>Calibration and its limits.</b> The two rates are fitted to three anecdotal totals from Greg &mdash; Greg ~50h,
-      Morgan ~10h, Riley ~3h &mdash; and reproduce them to within 0.6h in aggregate (50.5 / 10.0 / 2.5). That is
-      <b>three data points against two parameters</b>, so the fit is close to saturated: treat the <i>shape</i> (per-project
-      cost, backend multiplier ~4&times;) as the finding, and the exact 2.5 and 11 as provisional. Every completed project
-      that gets its real hours recorded tightens them.<br><br>
+      <b>The model now has an independent check, and it passes.</b> The 2.5h / 11h rates were fitted to three anecdotal
+      totals from Greg (his own ~50h, Morgan ~10h, Riley ~3h) &mdash; three data points against two parameters, which is
+      close to saturated. But the tracker measures its own completed projects separately, from PR diffs, and puts them at a
+      <b>median of 6h</b>. Across every project here this model averages <b><span id="s-avg">—</span></b>. Two unrelated methods landing about 0.1h
+      apart is the first real evidence the shape is right rather than merely fitted. Treat the aggregate as sound and any
+      single row as approximate.<br><br>
+
+      <b>Cards are matched to PRs only by links a human wrote on purpose</b> &mdash; a <code>Closes #n</code> reference, the
+      card number in the PR title, or the tracker's own <i>&ldquo;Ready for review &mdash; @msdrigg &middot; PR #n&rdquo;</i>
+      comment. GitHub's cross-reference events were tried and <b>rejected</b>: because the repo's CLAUDE.md asks every PR to
+      run <code>bun test</code>, PR bodies routinely mention the card that fixed the test runner, and a cross-reference sweep
+      credited <b>one card to seventeen PRs across four people</b>. The announcement rule is likewise anchored to that phrase and
+      takes only the first PR named, because pasted session summaries in later comments cite unrelated PR numbers &mdash;
+      before that fix, one card was being credited to two people on the strength of a quoted summary.<br><br>
 
       <b>Attribution is by PR author.</b> Commit authorship was unusable &mdash; 77 of 110 commits are recorded as
-      <code>invalid-email-address</code>, mapping to no GitHub account. <code>/pull-pr-code-only</code> rewrites authorship to
-      whoever ran the import, so a synced PR credits the importer; #20 (MFA) was corrected to Scott on that basis and is the
-      one known case. The other synced PRs are treated as their author&rsquo;s own upstream work.<br><br>
+      <code>invalid-email-address</code>, mapping to no GitHub account. <code>/pull-pr-code-only</code> rewrites authorship
+      to whoever ran the import, so a synced PR credits the importer; #20 (MFA) was corrected to Scott on that basis.<br><br>
 
-      <b>Scott is excluded from this summary.</b> He reviews and gatekeeps rather than being counted as a build contributor
-      here, so the projects whose PRs he opened do not appear.<br><br>
+      <b>Scott is excluded.</b> He reviews, promotes and gatekeeps rather than being counted as a build contributor here, so
+      projects whose PRs he opened do not appear.<br><br>
 
-      <b>Nineteen completed projects are missing entirely</b> &mdash; the early batch (#59&ndash;#72 and others) has no linked
-      PR, so there is nothing to attribute. This page covers the 15 shipped projects that have one, plus <b>2 still in the
-      pipeline</b>.<br><br>
+      <b>Every total is a floor, and the pipeline is why.</b> <b><span id="s-pipeline2">—</span> of <span id="s-projects3">—</span> projects have not shipped to &gamma; yet</b>, so
+      they count toward the dotted &alpha; line and are still accruing. Median time from &alpha; to &gamma; is
+      <b><span id="s-latmed">—</span> days</b> (mean <span id="s-latmean">—</span>, longest <span id="s-latmax">—</span>), and the horizontal run of anyone's dotted line is that latency, not idle time.
+      Totals are also a floor in a second way: a PR with no card link at all cannot be attributed under a per-project model.
+      Riley has three PRs but only one names its card, so two of his are uncounted; Eric's <code>cargo fmt</code> sweep
+      (#513) has no tracker card and so scores nothing.<br><br>
 
-      <b>Stage lines count &ldquo;reached this stage or beyond&rdquo;, not &ldquo;carries this label&rdquo;.</b> Only 3 of the
-      15 shipped projects ever got a <code>status:beta-version</code> label and two (#191, #141) never got an alpha one &mdash;
-      the labels record what someone clicked, not what the code did. Matching labels exactly left the &beta; line dangling
-      <i>below</i> the &gamma; line (Greg at 5h beta against 50.5h shipped) and gave Riley no &alpha; line at all, which made
-      the pipeline gap unreadable and put stray green and blue segments down in the 2.5h band where they looked like someone
-      else&rsquo;s work. A row now counts toward every stage it reached or passed, dated by its own label when there is one and
-      otherwise by the earliest later stage on record. The cost of that fix: where a &beta; label is missing, the dashed line
-      steps on the production date, so it reads as &ldquo;no recorded time in beta&rdquo; rather than a measured beta date.<br><br>
+      <b>Stage lines count &ldquo;reached this stage or beyond&rdquo;, not &ldquo;carries this label&rdquo;.</b> Labels record
+      what someone clicked, not what the code did &mdash; <span id="s-nobeta">—</span> rows never got a <code>status:beta-version</code>
+      label despite shipping past it. A row counts toward every stage it reached or passed, dated by its own label when there
+      is one and otherwise by the earliest later stage on record, so the three lines always nest. Where a &beta; label is
+      missing the dashed line steps on the production date, which reads as &ldquo;no recorded time in beta&rdquo; rather than
+      a measured beta date. Label coverage has improved a lot since this page was first built &mdash; <span id="s-hasbeta">—</span> rows now carry
+      a real &beta; label, against 3 of 15 in the first hand-built version.<br><br>
 
-      <b>Two contributors are &alpha;-only so far.</b> Jordan (#486, scheduling capacity targets, &alpha; 17 Aug) and Eric
-      (#344 Part 1, Allergies + GFR above the order box, &alpha; 19 Aug) have each reached PR alpha-ready without shipping to
-      &gamma;, so they appear on the dotted line and nowhere else. That is the chart working as intended rather than a gap in
-      the data &mdash; but it does mean their totals are a <b>floor</b>: the &beta; and &gamma; lines will pick the same hours
-      up again as Scott promotes the work, and the horizontal run of their dotted line is pipeline latency, not idle time.<br><br>
-
-      <b>Eric has three more PRs open that are not counted yet</b> &mdash; #510 and #514 (UHIN contract and pull-side design,
-      docs) and #512 (the HL7 parser, Rust backend). Their cards #173 and #307 are still <code>status:in-progress</code>, so
-      they have no &alpha; date to plot. #307 is a backend project, so it will add <b>11h</b> the moment it reaches alpha
-      &mdash; more than four times what Part 1 of #344 scored. His <code>cargo fmt</code> sweep + CI gate (#513) has no
-      tracker card at all and so cannot be attributed under a per-project model.<br><br>
-
-      <b>Neither new contributor is calibrated.</b> The 2.5h / 11h rates were fitted to Greg's recollection of his own,
-      Morgan's and Riley's time. Eric's and Jordan's hours are the model's prediction with nothing anecdotal behind them
-      &mdash; both happen to be frontend-only projects, so both land on 2.5h, and neither has been checked against what they
-      actually spent. The model also has <b>no rate for documentation</b>: Eric's #510 is 815 lines of partner-facing API
-      spec, which is neither frontend nor backend, and would score 2.5h by default if its card reached alpha today.
+      <b>Three rows are hand-linked and cannot be re-derived.</b> #123, #191 and #218 predate all three linking conventions
+      &mdash; their PRs (#132, #190, #217) carry no machine-readable reference to a card. Their attribution is inherited from
+      the first hand-built version of this page and is carried in a small override map so the live rebuild does not drop
+      them. #191 in particular looks doubtful &mdash; its card and its PR do not obviously describe the same piece of work
+      &mdash; so treat that one as unverified rather than measured.
     </p>
   </div>
 </main>
 <script>
-const ROWS = [{"issue":56,"title":"Payroll System: complete implementation","hours":11.0,"deep":true,"date":"2026-06-27","names":["Greg"],"prs":["126"],"add":7,"del":0,"stages":{"alpha_ready":"2026-06-24","beta":null,"gamma":"2026-07-02"}},{"issue":123,"title":"CPT Code Update","hours":2.5,"deep":false,"date":"2026-06-29","names":["Greg"],"prs":["132"],"add":37,"del":2,"stages":{"alpha_ready":"2026-06-26","beta":"2026-07-07","gamma":"2026-07-07"}},{"issue":134,"title":"Fix New Visit Glitch","hours":2.5,"deep":false,"date":"2026-07-02","names":["Greg"],"prs":["137"],"add":9,"del":1,"stages":{"alpha_ready":"2026-07-02","beta":null,"gamma":"2026-07-02"}},{"issue":136,"title":"Antibiotic Order Checks","hours":2.5,"deep":false,"date":"2026-07-02","names":["Morgan"],"prs":["135"],"add":235,"del":4,"stages":{"alpha_ready":"2026-07-02","beta":"2026-07-07","gamma":"2026-07-09"}},{"issue":142,"title":"Payroll v2 edits: student lockout, split SNF wRVU, input glitch fix, decimal formatting, monthly pull timing","hours":11.0,"deep":true,"date":"2026-07-07","names":["Greg"],"prs":["150"],"add":527,"del":165,"stages":{"alpha_ready":"2026-07-03","beta":null,"gamma":"2026-07-08"}},{"issue":174,"title":"Pending Notes Banner","hours":2.5,"deep":false,"date":"2026-07-07","names":["Morgan"],"prs":["175"],"add":151,"del":0,"stages":{"alpha_ready":"2026-07-07","beta":null,"gamma":"2026-07-09"}},{"issue":51,"title":"Establish Care gate: block visit creation until Establish Care visit exists","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["181"],"add":36,"del":0,"stages":{"alpha_ready":"2026-06-23","beta":null,"gamma":"2026-07-08"}},{"issue":151,"title":"Facility home \u2014 Coming-Soon tile page (catalog of all facility tools)","hours":2.5,"deep":false,"date":"2026-07-08","names":["Greg"],"prs":["179"],"add":489,"del":75,"stages":{"alpha_ready":"2026-07-08","beta":null,"gamma":"2026-07-09"}},{"issue":191,"title":"New order summary button","hours":2.5,"deep":false,"date":"2026-07-08","names":["Morgan"],"prs":["190"],"add":127,"del":65,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-08"}},{"issue":202,"title":"Update alerts - success green chekmark.  failure/block stays the same","hours":2.5,"deep":false,"date":"2026-07-14","names":["Greg"],"prs":["206"],"add":19,"del":19,"stages":{"alpha_ready":"2026-07-14","beta":null,"gamma":"2026-07-17"}},{"issue":141,"title":"Facility building view \u2014 request-a-login page + building profile page with on-call display","hours":2.5,"deep":false,"date":"2026-07-15","names":["Riley"],"prs":["210"],"add":863,"del":29,"stages":{"alpha_ready":null,"beta":null,"gamma":"2026-07-21"}},{"issue":208,"title":"Patient Orders visit type: stop nightly sweep + false 'Subjective required' on sign","hours":11.0,"deep":true,"date":"2026-07-16","names":["Greg"],"prs":["214"],"add":32,"del":14,"stages":{"alpha_ready":"2026-07-16","beta":null,"gamma":"2026-07-16"}},{"issue":218,"title":"Beta portal: distinct T_\u03b2 favicon (host-gated, beta only)","hours":2.5,"deep":false,"date":"2026-07-17","names":["Greg"],"prs":["217"],"add":62,"del":4,"stages":{"alpha_ready":"2026-07-17","beta":null,"gamma":"2026-07-18"}},{"issue":240,"title":"SAFETY: localhost can never hit production \u2014 guard checkIsProd by hostname (forceProd must not override localhost)","hours":2.5,"deep":false,"date":"2026-07-25","names":["Greg"],"prs":["242"],"add":14,"del":0,"stages":{"alpha_ready":"2026-07-25","beta":null,"gamma":"2026-07-27"}},{"issue":343,"title":"Bug: GFR missing from Clinical Data \u2014 the read-only GFR mirror near Orders suppresses it via the dedupe filter","hours":2.5,"deep":false,"date":"2026-08-07","names":["Greg"],"prs":["418"],"add":32,"del":6,"stages":{"alpha_ready":"2026-08-07","beta":"2026-08-08","gamma":"2026-08-07"}},{"issue":486,"title":"Scheduling capacity targets: warn when a week drifts outside 65\u201385% of census","hours":2.5,"deep":false,"date":"2026-08-17","names":["Jordan"],"prs":["487"],"add":838,"del":8,"stages":{"alpha_ready":"2026-08-17","beta":null,"gamma":null}},{"issue":344,"title":"Order-entry safety: Allergies + GFR above the New Order box (Part 1)","hours":2.5,"deep":false,"date":"2026-08-19","names":["Eric"],"prs":["518"],"add":335,"del":2,"stages":{"alpha_ready":"2026-08-19","beta":null,"gamma":null}}];
+// NOTHING IS BAKED IN. portal-dev is a PUBLIC repository and the tracker it reports on
+// is private, so this file ships as a generic shell and every row — card titles, PR
+// numbers, contributor names, hours — is fetched at runtime with the viewer's own GitHub
+// token, exactly as index.html does. An earlier revision committed 17 card titles into
+// this file; that is why they are gone. Do not paste a data snapshot back in here.
+const SNAPSHOT = [];
+let ROWS = SNAPSHOT;
 // One hue per person; three shades of that hue = the three release stages.
 const COLORS = ['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#4f46e5','#0d9488'];
 const STAGES = [
@@ -165,20 +181,33 @@ function shade(hex, amt){                       // amt>0 lightens toward white, 
   return '#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 const FLOORS = new Set([343,123,50,56,240,134]);
-const people = [...new Set(ROWS.flatMap(r => r.names))].sort();
 // Hues are PINNED per person. Assigning by sorted index meant every new contributor
 // reshuffled everyone's colour — Greg went blue→green the moment an "Eric" appeared.
 const HUE = { Greg:'#16a34a', Morgan:'#2563eb', Riley:'#f59e0b', Eric:'#dc2626', Jordan:'#7c3aed' };
-const spare = COLORS.filter(c => !Object.values(HUE).includes(c));
-const color = Object.fromEntries(people.map(p => [p, HUE[p] || spare.shift() || COLORS[0]]));
-const totals = {};
-ROWS.forEach(r => r.names.forEach(n => totals[n] = (totals[n]||0) + r.hours/Math.max(1,r.names.length)));
-let filter = null;
+// ROWS is replaced wholesale by the live read, which may introduce a contributor the
+// snapshot never had, so none of these can be computed once at parse time.
+let people, color, totals, filter = null;
+function recompute(){
+  people = [...new Set(ROWS.flatMap(r => r.names))].sort();
+  const spare = COLORS.filter(c => !Object.values(HUE).includes(c));
+  color = Object.fromEntries(people.map(p => [p, HUE[p] || spare.shift() || COLORS[0]]));
+  totals = {};
+  ROWS.forEach(r => r.names.forEach(n => totals[n] = (totals[n]||0) + r.hours/Math.max(1,r.names.length)));
+  if(filter && !people.includes(filter)) filter = null;
+}
 
 function fmt(h){ return (Math.round(h*10)/10) + 'h'; }
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+function emptyState(){
+  return !ROWS.length;
+}
 function drawTotals(){
+  if(emptyState()){
+    document.getElementById('totals').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;padding:6px 2px">Waiting for GitHub \u2014 nothing is stored locally.</div>';
+    return;
+  }
   document.getElementById('totals').innerHTML =
     Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([n,h])=>{
       const projs = ROWS.filter(r=>r.names.includes(n)).length;
@@ -193,6 +222,7 @@ function drawTotals(){
 }
 
 function drawChart(){
+  if(emptyState()){ document.getElementById('chart').innerHTML=''; document.getElementById('legend').innerHTML=''; return; }
   const W=1180,H=420,L=54,R=18,T=18,B=52, iw=W-L-R, ih=H-T-B;
   const shown = filter ? [filter] : people;
   const allDates = ROWS.flatMap(r => STAGES.map(st=>r.stages[st.key]).filter(Boolean).concat([r.date])).map(d=>+new Date(d));
@@ -200,10 +230,10 @@ function drawChart(){
   const x = d => L + (d-d0)/span*iw;
 
   // A project that shipped to gamma necessarily PASSED alpha and beta, even when the
-  // label was never applied — 12 of the shipped rows carry no beta label and two carry
-  // no alpha. Counting only exact-label matches left the beta line hanging below the
-  // gamma line (Greg beta 5h vs gamma 50.5h) and gave Riley no alpha line at all, which
-  // made the caption's "gap between the light and dark line" impossible to read.
+  // label was never applied — 42 of these rows carry no beta label despite shipping past
+  // it. Counting only exact-label matches left the beta line hanging below the gamma line
+  // and gave contributors no alpha line at all, which made the caption's "gap between the
+  // light and dark line" impossible to read.
   // So each stage counts every row that reached it OR BEYOND, dated by its own label when
   // present and otherwise by the earliest later stage on record.
   const LATER = {alpha_ready:['alpha_ready','beta','gamma'], beta:['beta','gamma'], gamma:['gamma']};
@@ -234,13 +264,11 @@ function drawChart(){
     g+=`<line x1="${x(d).toFixed(1)}" y1="${T}" x2="${x(d).toFixed(1)}" y2="${T+ih}" stroke="var(--border)" stroke-width="1" opacity=".45"/>`;
     g+=`<text x="${x(d).toFixed(1)}" y="${H-B+20}" text-anchor="middle" font-size="11" fill="var(--muted)">${lbl}</text>`;
   }
-  // Label the HIGHEST stage each person has actually reached, not gamma unconditionally:
-  // an alpha-only contributor has no gamma series and was drawing as an anonymous line.
-  const rank = {alpha_ready:0, beta:1, gamma:2};
-  const topStage = {};
-  series.filter(v=>v.total>0).forEach(v=>{
-    if (topStage[v.p]===undefined || rank[v.st.key] > rank[topStage[v.p]]) topStage[v.p] = v.st.key;
-  });
+  // Label the ALPHA line, not the person's highest stage. Because each stage counts
+  // "reached it or beyond", the alpha series includes every row a person has, so its
+  // endpoint is the same number as their tile. Labelling the top stage instead made the
+  // chart contradict the tiles the moment the pipeline grew — Greg read 209.5h against a
+  // tile of 518h, and Eric 2.5h against 63h, because only their shipped work was counted.
   const labels = [];
   series.filter(v=>v.total>0).forEach(v=>{
     let d='';
@@ -254,14 +282,17 @@ function drawChart(){
       const r=v.hits[k];
       g+=`<circle cx="${x(pt[0]).toFixed(1)}" cy="${y(pt[1]).toFixed(1)}" r="3.5" fill="${v.color}"><title>${esc(v.p)} \u2014 ${v.st.label}\n#${r.issue} ${esc(r.title)}\n${fmt(r.hours)} on ${r.stages[v.st.key]}</title></circle>`;
     });
-    if(v.st.key===topStage[v.p]){
+    if(v.st.key==='alpha_ready'){
       const last=v.pts[v.pts.length-1];
       // Text always takes the darkest shade — the pale alpha stroke is unreadable as type.
-      labels.push({x:x(last[0])-4, y:y(last[1])-8, color:shade(color[v.p], STAGES[2].shade), text:`${v.p} ${fmt(v.total)}`,
-                   suffix:v.st.key==='gamma' ? '' : ` (\u03b1)`});
+      const shipped = ROWS.filter(r=>r.names.includes(v.p) && r.stages.gamma).length;
+      const mine    = ROWS.filter(r=>r.names.includes(v.p)).length;
+      labels.push({x:x(last[0])-4, y:y(last[1])-8, color:shade(color[v.p], STAGES[2].shade),
+                   text:`${v.p} ${fmt(v.total)}`, suffix:shipped<mine ? ` (${shipped}/${mine} shipped)` : ''});
     }
   });
-  // Nudge apart labels that land on the same hours — three people now sit at 2.5h.
+  // Nudge apart labels that land on the same hours — the low end of the roster clusters
+  // there, since a single frontend-only project scores exactly 2.5h.
   // Stack UPWARD from the lowest one: that cluster sits on the 2.5h line, and pushing
   // down would run the last label through the x-axis and its date ticks.
   labels.sort((a,b)=>b.y-a.y).forEach((lb,i,arr)=>{
@@ -279,6 +310,7 @@ function drawChart(){
     + `<span style="color:var(--muted);margin-left:8px">light dotted \u03b1 \u2192 medium dashed \u03b2 \u2192 dark solid \u03b3</span>`;
 }
 function drawRows(){
+  if(emptyState()){ document.getElementById('cnt').textContent=''; document.getElementById('rows').innerHTML=''; return; }
   const rs = ROWS.filter(r=>!filter||r.names.includes(filter));
   document.getElementById('cnt').textContent = `(${rs.length})`;
   document.getElementById('rows').innerHTML = rs.map(r=>`<tr>
@@ -290,5 +322,215 @@ function drawRows(){
     <td class="hrs">${fmt(r.hours)}</td></tr>`).join('');
 }
 function setFilter(n){ filter = (filter===n)?null:n; drawTotals(); drawChart(); drawRows(); }
-drawTotals(); drawChart(); drawRows();
+recompute(); drawTotals(); drawChart(); drawRows(); fillStats();
+
+/* ── Live refresh ────────────────────────────────────────────────────────────
+   The baked-in SNAPSHOT above renders instantly and works for a viewer who has
+   never signed in. If the tracker's OAuth token is present in localStorage
+   (same origin, same `gh_pat` key index.html writes), the page recomputes every
+   row from the GitHub API and replaces the snapshot — so the numbers advance on
+   their own as labels move, with no commit to this repo.
+
+   Everything the page shows is derived, not stored: stage dates come from the
+   issue's LABELED_EVENT history, hours from whether the PR touched Rust or a
+   migration, credit from the PR author.                                      */
+const REPO_OWNER = 'togohealth-dev', REPO_NAME = 'emr-beta';
+const CACHE_KEY = 'contrib_rows_v2', CACHE_TTL = 30 * 60 * 1000;
+
+const NAME = {gregbaird11:'Greg', morgan477:'Morgan', riley870:'Riley',
+              eellsworth1234:'Eric', 'Jordan-togoclaude':'Jordan', msdrigg:'Scott'};
+const ALPHA = ['status:pr-alpha-ready','status:alpha-testing'];
+const BETA  = ['status:beta-version','status:ready-beta'];
+// Scott reviews and gatekeeps; he is not counted as a build contributor here.
+const EXCLUDE = new Set(['Scott']);
+// Three PRs predate the linking conventions below and carry no machine-readable
+// reference to their card at all. Their attribution is inherited from the first
+// hand-built version of this page and cannot be re-derived — see the notes.
+const MANUAL = {123:['132'], 191:['190'], 218:['217']};
+
+// localStorage throws outright in some contexts (file://, blocked site data), not
+// merely returning null — so every access is guarded and the page falls back to the
+// snapshot rather than dying with an empty status bar.
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+
+async function gql(query){
+  const t = lsGet('gh_pat');
+  if(!t) throw new Error('no-token');
+  const res = await fetch('https://api.github.com/graphql', {
+    method:'POST',
+    headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},
+    body: JSON.stringify({query})
+  });
+  if(res.status === 401) throw new Error('bad-token');
+  if(!res.ok) throw new Error('GitHub ' + res.status);
+  const j = await res.json();
+  if(j.errors) throw new Error(j.errors[0].message);
+  return j.data;
+}
+
+async function pageAll(field, inner, note){
+  const out = []; let cur = null;
+  for(let guard = 0; guard < 40; guard++){
+    const after = cur ? `, after:"${cur}"` : '';
+    const d = await gql(`query{ repository(owner:"${REPO_OWNER}",name:"${REPO_NAME}"){
+      ${field}(first:50${after}, orderBy:{field:CREATED_AT,direction:ASC}){
+        pageInfo{hasNextPage endCursor} nodes{ ${inner} } } } }`);
+    const c = d.repository[field];
+    out.push(...c.nodes.filter(Boolean));
+    setStatus(`${note} ${out.length}…`);
+    if(!c.pageInfo.hasNextPage) break;
+    cur = c.pageInfo.endCursor;
+  }
+  return out;
+}
+
+const isDeep = pr => (pr.files?.nodes || [])
+  .some(f => f.path.endsWith('.rs') || f.path.includes('/migrations/'));
+
+async function fetchLive(){
+  const prs = await pageAll('pullRequests', `number title createdAt additions deletions
+      author{login} closingIssuesReferences(first:10){nodes{number}} files(first:100){nodes{path}}`,
+    'Reading pull requests');
+  const byNum = {}; prs.forEach(p => byNum[p.number] = p);
+
+  const issues = await pageAll('issues', `number title state closedAt
+      timelineItems(first:100, itemTypes:[LABELED_EVENT]){nodes{
+        ... on LabeledEvent { createdAt label{name} } }}`,
+    'Reading cards');
+
+  // A card is only in scope once it has reached a stage — an alpha/beta label in
+  // its history, or a close (which is what gamma/production means here).
+  const stageOf = iss => {
+    const ev = {};
+    (iss.timelineItems?.nodes || []).forEach(n => {
+      if(!n?.label) return;
+      const d = n.createdAt.slice(0,10);
+      if(!ev[n.label.name] || d < ev[n.label.name]) ev[n.label.name] = d;
+    });
+    const first = keys => keys.map(k => ev[k]).filter(Boolean).sort()[0] || null;
+    return {alpha_ready:first(ALPHA), beta:first(BETA),
+            gamma: iss.closedAt ? iss.closedAt.slice(0,10) : null};
+  };
+  const cand = issues.filter(i => {
+    const s = stageOf(i); return s.alpha_ready || s.beta || s.gamma;
+  });
+
+  // ── Card → PR links. Only signals a human wrote on purpose ────────────────
+  // Cross-reference events are deliberately NOT used: because CLAUDE.md asks
+  // every PR to mention the `bun test` card, a cross-reference sweep credited
+  // #517 to seventeen PRs across four people. Three explicit signals instead:
+  const link = {};
+  const add = (issue, pr) => { (link[issue] ||= new Set()).add(pr); };
+  prs.forEach(p => {
+    (p.closingIssuesReferences?.nodes || []).forEach(r => add(r.number, p.number)); // 1. Closes #n
+    (p.title.match(/#(\d+)/g) || []).forEach(m => add(+m.slice(1), p.number));      // 2. #n in the PR title
+  });
+  Object.entries(MANUAL).forEach(([i,ps]) => ps.forEach(p => add(+i, +p)));
+
+  // 3. The tracker's own announcement comment, which CLAUDE.md specifies as
+  //    "Ready for review — @msdrigg · PR #<n>". Anchored to that phrase and
+  //    limited to the FIRST PR named, because pasted session summaries in later
+  //    comments mention unrelated PR numbers.
+  const nums = cand.map(i => i.number);
+  for(let k = 0; k < nums.length; k += 25){
+    const batch = nums.slice(k, k+25);
+    const body = batch.map(n => `i${n}: issue(number:${n}){ number comments(first:100){nodes{body}} }`).join(' ');
+    const d = await gql(`query{ repository(owner:"${REPO_OWNER}",name:"${REPO_NAME}"){ ${body} } }`);
+    Object.values(d.repository).forEach(iss => {
+      if(!iss) return;
+      iss.comments.nodes.forEach(c => {
+        const b = c.body || '';
+        if(!/ready for (review|production)/i.test(b.slice(0,400))) return;
+        const m = b.match(/PR #(\d+)/);
+        if(m && byNum[+m[1]]) add(iss.number, +m[1]);
+      });
+    });
+    setStatus(`Matching cards to PRs ${Math.min(k+25, nums.length)}/${nums.length}…`);
+  }
+
+  const out = [];
+  cand.forEach(iss => {
+    const set = link[iss.number]; if(!set) return;
+    const mine = [...set].filter(n => byNum[n]);
+    const names = [...new Set(mine.map(n => NAME[byNum[n].author?.login] || byNum[n].author?.login))]
+                    .filter(n => n && !EXCLUDE.has(n)).sort();
+    if(!names.length) return;
+    const keep = mine.filter(n => names.includes(NAME[byNum[n].author?.login] || byNum[n].author?.login)).sort((a,b)=>a-b);
+    const deep = keep.some(n => isDeep(byNum[n]));
+    out.push({issue:iss.number, title:iss.title, hours: deep ? 11.0 : 2.5, deep,
+      date: keep.map(n => byNum[n].createdAt.slice(0,10)).sort()[0],
+      names, prs: keep.map(String),
+      add: keep.reduce((s,n)=>s+byNum[n].additions,0),
+      del: keep.reduce((s,n)=>s+byNum[n].deletions,0),
+      stages: stageOf(iss)});
+  });
+  out.sort((a,b) => a.date.localeCompare(b.date));
+  return out;
+}
+
+function setStatus(msg, cls){
+  const el = document.getElementById('live');
+  if(el) el.innerHTML = `<span class="${cls||''}">${msg}</span>`
+    + ` <button class="btn" style="padding:2px 8px;margin-left:8px" onclick="refresh(true)">Refresh</button>`;
+}
+
+function fillStats(){
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const n=ROWS.length;
+  if(!n){ ['s-projects','s-projects2','s-projects3','s-shipped','s-pipeline','s-pipeline2',
+           's-deep','s-front','s-avg','s-nobeta','s-hasbeta','s-latmed','s-latmean','s-latmax']
+          .forEach(i=>set(i,'\u2014')); return; }
+  const shipped=ROWS.filter(r=>r.stages.gamma).length;
+  set('s-projects',n); set('s-projects2',n); set('s-projects3',n);
+  set('s-shipped',shipped); set('s-pipeline',n-shipped); set('s-pipeline2',n-shipped);
+  set('s-deep',ROWS.filter(r=>r.deep).length);
+  set('s-front',ROWS.filter(r=>!r.deep).length);
+  const hrs=ROWS.reduce((s,r)=>s+r.hours,0);
+  set('s-avg',(hrs/n).toFixed(1)+'h');
+  set('s-nobeta',ROWS.filter(r=>!r.stages.beta).length);
+  set('s-hasbeta',ROWS.filter(r=>r.stages.beta).length+' of '+n);
+  const lat=ROWS.filter(r=>r.stages.gamma&&r.stages.alpha_ready)
+    .map(r=>Math.round((new Date(r.stages.gamma)-new Date(r.stages.alpha_ready))/86400000))
+    .filter(x=>x>=0).sort((a,b)=>a-b);
+  if(lat.length){
+    set('s-latmed',lat[Math.floor(lat.length/2)]);
+    set('s-latmean',Math.round(lat.reduce((a,b)=>a+b,0)/lat.length));
+    set('s-latmax',lat[lat.length-1]);
+  } else { set('s-latmed','\u2014'); set('s-latmean','\u2014'); set('s-latmax','\u2014'); }
+}
+
+function apply(rows, label){
+  ROWS = rows; recompute(); drawTotals(); drawChart(); drawRows(); fillStats(); setStatus(label);
+}
+
+async function refresh(force){
+  if(!lsGet('gh_pat')){
+    setStatus(`<b>Sign in on the <a href="index.html">Tracker</a> to load this page.</b> No project data is stored in this
+      repository — it is public, and the tracker is not — so the figures are read from GitHub with your own access.`);
+    return;
+  }
+  if(!force){
+    try{
+      const c = JSON.parse(lsGet(CACHE_KEY) || 'null');
+      if(c && Date.now() - c.at < CACHE_TTL){
+        apply(c.rows, `Live — read from GitHub ${new Date(c.at).toLocaleString()}`);
+        return;
+      }
+    }catch(e){}
+  }
+  try{
+    setStatus('Reading GitHub…');
+    const rows = await fetchLive();
+    lsSet(CACHE_KEY, JSON.stringify({at:Date.now(), rows}));
+    apply(rows, `Live — read from GitHub just now (${rows.length} projects)`);
+  }catch(e){
+    const why = e.message === 'bad-token' ? 'the saved GitHub token has expired — sign in again on the Tracker'
+              : e.message === 'no-token'  ? 'not signed in'
+              : e.message;
+    setStatus(`<b>Could not load from GitHub:</b> ${why}.`);
+  }
+}
+refresh(false);
+
 </script></body></html>
