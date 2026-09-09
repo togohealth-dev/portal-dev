@@ -57,13 +57,32 @@
   </div>
 </header>
 <main>
-  <h1>Who built what, and how long it took</h1>
+  <h1>Who built what</h1>
   <p class="sub">Coding hours on every project with a linked PR &mdash; <b><span id="s-projects">—</span> projects, <span id="s-shipped">—</span> shipped to &gamma; production and <span id="s-pipeline">—</span>
      still in the pipeline</b> &mdash; not self-reported. Hours come from the <b>per-project</b> model below (2.5h frontend,
      11h if it reaches the Rust backend or a migration) &mdash; which the method notes show is an <b>upper bound</b>, good for
      comparing contributors but not as absolute hours. Work is attributed to the engineer who opened the PR.
      Click any name to filter the timeline and the table.</p>
   <p class="sub" id="live" style="font-size:12px"></p>
+
+  <div class="card">
+    <h2>Contribution points &mdash; the equity measure</h2>
+    <div class="hint">Card difficulty &times; strategic multiplier &times; ship gate. This is the figure meant for splitting a
+      contributor pool; the hours below are kept only for reference and are an upper bound. Click to filter.</div>
+    <div class="totals" id="ptotals"></div>
+    <div id="pbar" style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0 6px"></div>
+    <div class="hint" id="pbarnote" style="margin:0"></div>
+  </div>
+
+  <div class="card">
+    <h2>Where the weight comes from</h2>
+    <div class="hint">Every multiplier is read off the card's own labels, so what the business says it values and what the
+      model pays for cannot drift apart. Multipliers stack &mdash; an ONC integration earns both.</div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Weight</th><th style="width:90px">Factor</th><th style="width:70px">Cards</th>
+        <th style="width:90px">Points</th><th style="width:80px">Share</th></tr></thead>
+      <tbody id="wrows"></tbody></table></div>
+  </div>
 
   <div class="card">
     <h2>Total hours by contributor</h2>
@@ -87,8 +106,9 @@
     <h2>Every project with a linked PR <span id="cnt" style="color:var(--primary)"></span></h2>
     <div class="hint">Chronological. Hours come from the per-project model above. The <b>Diff</b> column is shown for context only &mdash; it no longer drives the estimate. Rows marked <b>in pipeline</b> have reached &alpha; but have not shipped to &gamma; yet, so they count toward the dotted line only.</div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th style="width:96px">Date</th><th style="width:56px">#</th><th>Project</th>
-        <th style="width:110px">Built by</th><th style="width:96px">Diff</th><th style="width:70px">Hours</th></tr></thead>
+      <thead><tr><th style="width:88px">Date</th><th style="width:52px">#</th><th>Project</th>
+        <th style="width:104px">Built by</th><th style="width:74px">Difficulty</th><th style="width:120px">Multiplier</th>
+        <th style="width:64px">Gate</th><th style="width:62px">Points</th><th style="width:62px">Hours</th></tr></thead>
       <tbody id="rows"></tbody></table></div>
   </div>
 
@@ -115,6 +135,30 @@
       What predicts the number is <b>how many separate projects</b> you carried and <b>whether each reached the
       backend</b>: understanding the problem, wiring it in, running it on localhost and the PR round trip cost about the
       same whether the diff is 14 lines or 800.<br><br>
+
+      <b>Points, not hours, are the equity measure.</b> A card scores
+      <code>difficulty &times; strategic multiplier &times; ship gate</code>. Difficulty is how many layers of the stack the
+      work crossed (1 layer = 3, 2 layers = 8, 3 layers plus a migration = 13) &mdash; deliberately coarse, because a finer
+      scale would imply precision nobody has. The multiplier is read off the card's own labels, so what the business says it
+      values and what the model pays for cannot drift apart. The gate reuses the &alpha;/&beta;/&gamma; weights the ONC bars
+      already use, which is what stops anyone banking points on code that was never promoted.<br><br>
+
+      <b>Two things this measure does NOT yet do, and both matter before it settles a share.</b><br>
+      &nbsp;&nbsp;&bull; <b>Points scale with card count, so whoever splits work finely scores more.</b> This is the real
+      gaming surface &mdash; not padded diffs, which the gate and the up-front difficulty already neutralise. The fix is to
+      budget points at the <i>track</i> level and let a track's cards divide that budget, so splitting a track in two stops
+      creating value. Until tracks carry budgets, read the split as indicative.<br>
+      &nbsp;&nbsp;&bull; <b>The strategic multipliers are nearly inert so far.</b> ONC/MIPS fires on 3 cards and integrations
+      on none, because almost all of that work is still an unbuilt idea. So the weighting is a forward incentive, not a
+      retrospective redistribution &mdash; it changes what is worth picking up next, and barely moves anyone's current share.
+      Right now 60% of all points carry no multiplier at all.<br><br>
+
+      <b>This page measures the tracked pool only, which is a small part of the product.</b> Against the whole EMR codebase
+      (<code>portal/</code> on <code>origin/main</code>, generated files excluded) these five contributors account for roughly
+      <b>16%</b> &mdash; 9.6% counting only lines in files they created, 17.8% counting gross additions. The remaining
+      82&ndash;90% predates the tracker or arrives by upstream squash-sync with no pull request in this repository at all:
+      <b>88.9% of files here were created by no PR</b>. Any share computed from this page alone therefore over-credits the
+      tracked contributors, and the correction is large, not marginal.<br><br>
 
       <b>These hours are an UPPER BOUND and are known to be too high.</b> <!-- corrected 2026-09-09 -->
       An earlier version of this note claimed the model had passed an independent check, because the tracker's own diff-based
@@ -240,6 +284,53 @@ function drawTotals(){
        <div class="mt">${ROWS.length} projects</div></div>`;
 }
 
+function pointsBy(){
+  const t={};
+  ROWS.forEach(r => r.names.forEach(n => t[n]=(t[n]||0)+(r.points||0)/r.names.length));
+  return t;
+}
+function drawPoints(){
+  const el=document.getElementById('ptotals'); if(!el) return;
+  if(emptyState()){ el.innerHTML=''; document.getElementById('pbar').innerHTML='';
+                    document.getElementById('pbarnote').textContent=''; document.getElementById('wrows').innerHTML=''; return; }
+  const t=pointsBy(), T=Object.values(t).reduce((a,b)=>a+b,0)||1;
+  el.innerHTML=Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([n,p])=>{
+    const cards=ROWS.filter(r=>r.names.includes(n)).length;
+    return `<div class="tot ${filter===n?'on':''}" style="border-left-color:${color[n]}" onclick="setFilter('${n}')">
+      <div class="nm" style="color:${color[n]}">${esc(n)}</div>
+      <div class="hh">${(100*p/T).toFixed(1)}%</div>
+      <div class="mt">${p.toFixed(1)} pts · ${cards} card${cards===1?'':'s'} · ${(p/cards).toFixed(1)}/card</div></div>`;
+  }).join('');
+  document.getElementById('pbar').innerHTML=Object.entries(t).sort((a,b)=>b[1]-a[1])
+    .map(([n,p])=>`<div style="width:${(100*p/T).toFixed(2)}%;background:${color[n]}" title="${esc(n)} ${(100*p/T).toFixed(1)}%"></div>`).join('');
+  document.getElementById('pbarnote').innerHTML =
+    `Share of the <b>tracked</b> contributor pool only. Measured against the whole EMR codebase these five account for
+     roughly <b>16%</b> of it (9.6&ndash;17.8% depending on method) &mdash; the rest predates the tracker or arrives by
+     upstream sync with no PR here at all.`;
+  // weight breakdown
+  const buckets=[
+    ['ONC/MIPS ×2.0',           r=>(r.multWhy||[]).some(w=>w.startsWith('ONC'))],
+    ['Integration ×1.75',       r=>(r.multWhy||[]).some(w=>w.startsWith('integration'))],
+    ['MIPS-critical ×1.5',      r=>(r.multWhy||[]).some(w=>w.startsWith('MIPS-critical'))],
+    ['High priority ×1.25',     r=>(r.multWhy||[]).some(w=>w.startsWith('high'))],
+    ['No multiplier',           r=>!(r.multWhy||[]).length],
+    ['— 3 layers + migration',  r=>r.diff===13],
+    ['— 2 layers',              r=>r.diff===8],
+    ['— 1 layer',               r=>r.diff===3],
+    ['— shipped (γ, full)',     r=>r.gateWhy==='shipped'],
+    ['— beta (×0.75)',          r=>r.gateWhy==='beta'],
+    ['— alpha only (×0.5)',     r=>r.gateWhy==='alpha'],
+  ];
+  document.getElementById('wrows').innerHTML=buckets.map(([lbl,f])=>{
+    const rs=ROWS.filter(f); if(!rs.length) return '';
+    const p=rs.reduce((s,r)=>s+(r.points||0),0);
+    const head=lbl.startsWith('—');
+    return `<tr><td style="${head?'color:var(--muted);padding-left:14px':'font-weight:600'}">${esc(lbl.replace(/^— /,''))}</td>
+      <td style="color:var(--muted);font-size:12px">${head?'':'multiplier'}</td>
+      <td>${rs.length}</td><td class="hrs">${p.toFixed(1)}</td>
+      <td style="color:var(--muted)">${(100*p/ROWS.reduce((s,r)=>s+(r.points||0),0)).toFixed(1)}%</td></tr>`;
+  }).join('');
+}
 function drawChart(){
   if(emptyState()){ document.getElementById('chart').innerHTML=''; document.getElementById('legend').innerHTML=''; return; }
   const W=1180,H=420,L=54,R=18,T=18,B=52, iw=W-L-R, ih=H-T-B;
@@ -337,11 +428,14 @@ function drawRows(){
     <td><a href="https://github.com/togohealth-dev/emr-beta/issues/${r.issue}" target="_blank">#${r.issue}</a></td>
     <td>${esc(r.title)}${FLOORS.has(r.issue)?' <span style="color:#b45309;font-size:11px;font-weight:700" title="The linked PR does not contain all of the work — real time is higher">floor</span>':''}${!r.stages.gamma?' <span style="color:var(--muted);font-size:11px;font-weight:700;border:1px solid var(--line);border-radius:3px;padding:0 4px" title="Reached PR alpha-ready but has not shipped to \u03b3 Production yet">in pipeline</span>':''}</td>
     <td>${r.names.map(n=>`<span class="pill" style="background:${color[n]}">${esc(n)}</span>`).join(' ')}</td>
-    <td style="color:var(--muted);font-size:12px;white-space:nowrap">+${r.add}/-${r.del}</td>
-    <td class="hrs">${fmt(r.hours)}</td></tr>`).join('');
+    <td style="font-size:12px" title="${esc(r.diffWhy||'')}">${r.diff??'—'}</td>
+    <td style="font-size:11px;color:var(--muted)">${r.mult>1?`<b style="color:var(--text)">×${r.mult}</b> ${esc((r.multWhy||[]).join(', '))}`:'—'}</td>
+    <td style="font-size:11px;color:var(--muted)">${esc(r.gateWhy||'')}</td>
+    <td class="hrs">${r.points??'—'}</td>
+    <td style="color:var(--muted);font-size:12px">${fmt(r.hours)}</td></tr>`).join('');
 }
-function setFilter(n){ filter = (filter===n)?null:n; drawTotals(); drawChart(); drawRows(); }
-recompute(); drawTotals(); drawChart(); drawRows(); fillStats();
+function setFilter(n){ filter = (filter===n)?null:n; drawTotals(); drawPoints(); drawChart(); drawRows(); }
+recompute(); drawTotals(); drawPoints(); drawChart(); drawRows(); fillStats();
 
 /* ── Live refresh ────────────────────────────────────────────────────────────
    The baked-in SNAPSHOT above renders instantly and works for a viewer who has
@@ -404,6 +498,51 @@ async function pageAll(field, inner, note){
   return out;
 }
 
+/* ── The contribution-points model ───────────────────────────────────────────
+   Equity is meant to track work delivered, not hours logged, so a card is scored
+   from three things the tracker already records:
+
+     points = difficulty x strategic multiplier x ship gate
+
+   DIFFICULTY is how many layers of the stack the work actually crossed. It is a
+   coarse ordinal on purpose — a finer scale would imply precision nobody has.
+   STRATEGIC MULTIPLIER comes straight off the card's own labels, so what the
+   business says it values and what the model rewards cannot drift apart.
+   SHIP GATE reuses the same alpha/beta/gamma weights the ONC bars already use:
+   unshipped work earns partial credit and abandoned work earns nothing, which is
+   what stops anyone banking points on code that was never promoted.
+
+   Known limitation, and it is not a small one: points scale with CARD COUNT, so
+   whoever splits work into more cards scores more. Card budgets belong to the
+   track, not the card. Until tracks carry budgets, read these as indicative. */
+const DIFFICULTY = [
+  {n:13, label:'3 layers + migration'},
+  {n:8,  label:'2 layers'},
+  {n:3,  label:'1 layer'},
+];
+const MULTIPLIERS = [
+  {test:L => L.includes('onc') || L.includes('mips'), m:2.0,  why:'ONC/MIPS'},
+  {test:L => L.includes('integrations'),              m:1.75, why:'integration'},
+  {test:L => L.includes('priority-5'),                m:1.5,  why:'MIPS-critical'},
+  {test:L => L.includes('priority-4'),                m:1.25, why:'high priority'},
+];
+const GATES = {gamma:{g:1.0,label:'shipped'}, beta:{g:0.75,label:'beta'}, alpha:{g:0.5,label:'alpha'}};
+
+function score(paths, labels, stages){
+  const mig = paths.some(p => p.includes('/migrations/'));
+  const rs  = paths.some(p => p.endsWith('.rs'));
+  const web = paths.some(p => p.endsWith('.tsx') || p.endsWith('.ts'));
+  const layers = [mig, rs, web].filter(Boolean).length;
+  const d = layers >= 3 ? DIFFICULTY[0] : layers === 2 ? DIFFICULTY[1] : DIFFICULTY[2];
+  let m = 1.0; const why = [];
+  // Multipliers stack: an ONC integration is worth more than either alone.
+  MULTIPLIERS.forEach(x => { if(x.test(labels)){ m *= x.m; why.push(`${x.why} \u00d7${x.m}`); } });
+  const gk = stages.gamma ? 'gamma' : stages.beta ? 'beta' : 'alpha';
+  const gate = GATES[gk];
+  return {diff:d.n, diffWhy:d.label, mult:m, multWhy:why, gate:gate.g, gateWhy:gate.label,
+          points: +(d.n * m * gate.g).toFixed(2)};
+}
+
 const isDeep = pr => (pr.files?.nodes || [])
   .some(f => f.path.endsWith('.rs') || f.path.includes('/migrations/'));
 
@@ -414,6 +553,7 @@ async function fetchLive(){
   const byNum = {}; prs.forEach(p => byNum[p.number] = p);
 
   const issues = await pageAll('issues', `number title state closedAt
+      labels(first:30){nodes{name}}
       timelineItems(first:100, itemTypes:[LABELED_EVENT]){nodes{
         ... on LabeledEvent { createdAt label{name} } }}`,
     'Reading cards');
@@ -477,7 +617,11 @@ async function fetchLive(){
     if(!names.length) return;
     const keep = mine.filter(n => names.includes(NAME[byNum[n].author?.login] || byNum[n].author?.login)).sort((a,b)=>a-b);
     const deep = keep.some(n => isDeep(byNum[n]));
-    out.push({issue:iss.number, title:iss.title, hours: deep ? 11.0 : 2.5, deep,
+    const paths = keep.flatMap(n => (byNum[n].files?.nodes || []).map(f => f.path))
+                      .filter(p => !p.includes('.sqlx/'));
+    const labels = (iss.labels?.nodes || []).map(l => l.name);
+    const sc = score(paths, labels, stageOf(iss));
+    out.push({issue:iss.number, title:iss.title, hours: deep ? 11.0 : 2.5, deep, labels, ...sc,
       date: keep.map(n => byNum[n].createdAt.slice(0,10)).sort()[0],
       names, prs: keep.map(String),
       add: keep.reduce((s,n)=>s+byNum[n].additions,0),
@@ -520,7 +664,7 @@ function fillStats(){
 }
 
 function apply(rows, label){
-  ROWS = rows; recompute(); drawTotals(); drawChart(); drawRows(); fillStats(); setStatus(label);
+  ROWS = rows; recompute(); drawTotals(); drawPoints(); drawChart(); drawRows(); fillStats(); setStatus(label);
 }
 
 async function refresh(force){
