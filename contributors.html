@@ -60,7 +60,8 @@
   <h1>Who built what, and how long it took</h1>
   <p class="sub">Coding hours on every project with a linked PR &mdash; <b><span id="s-projects">—</span> projects, <span id="s-shipped">—</span> shipped to &gamma; production and <span id="s-pipeline">—</span>
      still in the pipeline</b> &mdash; not self-reported. Hours come from the <b>per-project</b> model below (2.5h frontend,
-     11h if it reaches the Rust backend or a migration). Work is attributed to the engineer who opened the PR.
+     11h if it reaches the Rust backend or a migration) &mdash; which the method notes show is an <b>upper bound</b>, good for
+     comparing contributors but not as absolute hours. Work is attributed to the engineer who opened the PR.
      Click any name to filter the timeline and the table.</p>
   <p class="sub" id="live" style="font-size:12px"></p>
 
@@ -115,12 +116,30 @@
       backend</b>: understanding the problem, wiring it in, running it on localhost and the PR round trip cost about the
       same whether the diff is 14 lines or 800.<br><br>
 
-      <b>The model now has an independent check, and it passes.</b> The 2.5h / 11h rates were fitted to three anecdotal
-      totals from Greg (his own ~50h, Morgan ~10h, Riley ~3h) &mdash; three data points against two parameters, which is
-      close to saturated. But the tracker measures its own completed projects separately, from PR diffs, and puts them at a
-      <b>median of 6h</b>. Across every project here this model averages <b><span id="s-avg">—</span></b>. Two unrelated methods landing about 0.1h
-      apart is the first real evidence the shape is right rather than merely fitted. Treat the aggregate as sound and any
-      single row as approximate.<br><br>
+      <b>These hours are an UPPER BOUND and are known to be too high.</b> <!-- corrected 2026-09-09 -->
+      An earlier version of this note claimed the model had passed an independent check, because the tracker's own diff-based
+      formula also averaged about 6h per project. That was the wrong comparison &mdash; both are estimates fitted to the same
+      recollections, so their agreement was not evidence. Three measurements since say the number is inflated:<br>
+      &nbsp;&nbsp;&bull; <b>Commit clock.</b> Clustering every commit into working sessions (90-minute idle gap, 30-minute
+      lead-in) gives Greg <b>86h</b>, not 518h, and puts all five contributors at 0.7&ndash;1.0h per project.<br>
+      &nbsp;&nbsp;&bull; <b>A hard wall-clock ceiling.</b> Greg's entire Claude Code history in this lane over the same
+      window &mdash; including the tracker itself, research, and work that never became a PR &mdash; is <b>168&ndash;236
+      active hours</b>. A model claiming 518h of coding alone exceeds the total time available to spend, so it is falsified
+      outright, not merely doubted.<br>
+      &nbsp;&nbsp;&bull; <b>The calibration denominator was wrong.</b> The 2.5h / 11h rates were fitted so that Greg's 11
+      then-visible projects summed to his recollection of ~50h. The same method now finds that <b>60</b> of his projects
+      had already qualified by that date, so the rate was fitted to a denominator 5.5&times; too small &mdash; which is
+      almost exactly the factor by which it overshoots the commit clock.<br>
+      Treat the per-person totals here as <b>relative</b> &mdash; who carried how much, which is what the page is for &mdash;
+      and not as absolute hours. A recalibration against the commit clock implies roughly <b>0.5h frontend / 2.2h
+      backend</b>.<br><br>
+
+      <b>The rates do not distinguish contributors, only file types.</b> Worth knowing before reading anyone's total: the
+      spread between people in this model (9.7h per project for Eric against 5.0h for Morgan) comes entirely from how much
+      of their work touched the Rust backend, not from any measured difference in how long they took. On the commit clock
+      all five sit within 0.7&ndash;1.0h per project of each other.<br><br>
+
+
 
       <b>Cards are matched to PRs only by links a human wrote on purpose</b> &mdash; a <code>Closes #n</code> reference, the
       card number in the PR title, or the tracker's own <i>&ldquo;Ready for review &mdash; @msdrigg &middot; PR #n&rdquo;</i>
