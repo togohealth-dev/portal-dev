@@ -1538,8 +1538,14 @@ async function loadFutureIdeas() {
       const estMatch = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
       const codingEst = estMatch ? estMatch[1] + 'h' : null;
       // Same `**Track:**` convention WoundCare already groups by — one shared mechanism, not a second one.
+      // Failing that, a bundle title ("Command 8/36 · …") already names its own track, so read it
+      // from there rather than dropping 39 cards into Uncategorised for want of one body line.
+      // `bundleOf` reports the bare `[N/M]` form as track "[]", which is not a name — skip it.
       const trackMatch = (issue.body||'').match(/\*\*Track:\*\*\s*([^\n*]+)/i);
-      const track = trackMatch ? trackMatch[1].trim() : null;
+      const titleTrack = bundleOf(issue.title)?.track;
+      const track = trackMatch ? trackMatch[1].trim()
+                  : (titleTrack && titleTrack !== '[]') ? titleTrack
+                  : null;
       return { number: issue.number, title: issue.title, body: issue.body||'', url: issue.html_url, labels, priority, oncRefs, assignees: (issue.assignees||[]).map(a=>a.login), codingEst, track, commentCount: issue.comments };
     });
     // Priority alone scattered bundles — Documents 10/16 (priority-2) sat far above
