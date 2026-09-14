@@ -344,6 +344,12 @@
   /* ── Add New Modal ── */
   #add-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:200; }
   #add-modal.open { display:flex; }
+  /* A silent auto-refresh reuses the normal loaders, which each flip their own
+     spinner on and hide their section. Suppressing that here beats threading a
+     "silent" flag through seven loader functions, and cannot miss one. */
+  body.auto-refreshing #loading,
+  body.auto-refreshing [id$="-loading"] { display:none !important; }
+  body.auto-refreshing #content { display:block !important; }
   .modal-card { background:var(--surface); border-radius:12px; padding:28px; width:560px; max-width:94vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
   .modal-card h3 { font-size:17px; font-weight:700; margin-bottom:16px; }
   .modal-field { margin-bottom:14px; }
@@ -384,7 +390,8 @@
     <a href="https://togo-pcc-research.togohealth.workers.dev" target="_blank" class="btn btn-outline" title="PCC Marketplace research — passphrase required">🔒 PCC<span class="lbl-wide"> Research</span> ↗</a>
     <a href="admin-view.html" class="btn btn-outline" title="Admin view — what needs you, pipeline counts, and what's next in each bundle">📋<span class="lbl-wide"> Admin view</span></a>
     <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
-    <button class="btn btn-outline" onclick="loadAll()" title="Refresh">↻<span class="lbl-wide"> Refresh</span></button>
+    <span id="last-updated" style="font-size:11px;color:var(--text-muted);align-self:center;white-space:nowrap" title="The board re-reads GitHub every 60 seconds"></span>
+    <button class="btn btn-outline" onclick="loadAll()" title="Refresh now">↻<span class="lbl-wide"> Refresh</span></button>
     <button class="btn btn-danger" onclick="clearToken()">Sign out</button>
   </div>
 </header>
@@ -1422,15 +1429,17 @@ function setBusy(on, text) {
 // Run a set of loaders while (a) showing the busy indicator and (b) preserving
 // the user's scroll position — so a submit doesn't jump the page to Wave 1 and
 // the user always sees that something is happening / when it finishes.
-async function refresh(loaders, label) {
+async function refresh(loaders, label, silent) {
   const y = window.scrollY;
-  setBusy(true, label || 'Updating…');
+  if (silent) document.body.classList.add('auto-refreshing');
+  else setBusy(true, label || 'Updating…');
   try {
     if (!currentUser) currentUser = await ghFetch('/user');
     await Promise.all(loaders.map(fn => fn()));
     try { refreshOncProgress(); } catch(e){ console.warn('ONC progress refresh failed', e); }
   } finally {
-    setBusy(false);
+    if (silent) document.body.classList.remove('auto-refreshing');
+    else setBusy(false);
     // restore twice: now and after layout settles, so late renders don't steal scroll
     window.scrollTo(0, y);
     requestAnimationFrame(() => window.scrollTo(0, y));
@@ -1440,6 +1449,66 @@ async function refresh(loaders, label) {
 // Full reload (initial load, manual Refresh button).
 async function loadAll() {
   await refresh([load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal, loadWoundCare, loadIntegrations, loadReferenceProjects]);
+  markUpdated();
+  startAutoRefresh();
+}
+
+// ── Auto-refresh ─────────────────────────────────────────────────────────────
+// The board is read far more than it is edited and goes stale the moment anyone
+// else moves a card, so re-fetch on a 60s cycle and re-render in place.
+//
+// Two pieces of state survive a re-render for free and are worth knowing about:
+// scroll, because refresh() already restores it, and the section / stage
+// accordions, because their open-closed state lives in localStorage and is
+// re-applied on render. What a re-render CANNOT restore is text someone is
+// part-way through typing — so a tick is skipped outright while a field has
+// focus or a dialog is open. A refresh that eats a half-written note is far
+// worse than one that lands a minute late.
+const AUTO_REFRESH_MS = 60000;
+const OVERLAY_IDS = ['add-modal', 'notes-modal', 'beta-modal'];
+let autoTimer = null;
+
+/** Why this tick should be skipped, or null to go ahead. */
+function autoRefreshBlockedBy() {
+  if (document.hidden) return 'tab hidden';
+  if (!getToken()) return 'signed out';
+  if (_busy > 0) return 'a save is already running';
+  const a = document.activeElement;
+  if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return 'typing';
+  for (const id of OVERLAY_IDS) {
+    const el = document.getElementById(id);
+    if (el && getComputedStyle(el).display !== 'none') return 'a dialog is open';
+  }
+  return null;
+}
+
+async function autoRefreshTick() {
+  if (autoRefreshBlockedBy()) return;   // no retry needed — the next tick comes round
+  try {
+    await refresh(
+      [load, loadCurrentProjects, loadFutureIdeas, loadFacilityPortal,
+       loadWoundCare, loadIntegrations, loadReferenceProjects],
+      null, true);
+    markUpdated();
+  } catch (e) {
+    // Stay silent: a failed background poll must not throw an error banner over
+    // a page the user is reading. The next tick retries.
+    console.warn('auto-refresh failed', e);
+  }
+}
+
+function startAutoRefresh() {
+  if (autoTimer) return;
+  autoTimer = setInterval(autoRefreshTick, AUTO_REFRESH_MS);
+  // Returning to the tab should not mean waiting out the rest of the interval.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) autoRefreshTick();
+  });
+}
+
+function markUpdated() {
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 // Lighter reloads after a row action — skip sections that action can't change,
