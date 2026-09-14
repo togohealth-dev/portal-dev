@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Setup D · SEGE Command Center — TogoHealth Dev Trail</title>
+<title>Setup D · Command Center — TogoHealth Dev Trail</title>
 <link rel="icon" type="image/png" href="icons/togo-favicon.png">
 <link rel="stylesheet" href="setup-guide.css">
 </head>
@@ -21,7 +21,7 @@
       <img src="icons/togo-logo.png" alt="TogoHealth">
       <div style="text-align:left"><b>TogoHealth</b><span>Machine Setup D · Optional</span></div>
     </div>
-    <h1>SEGE<br>Command Center</h1>
+    <h1>Command<br>Center</h1>
     <p class="tagline">Access to the <b>staffing, recruiting and business</b> side — a separate product from the EMR, granted per person.</p>
     <p class="subtle">Optional. If you build the EMR, you need none of it, and cards A and B no longer ask.</p>
   </div>
@@ -37,10 +37,10 @@
   <div class="step left" style="--c:var(--orange);--bg:var(--orange-bg)">
     <div class="node">🤔</div>
     <div class="card">
-      <h3>Is SEGE part of your job?</h3>
-      <p>SEGE is the <b>staffing / recruiting / business</b> side: the command center, provider recruiting, onboarding, entity and contract work. It is a <b>separate product</b> from the EMR.</p>
+      <h3>Is Command part of your job?</h3>
+      <p>Command is the <b>staffing / recruiting / business</b> side: the command center, provider recruiting, onboarding, entity and contract work. It is a <b>separate product</b> from the EMR.</p>
       <div class="checkline"><span class="ic">✅</span><div><b>Building the EMR? Stop here.</b> You can be added later in minutes.</div></div>
-      <div class="optcall"><span class="ic">🔒</span><div>SEGE is <b>access-gated</b> — repos are granted per person, and one of them holds private staffing PII.</div></div>
+      <div class="optcall"><span class="ic">🔒</span><div>Command is <b>access-gated</b> — repos are granted per person, and one of them holds private staffing PII.</div></div>
     </div>
   </div>
   <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Ask, then wait</span></div>
@@ -92,7 +92,7 @@
     <div class="node">🧭</div>
     <div class="card">
       <h3>Keep the lanes apart</h3>
-      <ul><li><b><code>~/claude/command/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write SEGE content into an EMR repo</b>, and never write EMR code under the Command lane. No SEGE issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>command-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the SEGE tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
+      <ul><li><b><code>~/claude/command/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write Command content into an EMR repo</b>, and never write EMR code under the Command lane. No Command issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>command-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the Command tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
       <div class="checkline"><span class="ic">✅</span><div>If Command lane work is all you do, open your sessions in <code>~/claude/command/</code> — not <code>~/claude</code>, which is a container and loads no lane rules at all.</div></div>
     </div>
   </div>
