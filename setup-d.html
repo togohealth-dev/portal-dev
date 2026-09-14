@@ -50,8 +50,8 @@
       <h3>Two separate requests</h3>
       <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
       <p>Ask <b>Greg</b> for:</p>
-      <ul><li><b><code>sege-command</code></b> — the command center: the dashboard and its issues.</li><li><b><code>sege-staffing</code></b> — <b>requested and granted separately.</b> It holds private onboarding PII, so it is never bundled with the first.</li></ul>
-      <div class="stopline"><span class="ic">✋</span><div><b>Do not create the folder before access lands.</b> An empty <code>~/claude/sege/</code> is worse than none: a session opened there loads the SEGE lane rules and looks ready to work while you have no repo and no permission.</div></div>
+      <ul><li><b><code>command-center</code></b> — the command center: the dashboard and its issues.</li><li><b><code>sege-staffing</code></b> — <b>requested and granted separately.</b> It holds private onboarding PII, so it is never bundled with the first.</li></ul>
+      <div class="stopline"><span class="ic">✋</span><div><b>Do not create the folder before access lands.</b> An empty <code>~/claude/command/</code> is worse than none: a session opened there loads the Command lane rules and looks ready to work while you have no repo and no permission.</div></div>
     </div>
   </div>
   <div class="phase" style="--c:var(--green)"><span>Phase 2 · Create the lane and clone</span></div>
@@ -60,30 +60,31 @@
     <div class="card">
       <h3>One repo per subfolder</h3>
       <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
-      <pre class="os-mac show">mkdir -p ~/claude/sege</pre>
-      <pre class="os-pc">mkdir -p ~/claude/sege</pre></div>
+      <pre class="os-mac show">mkdir -p ~/claude/command</pre>
+      <pre class="os-pc">mkdir -p ~/claude/command</pre></div>
       <p>Then clone <b>only what you were granted</b>. On an established machine the layout is:</p>
-      <div class="tree">~/claude/sege/
-  command/               togohealth-dev/sege-command
+      <div class="tree">~/claude/command/
+  command-center/        togohealth-dev/command-center
   staffing/              togohealth-dev/sege-staffing   (separate grant)
   business/              togohealth-dev/sege-business
   projects/              togohealth-dev/sege-projects
   provider-recruiting/   togohealth-recruiting/provider-recruitment</div>
       <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
-      <pre class="os-mac show">git clone https://github.com/togohealth-dev/sege-command \
-  ~/claude/sege/command</pre>
-      <pre class="os-pc">git clone https://github.com/togohealth-dev/sege-command \
-  ~/claude/sege/command</pre></div>
+      <pre class="os-mac show">git clone https://github.com/togohealth-dev/command-center \
+  ~/claude/command/command-center</pre>
+      <pre class="os-pc">git clone https://github.com/togohealth-dev/command-center \
+  ~/claude/command/command-center</pre></div>
     </div>
   </div>
-  <div class="step right" style="--c:var(--red);--bg:var(--red-bg)">
-    <div class="node">⚠️</div>
+  <div class="step right" style="--c:var(--teal);--bg:var(--teal-bg)">
+    <div class="node">📄</div>
     <div class="card">
-      <h3>The lane file — no command exists yet</h3>
-      <p><code>install-lanes.sh</code> from card B places the lane files for <code>togo-emr</code> and <code>togo-facility-tools</code>. It deliberately does not place the SEGE one — <b>and the SEGE lane <code>CLAUDE.md</code> is not committed in any repo.</b> It exists only on machines that already have it.</p>
-      <p>So there is nothing to run here. Either:</p>
-      <ul><li>ask <b>Greg</b> to send you <code>~/claude/sege/CLAUDE.md</code>, or</li><li>have Claude write one from the cloned repos, then have Greg check it.</li></ul>
-      <div class="optcall"><span class="ic">🚧</span><div><b>This is a real gap worth closing:</b> the SEGE lane rules should be committed to <code>sege-command</code>, which only granted users can read, so a new SEGE user can install them like every other lane. Until then, everyone hits this step by hand.</div></div>
+      <h3>The lane file — install it from the projects repo</h3>
+      <p><code>install-lanes.sh</code> from card B places the lane files for <code>togo-emr</code> and <code>togo-facility-tools</code>. It deliberately does not place this one: the Command lane file lives with the private repos, because only granted users should read it.</p>
+      <p>Once <code>projects/</code> is cloned, run its installer:</p>
+      <div class="oscode"><pre class="os-mac show">bash ~/claude/command/projects/lane-claude/install-command-lane.sh</pre>
+      <pre class="os-pc">bash ~/claude/command/projects/lane-claude/install-command-lane.sh</pre></div>
+      <p>It writes <code>~/claude/command/CLAUDE.md</code>. Edit the copy in the repo (<code>lane-claude/command.CLAUDE.md</code>), commit, then re-run the installer — never hand-edit the installed file, or yours is the only machine that has the change.</p>
     </div>
   </div>
   <div class="phase" style="--c:var(--purple)"><span>Phase 3 · Lane discipline — the part that matters</span></div>
@@ -91,8 +92,8 @@
     <div class="node">🧭</div>
     <div class="card">
       <h3>Keep the lanes apart</h3>
-      <ul><li><b><code>~/claude/sege/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write SEGE content into an EMR repo</b>, and never write EMR code under the SEGE lane. No SEGE issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>sege-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the SEGE tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
-      <div class="checkline"><span class="ic">✅</span><div>If SEGE work is all you do, open your sessions in <code>~/claude/sege/</code> — not <code>~/claude</code>, which is a container and loads no lane rules at all.</div></div>
+      <ul><li><b><code>~/claude/command/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write SEGE content into an EMR repo</b>, and never write EMR code under the Command lane. No SEGE issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>sege-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the SEGE tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
+      <div class="checkline"><span class="ic">✅</span><div>If Command lane work is all you do, open your sessions in <code>~/claude/command/</code> — not <code>~/claude</code>, which is a container and loads no lane rules at all.</div></div>
     </div>
   </div>
 
@@ -100,7 +101,7 @@
 
 <div class="wrap">
   <div class="rules">
-    <h2>Four rules for the SEGE lane</h2>
+    <h2>Four rules for the Command lane</h2>
     <p class="lead">The first one is about real people’s data. The rest keep the two products from bleeding into each other.</p>
     <div class="rule" style="--c:var(--red)">
       <h4>🔒 The PII grant is separate on purpose</h4>
@@ -108,15 +109,15 @@
     </div>
     <div class="rule" style="--c:var(--orange)">
       <h4>🚫 No empty lane folders</h4>
-      <p>Create <code>~/claude/sege/</code> only after access lands. An empty lane that loads rules is a trap for your future self.</p>
+      <p>Create <code>~/claude/command/</code> only after access lands. An empty lane that loads rules is a trap for your future self.</p>
     </div>
     <div class="rule" style="--c:var(--purple)">
       <h4>🧭 One lane per session</h4>
       <p>Open the session in the lane the work belongs to. A session in <code>~/claude</code> loads nothing and will happily write to the wrong tree.</p>
     </div>
     <div class="rule" style="--c:var(--teal)">
-      <h4>🚧 The lane file needs committing</h4>
-      <p>Until the SEGE <code>CLAUDE.md</code> lives in <code>sege-command</code>, every new SEGE user sets it up by hand. Worth fixing once.</p>
+      <h4>📄 Install the lane file, don't hand-write it</h4>
+      <p>Run <code>lane-claude/install-command-lane.sh</code> from the projects repo. Edit the repo copy and re-run it; never hand-edit <code>~/claude/command/CLAUDE.md</code>.</p>
     </div>
 
   </div>
