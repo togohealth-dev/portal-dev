@@ -50,7 +50,7 @@
       <h3>Two separate requests</h3>
       <span class="who" style="background:var(--blue-bg);color:var(--blue)">[YOU]</span>
       <p>Ask <b>Greg</b> for:</p>
-      <ul><li><b><code>command-center</code></b> — the command center: the dashboard and its issues.</li><li><b><code>sege-staffing</code></b> — <b>requested and granted separately.</b> It holds private onboarding PII, so it is never bundled with the first.</li></ul>
+      <ul><li><b><code>command-center</code></b> — the command center: the dashboard and its issues.</li><li><b><code>command-staffing</code></b> — <b>requested and granted separately.</b> It holds private onboarding PII, so it is never bundled with the first.</li></ul>
       <div class="stopline"><span class="ic">✋</span><div><b>Do not create the folder before access lands.</b> An empty <code>~/claude/command/</code> is worse than none: a session opened there loads the Command lane rules and looks ready to work while you have no repo and no permission.</div></div>
     </div>
   </div>
@@ -65,9 +65,9 @@
       <p>Then clone <b>only what you were granted</b>. On an established machine the layout is:</p>
       <div class="tree">~/claude/command/
   command-center/        togohealth-dev/command-center
-  staffing/              togohealth-dev/sege-staffing   (separate grant)
-  business/              togohealth-dev/sege-business
-  projects/              togohealth-dev/sege-projects
+  staffing/              togohealth-dev/command-staffing   (separate grant)
+  business/              togohealth-dev/command-business
+  projects/              togohealth-dev/command-projects
   provider-recruiting/   togohealth-recruiting/provider-recruitment</div>
       <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">git clone https://github.com/togohealth-dev/command-center \
@@ -92,7 +92,7 @@
     <div class="node">🧭</div>
     <div class="card">
       <h3>Keep the lanes apart</h3>
-      <ul><li><b><code>~/claude/command/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write SEGE content into an EMR repo</b>, and never write EMR code under the Command lane. No SEGE issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>sege-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the SEGE tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
+      <ul><li><b><code>~/claude/command/</code> is its own lane</b> with its own rules; the global router in <code>~/.claude/CLAUDE.md</code> also applies.</li><li><b>Never write SEGE content into an EMR repo</b>, and never write EMR code under the Command lane. No SEGE issues in <code>emr-beta</code>.</li><li><b>Private staffing data stays in <code>command-staffing</code>.</b> It does not get copied into the dashboard repo, an issue, a PR, or a chat.</li><li><b>Cross-lane <i>questions</i> are fine</b> — “how does the SEGE tracker label things versus the portal tracker?” Cross-lane <i>files</i> are not.</li></ul>
       <div class="checkline"><span class="ic">✅</span><div>If Command lane work is all you do, open your sessions in <code>~/claude/command/</code> — not <code>~/claude</code>, which is a container and loads no lane rules at all.</div></div>
     </div>
   </div>
@@ -105,7 +105,7 @@
     <p class="lead">The first one is about real people’s data. The rest keep the two products from bleeding into each other.</p>
     <div class="rule" style="--c:var(--red)">
       <h4>🔒 The PII grant is separate on purpose</h4>
-      <p><code>sege-staffing</code> holds real onboarding data about real people. It is a second, deliberate grant — treat being given it as a responsibility, not a convenience.</p>
+      <p><code>command-staffing</code> holds real onboarding data about real people. It is a second, deliberate grant — treat being given it as a responsibility, not a convenience.</p>
     </div>
     <div class="rule" style="--c:var(--orange)">
       <h4>🚫 No empty lane folders</h4>
