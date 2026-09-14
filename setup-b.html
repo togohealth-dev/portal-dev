@@ -28,7 +28,7 @@
 </header>
 
 <div class="wrap">
-  <div class="warnbar"><b>Card A first.</b> This one assumes <code>claude</code> is already running — Homebrew, Node and Claude Code installed by hand. <a href="setup-a.html" style="color:#7f1d1d;font-weight:800">Go do card A →</a><br><br><b>No scoping questions here either.</b> Tailscale (card C) and SEGE (card D) are optional and come afterwards. Nothing below depends on either.</div>
+  <div class="warnbar"><b>Card A first.</b> This one assumes <code>claude</code> is already running — Homebrew, Node and Claude Code installed by hand. <a href="setup-a.html" style="color:#7f1d1d;font-weight:800">Go do card A →</a><br><br><b>No scoping questions here either.</b> Tailscale (card C) and Command access (card D) are optional and come afterwards. Nothing below depends on either.</div>
 </div>
 
 <div class="wrap trail" id="trail">
@@ -41,7 +41,7 @@
       <span class="who" style="background:var(--purple-bg);color:var(--purple)">[YOU]</span>
       <p>Open <a href="https://github.com/togohealth-dev/emr-beta/issues/520" target="_blank">card B on GitHub</a> and copy everything between the <b>PASTE FROM HERE</b> markers. Paste it into the running <code>claude</code>.</p>
       <p>Claude then works top to bottom and <b>stops at every [USER] step</b> to wait for you. The rest of this page is what it will be doing, so you can follow along and catch a wrong turn.</p>
-      <div class="optcall"><span class="ic">❓</span><div>The prompt tells Claude <b>not</b> to ask whether you need Tailscale or SEGE. If it asks anyway, say “separate card” and carry on.</div></div>
+      <div class="optcall"><span class="ic">❓</span><div>The prompt tells Claude <b>not</b> to ask whether you need Tailscale or Command access. If it asks anyway, say “separate card” and carry on.</div></div>
     </div>
   </div>
   <div class="phase" style="--c:var(--blue)"><span>Phase 1 · Lanes before clones</span></div>
@@ -60,7 +60,7 @@
       <div class="oscode"><div class="tabs"><button class="tab active" data-os="mac">🍎 Mac</button><button class="tab" data-os="pc">🪟 PC</button><button class="copy" type="button" title="Copy this command"><span class="sq">&#10697;</span> Copy</button></div>
       <pre class="os-mac show">mkdir -p ~/claude/togo/togo-emr/wt ~/claude/togo/togo-facility-tools ~/claude/personal</pre>
       <pre class="os-pc">mkdir -p ~/claude/togo/togo-emr/wt ~/claude/togo/togo-facility-tools ~/claude/personal</pre></div>
-      <div class="optcall"><span class="ic">🚫</span><div><b>No <code>sege</code> folder here on purpose.</b> An empty one is worse than none: a session opened there loads the SEGE lane rules and looks ready to work with no repo and no access.</div></div>
+      <div class="optcall"><span class="ic">🚫</span><div><b>No <code>command</code> folder here on purpose.</b> An empty one is worse than none: a session opened there loads the Command lane rules and looks ready to work with no repo and no access.</div></div>
     </div>
   </div>
   <div class="step left" style="--c:var(--blue);--bg:var(--blue-bg)">
@@ -157,7 +157,7 @@ git clone https://github.com/togohealth-dev/emr-beta \
       <pre class="os-pc">bash ~/claude/togo/togo-emr/strategy-sessions-repo/\
   lane-claude/install-lanes.sh</pre></div>
       <p>That places the lane router at <code>~/.claude/CLAUDE.md</code>, the per-lane rules for <code>togo-emr</code> and <code>togo-facility-tools</code>, and the <b>lane-check</b> hook that reports which lane a session started in.</p>
-      <div class="optcall"><span class="ic">📝</span><div>Your <code>personal</code> lane file is yours to write and is never committed. The <b>SEGE</b> one is not in the repo at all — see card D.</div></div>
+      <div class="optcall"><span class="ic">📝</span><div>Your <code>personal</code> lane file is yours to write and is never committed. The <b>Command</b> one is not in the repo at all — see card D.</div></div>
     </div>
   </div>
   <div class="phase" style="--c:var(--red)"><span>Phase 6 · A localhost login that actually works</span></div>
