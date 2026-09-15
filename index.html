@@ -614,6 +614,14 @@
       <input type="url" id="m-pr" placeholder="https://github.com/togohealth-dev/emr-beta/pull/…">
     </div>
     <div class="modal-field">
+      <label><input type="checkbox" id="m-command" onchange="updateCommandNote()" style="width:auto;margin-right:6px">This is <strong>Command</strong> work (outside the portal)</label>
+      <div class="modal-onc-note" id="m-command-note" style="display:none">
+        ⚡ Labels this <code>command</code> and swaps the Claude prompt for the Command lane's rules —
+        <code>~/claude/command/</code> MD files, no Scott review, and branch → PR → confirm you ran it on
+        localhost → merge your own.
+      </div>
+    </div>
+    <div class="modal-field">
       <label><input type="checkbox" id="m-assign" checked style="width:auto;margin-right:6px">Assign to me</label>
     </div>
     <div class="modal-actions" id="modal-form-actions">
@@ -3045,7 +3053,7 @@ ${addition.trim()}
       body: JSON.stringify({ title: title.trim(), body, labels, assignees: mode === 'current' ? [currentUser.login] : [] })
     });
     // Build the combined Claude prompt and copy it so it's ready to paste.
-    const prompt2 = buildProjectPrompt({ number: issue.number, title: title.trim(), body, url: issue.html_url, oncRefs: src.oncRefs || [] });
+    const prompt2 = buildProjectPrompt({ number: issue.number, title: title.trim(), body, url: issue.html_url, oncRefs: src.oncRefs || [], labels });
     copyToClipboard(prompt2);
     toast(`Created #${issue.number} in ${mode === 'future' ? 'Future Ideas' : 'Current Projects'} · Claude prompt copied`);
     await loadAll();
@@ -3118,6 +3126,14 @@ function closeAddModal() {
   document.getElementById('m-priority-field').style.display = 'none';
 }
 
+function updateCommandNote() {
+  const on = document.getElementById('m-command').checked;
+  document.getElementById('m-command-note').style.display = on ? 'block' : 'none';
+  // Command work is not ONC-certified portal work; the criteria picker is noise there.
+  const oncField = document.getElementById('m-onc').closest('.modal-field');
+  if (oncField) oncField.style.display = on ? 'none' : '';
+}
+
 function updateOncNote() {
   const sel = document.getElementById('m-onc');
   const selected = [...sel.selectedOptions].map(o=>o.value).filter(Boolean);
@@ -3149,9 +3165,13 @@ async function submitNewProject() {
   const prSection  = prUrl ? `\n\n**PR:** ${prUrl}` : '';
   const body = `${desc}${oncSection}${prSection}\n\n---\n*Est: ${hours||'?'}h · Type: ${type}*`;
 
+  const isCommand = document.getElementById('m-command').checked;
   const labels = addModalMode === 'future'
     ? ['future-idea', type, `priority-${priority}`]
     : ['current-project', type, 'status:in-progress'];
+  // Command work is labelled at creation so it picks up the Command prompt and
+  // sorts with the rest of the Command bundle (umbrella #754).
+  if (isCommand) labels.push('command');
 
   try {
     const issue = await ghFetch(`/repos/${REPO}/issues`, {
@@ -3165,7 +3185,7 @@ async function submitNewProject() {
       })
     });
     // Generate prompt before loading (uses currentProjects snapshot)
-    pendingProjectPrompt = buildProjectPrompt({ number: issue.number, title, body, url: issue.html_url, oncRefs: oncSel });
+    pendingProjectPrompt = buildProjectPrompt({ number: issue.number, title, body, url: issue.html_url, oncRefs: oncSel, labels });
     // Show success state inside modal (don't close yet)
     document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = 'none');
     document.getElementById('modal-form-actions').style.display = 'none';
@@ -3181,7 +3201,64 @@ async function submitNewProject() {
 }
 
 // ── Project Prompt ────────────────────────────────────────────────────────────
+// Command projects live outside the portal and follow a different set of rules,
+// so they get a different prompt. Pointing the session at ~/claude/command/'s MD
+// files is the whole mechanism: GitHub Free cannot enforce the branch/PR rule on
+// a private repo, so the instruction has to travel with the work.
+function buildCommandProjectPrompt(proj) {
+  const firstLine = (proj.body||'').split('\n').filter(l=>l.trim()).slice(0,6).join('\n');
+  const activeCommand = currentProjects
+    .filter(p => p.status !== 'done' && p.status !== 'abandoned' && (p.labels||[]).includes('command'))
+    .map(p => `  - #${p.number} "${p.title}" [${p.status}]`)
+    .join('\n') || '  - None currently in progress';
+
+  return `Session topic: Building "${proj.title}"
+GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${proj.number}
+Lane: COMMAND — outside the portal. Open the session in ~/claude/command/.
+
+━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
+1. ~/claude/command/CLAUDE.md
+   → lane rules, and HOW WORK REACHES PRODUCTION IN THIS LANE
+2. ~/claude/command/command-app/CLAUDE.md
+   → review & deploy, what Command may do with portal data, the patient-data line
+3. ~/claude/command/projects/docs/website-runbook.md   (marketing-site work only)
+4. The repo's own MIGRATION-NOTES.md, if you are touching togohealth-web
+
+─── WHAT THIS BUILD DOES ─────────────────────────────
+${firstLine}
+
+─── OTHER COMMAND WORK IN FLIGHT (do not duplicate) ──
+${activeCommand}
+
+─── HOW THIS SHIPS ───────────────────────────────────
+Branch → pull request → tick "I ran it on localhost" in the PR description and
+say what you clicked through → CI green → merge your own PR. No reviewer gate:
+your statement that you actually tested it IS the gate.
+
+Do NOT push straight to main. The one exception is an emergency fix for a broken
+site, and the commit message must say so. A workflow flags every direct push.
+
+⚠️ GitHub does not enforce this — the org is on the Free plan, where branch
+protection and rulesets refuse on private repos. The rule lives in the MD files
+above. Read them; they are the enforcement.
+
+─── THE TWO HARD LIMITS ──────────────────────────────
+1. **Patient data.** Nothing patient-identifying lives outside the portal. Read
+   from the portal, manipulate in Command, link back — never write to the portal,
+   and never store a patient identifier here. Anything touching patient data
+   needs Scott's review; everything else does not.
+2. **Editing the portal** — its code, its database, its UI — needs Scott AND the
+   localhost→alpha→beta→gamma flow. If the build starts reaching into the portal,
+   stop and say so.
+
+─── BEFORE WRITING CODE — STATE OUT LOUD ────────────
+1. Which of the MD files above did you read, and which rule in them applies here?
+2. Does this touch patient data or edit the portal? (If yes → Scott, and say so now.)
+3. Full implementation plan — wait for approval before executing.`;
+}
+
 function buildProjectPrompt(proj) {
+  if ((proj.labels||[]).includes('command')) return buildCommandProjectPrompt(proj);
   const oncContext = (proj.oncRefs||[]).length
     ? proj.oncRefs.map(id => {
         const c = CTX[id];
