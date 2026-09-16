@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="icons/togo-favicon.png"><link rel="apple-touch-icon" href="icons/togo-favicon.png">
+<title>TogoHealth · Command Project Tracker</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: #e1e4e8;
+    --text: #24292e;
+    --text-muted: #6a737d;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --green-bright: #16a34a;
+    --green-atl: #059669;
+    --green-bg: #d1fae5;
+    --red: #dc2626;
+    --yellow: #d97706;
+    --amber: #b45309;
+    --amber-bg: #fef3c7;
+    --purple: #7c3aed;
+    --purple-bg: #ede9fe;
+    --orange: #ea580c;
+    --orange-bg: #ffedd5;
+    --gray: #6b7280;
+    --wave1-bg: #eff6ff; --wave1-border: #bfdbfe;
+    --wave2-bg: #f0fdf4; --wave2-border: #bbf7d0;
+    --wave3-bg: #fefce8; --wave3-border: #fef08a;
+    --wave4-bg: #fdf4ff; --wave4-border: #e9d5ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+  /* ── Header ── */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .section-nav { position: sticky; top: 56px; z-index: 99; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 4px; padding: 7px 24px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .section-nav .nav-label { font-size: 12px; color: var(--text-muted); margin-right: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  .section-nav a { font-size: 13px; color: var(--primary); cursor: pointer; padding: 4px 11px; border-radius: 6px; text-decoration: none; font-weight: 500; }
+  .section-nav a:hover { background: #eef2ff; }
+  .section-block { scroll-margin-top: 108px; }
+  .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .header-left img { flex-shrink: 0; }   /* never let the logo get squeezed to nothing */
+  .logo { font-weight: 700; font-size: 16px; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  /* Narrow screens: shed the subtitle, then tighten the gutters, so the 56px header keeps
+     everything on one line and .section-nav (sticky at top:56px) stays aligned to it. */
+  @media(max-width:900px){ .logo span { display: none; } }
+  @media(max-width:700px){ .lbl-wide { display: none; } }   /* trim long button labels, keep every control */
+  @media(max-width:700px){
+    header { padding: 0 12px; }
+    .section-nav { padding: 7px 12px; }
+    main { padding: 20px 12px; }
+  }
+
+  /* ── Auth overlay ── */
+  #auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .auth-card { background: var(--surface); border-radius: 12px; padding: 32px; width: 480px; max-width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .auth-card h2 { font-size: 20px; margin-bottom: 8px; }
+  .auth-card p { color: var(--text-muted); margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+  .auth-card a { color: var(--primary); }
+  .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .input-group label { font-weight: 500; font-size: 13px; }
+  .input-group input { border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 14px; font-family: monospace; outline: none; width: 100%; }
+  .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-outline { background: #fff; color: var(--text); border-color: var(--border); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-danger { background: #fff; color: var(--red); border-color: #fca5a5; }
+  .btn-danger:hover { background: #fef2f2; }
+  .btn-copy { background: #fff; color: var(--purple); border-color: #ddd6fe; }
+  .btn-copy:hover { background: #f5f3ff; }
+  .btn-copy.copied { color: var(--green-bright); border-color: #bbf7d0; background: #f0fdf4; }
+  .btn-green { background: var(--green-atl); color: #fff; border-color: var(--green-atl); }
+  .btn-green:hover { background: #047857; }
+  .btn-amber { background: #fff; color: var(--amber); border-color: #fcd34d; }
+  .btn-amber:hover { background: var(--amber-bg); }
+  .btn-purple { background: #fff; color: var(--purple); border-color: #c4b5fd; }
+  .btn-purple:hover { background: var(--purple-bg); }
+  .btn-orange { background: #fff; color: var(--orange); border-color: #fdba74; }
+  .btn-orange:hover { background: var(--orange-bg); }
+  .btn-lg { padding: 8px 20px; font-size: 14px; }
+  .btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+  /* ── Main ── */
+  main { width: 100%; margin: 0 auto; padding: 20px 24px; }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 22px; font-weight: 700; }
+  .page-header p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+  /* ── Stats bar ── */
+  .stats { display: grid; grid-template-columns: 1fr 1fr repeat(4,auto); gap: 12px; margin-bottom: 20px; align-items: stretch; }
+  @media(max-width:900px){ .stats { grid-template-columns: 1fr 1fr; } }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .stat-progress-track { height: 6px; background: var(--border); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .stat-progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .fill-onc { background: var(--primary); }
+  .fill-mips { background: var(--green-atl); }
+  .stat-sm { min-width: 80px; }
+  .stat-sm .stat-value { font-size: 28px; }
+
+  /* ── Alert banner ── */
+  .eval-alert { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .eval-alert .alert-icon { font-size: 20px; }
+  .eval-alert .alert-text { flex: 1; font-size: 13px; }
+  .eval-alert strong { display: block; color: var(--amber); }
+
+  /* ── Filters ── */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .filter-btn { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+  .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .filter-sep { color: var(--border); font-size: 18px; line-height: 1; }
+
+  /* ── Wave groups ── */
+  .wave-group { margin-bottom: 20px; }
+  .wave-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px 8px 0 0; border: 1px solid; border-bottom: none; cursor: pointer; user-select: none; }
+  .wave-header h2 { font-size: 14px; font-weight: 700; }
+  .wave-meta { color: var(--text-muted); font-size: 12px; margin-left: auto; display: flex; gap: 12px; }
+  .wave-meta span { white-space: nowrap; }
+  .wave-1 .wave-header { background: var(--wave1-bg); border-color: var(--wave1-border); }
+  .wave-2 .wave-header { background: var(--wave2-bg); border-color: var(--wave2-border); }
+  .wave-3 .wave-header { background: var(--wave3-bg); border-color: var(--wave3-border); }
+  .wave-4 .wave-header { background: var(--wave4-bg); border-color: var(--wave4-border); }
+  .chevron { font-size: 10px; transition: transform 0.2s; }
+  .wave-group.collapsed .chevron { transform: rotate(-90deg); }
+  .wave-group.collapsed .wave-table-wrap { display: none; }
+
+  /* ── Table ── */
+  .wave-table-wrap { border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px;
+    /* overflow-x:auto (not hidden) so a table too wide for the viewport SCROLLS instead of
+       having its right-hand columns clipped away unreachably. overflow-y stays hidden so the
+       Progress dropdown behaves exactly as before. */
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 10px; background: #fafbfc; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr.row-atl td { background: #f0fdf4; }
+  tr.row-beta-complete td { background: #fffbeb; animation: pulse-row 2s ease-in-out infinite; }
+  @keyframes pulse-row { 0%,100% { background: #fffbeb; } 50% { background: #fef9c3; } }
+  tr.row-done td { opacity: 0.65; }
+  tr:hover td { filter: brightness(0.97); }
+
+  .issue-link { color: var(--text); font-weight: 500; text-decoration: none; font-size: 13px; }
+  .issue-link:hover { color: var(--primary); }
+  .issue-num { color: var(--text-muted); font-size: 11px; font-family: monospace; display: block; }
+
+  /* ── Status badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .s-not-started    { background: #f3f4f6; color: var(--gray); }
+  .s-in-progress    { background: #dbeafe; color: #1d4ed8; }
+  .s-beta-testing   { background: var(--orange-bg); color: var(--orange); }
+  .s-beta-complete  { background: var(--amber-bg); color: var(--amber); }
+  .s-ready-for-eval { background: var(--purple-bg); color: var(--purple); }
+  .s-ready-for-atl  { background: var(--green-bg); color: var(--green-atl); font-size: 12px; padding: 3px 10px; }
+  .s-done           { background: #e5e7eb; color: #374151; }
+  .badge-onc  { background: var(--purple-bg); color: var(--purple); }
+  .badge-mips { background: #fef3c7; color: var(--yellow); }
+
+  /* ── Progress bar (inline) ── */
+  .progress-wrap { display: flex; align-items: center; gap: 6px; min-width: 90px; }
+  .progress-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .prog-blue  { background: var(--primary); }
+  .prog-orange{ background: var(--orange); }
+  .prog-amber { background: var(--yellow); }
+  .prog-purple{ background: var(--purple); }
+  .prog-green { background: var(--green-atl); }
+  .prog-gray  { background: var(--gray); }
+  .progress-pct { font-size: 11px; color: var(--text-muted); width: 28px; text-align: right; }
+  /* ONC segmented contribution bar: grey baseline + one slice per contributing project */
+  .onc-bar { flex:1; display:flex; height:7px; background:var(--border); border-radius:3px; overflow:hidden; min-width:70px; }
+  .onc-seg { height:100%; position:relative; border-right:1px solid rgba(255,255,255,.75); background:#e5e9f2; }
+  .onc-seg:last-child { border-right:none; }
+  .onc-seg.seg-base { background:var(--gray); }
+  .onc-seg.seg-testing  { background:repeating-linear-gradient(45deg,#dfe5ef,#dfe5ef 3px,#eef1f7 3px,#eef1f7 6px); }
+  .onc-seg.seg-optional { background:repeating-linear-gradient(45deg,#e8e2f2,#e8e2f2 3px,#f3eefa 3px,#f3eefa 6px); }
+  .onc-100-marker { position:absolute; top:-2px; bottom:-2px; width:2px; background:var(--text); opacity:.55; z-index:2; pointer-events:none; }
+  .onc-bar { position:relative; }
+  .pct-nondev { color:var(--text-muted); font-weight:600; }
+  .sw.sw-testing  { background:repeating-linear-gradient(45deg,#dfe5ef,#dfe5ef 3px,#eef1f7 3px,#eef1f7 6px); }
+  .sw.sw-optional { background:repeating-linear-gradient(45deg,#e8e2f2,#e8e2f2 3px,#f3eefa 3px,#f3eefa 6px); }
+  .onc-seg-fill { position:absolute; left:0; top:0; height:100%; transition:width .4s; }
+  .prog-idle { background:transparent; }
+  .onc-total-badge { margin-left:10px; font-size:12px; font-weight:700; color:var(--green-atl); background:var(--green-bg); padding:2px 9px; border-radius:10px; vertical-align:middle; white-space:nowrap; }
+  #onc-nav-pct { color:var(--green-atl); font-weight:700; }
+  .onc-bar-click { cursor:pointer; }
+  .onc-bar-click:hover .onc-bar { outline:2px solid var(--primary); outline-offset:1px; }
+  .onc-atl-tag { display:inline-block; font-size:10px; font-weight:700; color:#fff; background:var(--green-atl); padding:1px 5px; border-radius:8px; margin-left:4px; vertical-align:1px; }
+  /* ONC criterion detail modal */
+  .onc-modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+  .onc-modal-card { background:#fff; border-radius:12px; max-width:660px; width:100%; max-height:86vh; overflow:auto; padding:24px; position:relative; box-shadow:0 24px 64px rgba(0,0,0,.32); }
+  .onc-modal-close { position:absolute; top:12px; right:14px; border:none; background:none; font-size:18px; cursor:pointer; color:var(--text-muted); line-height:1; }
+  .onc-detail-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; padding-right:20px; }
+  .onc-detail-crit { font-size:13px; font-weight:700; color:var(--primary); }
+  .onc-detail-title { font-size:16px; font-weight:700; max-width:460px; line-height:1.3; }
+  .onc-detail-total { font-size:28px; font-weight:800; white-space:nowrap; }
+  .onc-bar-lg { height:20px; border-radius:5px; margin-bottom:10px; }
+  .onc-bar-lg .onc-seg { border-right:2px solid #fff; }
+  .onc-key-legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--text-muted); margin-bottom:16px; }
+  .onc-key-legend .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
+  .sw.sw-empty { background:var(--border); }
+  .onc-detail-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .onc-detail-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); border-bottom:1px solid var(--border); padding:6px 8px; }
+  .onc-detail-table td { padding:9px 8px; border-bottom:1px solid var(--border); }
+  .onc-detail-proj { cursor:pointer; transition:background .12s; }
+  .onc-detail-proj:hover { background:#f1f5fd; }
+  .onc-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+  .onc-go { color:var(--primary); font-weight:700; text-align:right; }
+  .stat-click { cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+  .stat-click:hover { border-color:var(--primary); box-shadow:0 2px 10px rgba(37,99,235,.13); }
+  .stat-more { font-size:10px; font-weight:600; color:var(--primary); margin-left:6px; text-transform:none; letter-spacing:0; }
+  .stat-scope-bar { height:10px; border-radius:5px; margin:8px 0 6px; }
+  .onc-detail-pts { font-size:12px; font-weight:600; color:var(--text-muted); margin-top:2px; white-space:nowrap; }
+  .onc-pts-beyond { color:var(--text-muted); font-weight:500; }
+  .onc-scope-box { background:#f6f8fc; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.55; color:var(--text-muted); margin-bottom:14px; }
+  .onc-row-nondev { background:#fafbfd; }
+  .onc-detail-foot { font-size:12px; color:var(--text-muted); margin-top:14px; line-height:1.5; }
+  .row-flash { animation: rowflash 2.2s ease-out; }
+  @keyframes rowflash { 0%,25%{ background:#fff5cc; } 100%{ background:transparent; } }
+
+  /* ── Priority dots ── */
+  .priority { display: flex; gap: 2px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+  .dot.on { background: var(--primary); }
+  .p5 .dot.on { background: var(--red); }
+  .p4 .dot.on { background: var(--yellow); }
+
+  /* ── Actions ── */
+  .actions { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+
+  /* ── Dropdown (progress set) ── */
+  .drop-wrap { position: relative; display: inline-block; }
+  .drop-menu { position: absolute; top: 100%; left: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 200; min-width: 120px; margin-top: 2px; }
+  .drop-menu button { display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 12px; background: none; border: none; cursor: pointer; color: var(--text); }
+  .drop-menu button:hover { background: var(--bg); }
+  .drop-menu { display: none; }
+  .drop-wrap.open .drop-menu { display: block; }
+
+  /* ── Loading / error ── */
+  #loading, #error-msg { text-align: center; padding: 60px 24px; color: var(--text-muted); }
+  #error-msg { color: var(--red); }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 500; }
+  #toast.show { opacity: 1; }
+
+  footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; }
+  footer a { color: var(--primary); }
+
+  /* ── Section headers ── */
+  .section-block { margin-bottom: 32px; }
+  .section-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+  .section-hdr h2 { font-size: 18px; font-weight: 700; flex: 1; }
+  .section-hdr p { font-size: 12px; color: var(--text-muted); }
+  /* "Completed stats" chip, inline immediately after the Production — Completed title */
+  .stats-link { margin-left: 12px; font-size: 12px; font-weight: 600; color: var(--primary);
+    background: #eff4ff; border: 1px solid #c7d7fe; border-radius: 999px; padding: 3px 11px;
+    text-decoration: none; vertical-align: middle; white-space: nowrap; display: inline-block; }
+  .stats-link:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .section-divider { border: none; border-top: 2px solid var(--border); margin: 28px 0; }
+
+  /* ── Project table (Current Projects + Future Ideas) ── */
+  .proj-table-wrap { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  .proj-table-wrap table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  .proj-table-wrap th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid var(--border); }
+  .proj-table-wrap td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .proj-table-wrap tr:last-child td { border-bottom: none; }
+  .proj-table-wrap tr:hover td { background: #f8faff; }
+  .proj-table-wrap tr.abandoned td { opacity: 0.45; }
+
+  .proj-title { font-weight: 600; font-size: 13px; color: var(--text); text-decoration: none; }
+  .proj-title:hover { color: var(--primary); }
+  .proj-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Status badges for projects */
+  .ps-planning   { background:#f3f4f6; color:var(--gray); }
+  .ps-in-progress{ background:#dbeafe; color:#1d4ed8; }
+  .ps-pr-ready   { background:#fef3c7; color:var(--amber); }
+  .ps-needs-revision { background:#fee2e2; color:var(--red); }
+  .ps-beta       { background:var(--green-bg); color:var(--green-atl); font-weight:700; }
+  .ps-alpha      { background:#ccfbf1; color:#0f766e; font-weight:700; }
+  .ps-ready-prod { background:#e0e7ff; color:#4338ca; font-weight:700; }
+  /* Tiered sub-sections inside a Current-Projects group: a small gap + a quiet label
+     separate the "live" tier (deploy link / in the shared build) from the "queued" tier. */
+  tr.cp-tier-gap td { height:12px; padding:0; border:none; background:transparent; }
+  tr.cp-tier-note td { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-muted); background:transparent; border:none; padding:2px 8px 4px; }
+  /* Integrations vendor group header (jump-bar anchors) */
+  tr.int-vgroup td { background:#eef2fb; font-weight:700; font-size:12px; color:var(--text);
+    padding:7px 8px; border-top:2px solid var(--border); scroll-margin-top:96px; }
+  /* Notes rich field with inline @-mentions */
+  .notes-rich { min-height:72px; max-height:220px; overflow-y:auto; font-size:13px; line-height:1.9;
+    padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:inherit; outline:none; }
+  .notes-rich:focus { border-color:var(--primary); }
+  .notes-rich.is-empty:before { content:attr(data-placeholder); color:var(--text-muted); }
+  .mention-bubble { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600;
+    padding:2px 9px; border-radius:999px; line-height:1.7; }
+  .mention-bubble.ok  { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .mention-bubble.bad { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+  .mention-bubble .rm { cursor:pointer; opacity:.65; font-weight:700; }
+  .notify-suggest { border:1px solid var(--border); border-radius:6px; margin-top:4px; background:#fff;
+    box-shadow:0 6px 18px rgba(0,0,0,.10); overflow:hidden; max-height:180px; overflow-y:auto; }
+  .notify-suggest .opt { padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  .notify-suggest .opt.hi { background:#eff6ff; }
+  .notify-help { font-size:10.5px; color:var(--text-muted); margin-top:5px; }
+  .ps-beta-version { background:#efe4ff; color:#6b21a8; font-weight:700; }
+  .greek { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
+  .stage-ico { height: 1.4em; width: auto; vertical-align: -0.32em; }
+  .ps-abandoned  { background:#f3f4f6; color:#9ca3af; }
+  .ps-done       { background:#e5e7eb; color:#374151; }
+
+  /* ONC ref tag on project row */
+  .onc-ref { display:inline-flex; align-items:center; gap:3px; padding:2px 6px; background:var(--purple-bg); color:var(--purple); border-radius:4px; font-size:10px; font-weight:600; white-space:nowrap; cursor:help; }
+
+  /* Scott's comment preview */
+  .scott-comment { font-size:11px; color:var(--text-muted); max-width:260px; }
+  .scott-comment strong { color:var(--amber); display:block; margin-bottom:1px; }
+  .scott-comment .comment-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:240px; }
+  .beta-link { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; background:var(--green-bg); color:var(--green-atl); border-radius:4px; font-size:11px; font-weight:600; text-decoration:none; }
+
+  /* Priority stars */
+  .stars { color:#fbbf24; font-size:13px; letter-spacing:1px; }
+  .stars .empty { color:var(--border); }
+
+  /* ── Collapsible sections ── */
+  .section-block.sec-collapsed .sec-body { display: none; }
+  .sec-toggle { background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted); padding:0 4px; transition:transform 0.2s; }
+  .section-block.sec-collapsed .sec-toggle { transform: rotate(-90deg); }
+
+  /* ── Add New Modal ── */
+  #add-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:200; }
+  #add-modal.open { display:flex; }
+  /* A silent auto-refresh reuses the normal loaders, which each flip their own
+     spinner on and hide their section. Suppressing that here beats threading a
+     "silent" flag through seven loader functions, and cannot miss one. */
+  body.auto-refreshing #loading,
+  body.auto-refreshing [id$="-loading"] { display:none !important; }
+  body.auto-refreshing #content { display:block !important; }
+  .modal-card { background:var(--surface); border-radius:12px; padding:28px; width:560px; max-width:94vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+  .modal-card h3 { font-size:17px; font-weight:700; margin-bottom:16px; }
+  .modal-field { margin-bottom:14px; }
+  .modal-field label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.3px; }
+  .modal-field input, .modal-field textarea, .modal-field select { width:100%; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit; background:var(--surface); outline:none; }
+  .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+  .modal-field textarea { height:72px; resize:vertical; }
+  .modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+  .modal-onc-note { font-size:11px; color:var(--purple); background:var(--purple-bg); padding:8px 10px; border-radius:6px; margin-top:6px; line-height:1.5; }
+  .cp-toggle { background:none; border:0; cursor:pointer; font-size:13px; color:var(--text-muted);
+               padding:0 2px; line-height:1; transition:transform .15s; }
+  .cp-toggle:hover { color:var(--text); }
+  .cp-group.cp-collapsed .cp-body { display:none; }
+  .cp-group.cp-collapsed .cp-toggle { transform:rotate(-90deg); }
+  /* ── Command-specific ── */
+  /* ── Board switch ──
+     The two trackers are siblings, not a page and a subpage, so the link from
+     each to the other is styled as a distinct control rather than blending into
+     the row of section jumps beside it. */
+  .board-switch { font-weight:700 !important; background:#eef2ff; border:1px solid #c7d2fe;
+                  color:var(--primary) !important; border-radius:6px; padding:4px 11px !important; }
+  .board-switch:hover { background:#e0e7ff !important; }
+
+  /* This page's section headings are longer than the portal tracker's ("Portal-side
+     — Scott's flow" vs "Future Builds"), and .section-hdr h2 { flex:1 } shrinks to
+     content, so the heading wrapped to three lines while the blurb kept its natural
+     width. Pin the heading and let the blurb take the slack instead. */
+  .section-hdr h2 { flex:0 0 auto; white-space:nowrap; }
+  .section-hdr p  { flex:1 1 320px; min-width:240px; }
+  @media(max-width:760px){ .section-hdr { flex-wrap:wrap; } .section-hdr h2 { white-space:normal; } }
+  .track-note { font-size:12px; color:var(--text-muted); line-height:1.55; }
+  .track-note code { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:11px; }
+  .umbrella { background:linear-gradient(90deg,#ecfeff,#f0fdfa); border:1px solid #99f6e4; border-radius:8px; padding:12px 16px; margin-bottom:18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .umbrella .u-ico { font-size:20px; }
+  .umbrella .u-text { flex:1; font-size:13px; min-width:240px; }
+  .umbrella strong { display:block; color:#0f766e; }
+  .badge.ps-pr-open { background:#fef3c7; color:#92400e; }
+  .badge.ps-blocked { background:#fee2e2; color:#b91c1c; }
+  .badge.ps-portal  { background:#ede9fe; color:#5b21b6; }
+  .lane-pill { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; padding:2px 7px; border-radius:20px; vertical-align:middle; }
+  .lane-command { background:#ccfbf1; color:#0f766e; }
+  .lane-portal  { background:#ede9fe; color:#5b21b6; }
+  .lane-untriaged { background:#fee2e2; color:#991b1b; }
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>TogoHealth · Command Project Tracker</h2>
+    <p>Sign in with your GitHub account. Only members of the <strong>togohealth-dev</strong> org can access this tracker.</p>
+    <button class="btn btn-primary btn-lg" onclick="startOAuth()" style="width:100%">
+      <svg height="16" width="16" viewBox="0 0 16 16" style="vertical-align:middle;margin-right:6px" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      Sign in with GitHub
+    </button>
+    <p id="auth-error" style="color:#dc2626;font-size:12px;margin-top:12px;display:none"></p>
+  </div>
+</div>
+
+<header>
+  <div class="header-left" style="display:flex;align-items:center;gap:10px">
+    <img src="icons/togo-logo.png" alt="Togo Health" style="height:40px;width:auto;display:block">
+    <div class="logo">Command <span>· Project Tracker</span></div>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="btn btn-outline" title="The portal's own development tracker — ONC certification, alpha→beta→gamma">←<span class="lbl-wide"> Portal Tracker</span></a>
+    <a href="https://command.togohealth.com" target="_blank" class="btn btn-outline" title="The Command app itself">⚡<span class="lbl-wide"> command.togohealth.com</span> ↗</a>
+    <a href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+label%3Acommand" target="_blank" class="btn btn-outline">GitHub ↗</a>
+    <span id="last-updated" style="font-size:11px;color:var(--text-muted);align-self:center;white-space:nowrap" title="The board re-reads GitHub every 5 minutes — press ↻ Refresh for it now"></span>
+    <button class="btn btn-outline" onclick="loadAll()" title="Refresh now">↻<span class="lbl-wide"> Refresh</span></button>
+    <button class="btn btn-danger" onclick="clearToken()">Sign out</button>
+  </div>
+</header>
+
+<nav class="section-nav">
+  <span class="nav-label">Jump to</span>
+  <a onclick="jumpTo('co')" title="Command-only work — ships without Scott">⚡ Command-only</a>
+  <a onclick="jumpTo('ps')" title="Portal integration — localhost→alpha→beta→gamma, through Scott">🔒 Portal integration</a>
+  <a onclick="jumpTo('un')" title="Cards not yet classified into either track">⚠️ Untriaged</a>
+  <span style="color:var(--border)">·</span>
+  <a onclick="jumpTo('done')">✓ Completed</a>
+  <a onclick="jumpTo('ab')">🗄️ Abandoned</a>
+  <span style="color:var(--border)">·</span>
+  <a href="index.html" class="board-switch" title="The portal's own board — ONC certification, and the localhost→alpha→beta→gamma flow through Scott">← Portal Tracker</a>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <h1>Command — Project Tracker</h1>
+      <p>The multi-tenant business-operations product at <strong>command.togohealth.com</strong> — outside the portal, integrated with it. Cards are the <code>command</code>-labelled issues on <code>togohealth-dev/emr-beta</code>.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Command Project</button>
+  </div>
+
+  <div id="umbrella-banner"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <!-- ── COMMAND-ONLY ── -->
+  <div class="section-block" id="sec-co">
+    <div class="section-hdr">
+      <h2>⚡ Command-only</h2>
+      <p class="track-note"><strong>Does not touch the portal → <code>localhost&nbsp;→&nbsp;gamma</code>.</strong> No alpha, no beta, no Scott — and <strong>any developer can push it</strong>. Branch → pull request → tick “I ran it on localhost” and say what you clicked through → CI green → <strong>merge your own PR</strong>. There is no reviewer gate, so your statement that you tested it <em>is</em> the gate. Labelled <code>command-only</code>.</p>
+      <button class="sec-toggle" onclick="toggleSection('co')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="co-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="co-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── PORTAL-SIDE ── -->
+  <div class="section-block" id="sec-ps">
+    <div class="section-hdr">
+      <h2>🔒 Portal integration</h2>
+      <p class="track-note"><strong>Touches the portal — its code, its database, its UI → <code>localhost&nbsp;→&nbsp;alpha&nbsp;→&nbsp;beta&nbsp;→&nbsp;gamma</code>, through Scott</strong>, exactly as portal work always has been. Shown here because Command is <em>blocked</em> on them, but <strong>driven from the <a href="index.html">Portal Tracker</a></strong>, which is where that machinery lives. Read-only here on purpose: one flow, one owner. Labelled <code>portal-integration</code>.</p>
+      <button class="sec-toggle" onclick="toggleSection('ps')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="ps-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="ps-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── UNTRIAGED ── -->
+  <div class="section-block" id="sec-un">
+    <div class="section-hdr">
+      <h2>⚠️ Untriaged</h2>
+      <p class="track-note">Command cards carrying neither <code>command-only</code> nor <code>portal-integration</code>. Every card must carry one — it decides the ship path and who may push — so anything here is a card nobody has classified yet. Label it and it moves into a track above.</p>
+      <button class="sec-toggle" onclick="toggleSection('un')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="un-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="un-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── COMPLETED ── -->
+  <div class="section-block" id="sec-done">
+    <div class="section-hdr">
+      <h2>✓ Completed</h2>
+      <p class="track-note">Merged and shipped. Closed issues carrying the <code>command</code> label.</p>
+      <button class="sec-toggle" onclick="toggleSection('done')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="done-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="done-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── ABANDONED ── -->
+  <div class="section-block" id="sec-ab">
+    <div class="section-hdr">
+      <h2>🗄️ Abandoned</h2>
+      <p class="track-note">Dropped, kept for the record.</p>
+      <button class="sec-toggle" onclick="toggleSection('ab')">▾</button>
+    </div>
+    <div class="sec-body">
+      <div id="ab-content"></div>
+    </div>
+  </div>
+
+  <p id="error-msg" style="display:none;color:var(--red);font-size:13px;margin-top:16px"></p>
+</main>
+
+<!-- ── ADD NEW MODAL ── -->
+<div id="add-modal">
+  <div class="modal-card">
+    <h3 id="modal-title">Add Command Project</h3>
+    <div class="modal-field">
+      <label>Title</label>
+      <input type="text" id="m-title" placeholder="e.g. Command 40/40 · Entity document storage">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="m-desc" placeholder="What does this build do? What problem does it solve?"></textarea>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Type</label>
+        <select id="m-type">
+          <option value="feature">Feature</option>
+          <option value="bugfix">Bug Fix</option>
+          <option value="performance">Performance</option>
+          <option value="infrastructure">Infrastructure</option>
+          <option value="ux">UX / Design</option>
+          <option value="documentation">Documentation</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Est. Hours</label>
+        <input type="number" id="m-hours" placeholder="8" min="1">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Priority (1 = lowest, 5 = highest)</label>
+      <select id="m-priority">
+        <option value="1">1 — Low / someday</option>
+        <option value="2">2 — Nice to have</option>
+        <option value="3" selected>3 — Medium</option>
+        <option value="4">4 — High</option>
+        <option value="5">5 — Critical</option>
+      </select>
+    </div>
+    <!-- The track is the one thing that must be decided at creation: it decides who
+         ships the card and through which flow. Defaulting it silently is how a card
+         ends up in Untriaged, so it is a required choice with no pre-selection. -->
+    <div class="modal-field">
+      <label>How does this ship?</label>
+      <select id="m-track" onchange="updateTrackNote()">
+        <option value="">— Choose one —</option>
+        <option value="command-only">⚡ Command-only — no portal: localhost→gamma, any developer pushes</option>
+        <option value="portal-integration">🔒 Portal integration — touches the portal: localhost→alpha→beta→gamma, via Scott</option>
+      </select>
+      <div class="modal-onc-note" id="m-track-note" style="display:none"></div>
+    </div>
+    <div class="modal-field">
+      <label>PR Link (optional — can add later)</label>
+      <input type="url" id="m-pr" placeholder="https://github.com/togohealth-dev/emr-beta/pull/…">
+    </div>
+    <div class="modal-field">
+      <label><input type="checkbox" id="m-assign" checked style="width:auto;margin-right:6px">Assign to me</label>
+    </div>
+    <div class="modal-actions" id="modal-form-actions">
+      <button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-submit-btn" onclick="submitNewProject()">Create</button>
+    </div>
+    <div id="modal-success" style="display:none">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:36px;margin-bottom:10px">✅</div>
+        <div id="modal-success-title" style="font-weight:700;font-size:16px;margin-bottom:6px"></div>
+        <a id="modal-success-link" href="" target="_blank" style="font-size:12px;color:var(--primary)">View on GitHub ↗</a>
+      </div>
+      <div style="padding:12px 14px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e;line-height:1.5;margin-bottom:14px">
+        <strong>Next step:</strong> Copy the Claude prompt below and paste it into a new Claude Code session opened in <code>~/claude/command/</code>. It pre-loads the Command lane's MD files — the rules that make the branch → PR → localhost-confirmed → merge flow real, since GitHub Free cannot enforce them.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-primary" id="modal-copy-prompt-btn" onclick="copyNewProjectPrompt()">📋 Copy Claude Prompt</button>
+        <button class="btn btn-outline" onclick="closeAddModal()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Notes modal -->
+<div id="notes-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:560px;max-height:82vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="font-size:15px;font-weight:700;margin:0 0 2px">Notes</h3>
+          <p id="notes-modal-title" style="font-size:12px;color:var(--text-muted);margin:0"></p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="closeNotesModal()">✕</button>
+      </div>
+    </div>
+    <div id="notes-history" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+      <div id="notes-rich" contenteditable="true" class="notes-rich is-empty" data-placeholder="Add a note…  (type @ to mention someone — e.g. @scott)" oninput="onRichInput()" onkeydown="onRichKey(event)" onblur="onRichBlur()"></div>
+      <div id="notify-suggest" class="notify-suggest" style="display:none"></div>
+      <div class="notify-help">Type <b>@</b> then a name to mention someone — Tab/Enter or click a suggestion. Green ✓ = real user (gets emailed); red ✕ = not a known user (ignored).</div>
+      <div id="notes-attachments" style="display:none;margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <input type="file" id="notes-file-input" style="display:none" onchange="handleNoteFile(event)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('notes-file-input').click()" title="Attach a file (CSV, PDF, image, etc.)">📎 Attach file</button>
+        <button class="btn btn-primary" id="notes-submit-btn" onclick="submitNote()">Post Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ── EDIT MODAL ── -->
+<div id="edit-modal" onclick="closeEditModal(event)" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:480px" onclick="event.stopPropagation()">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Edit Project</h3>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Title</label>
+      <input type="text" id="edit-title" style="width:100%;box-sizing:border-box">
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Priority</label>
+      <select id="edit-priority">
+        <option value="">— None —</option>
+        <option value="5">★★★★★ Highest (Priority 5)</option>
+        <option value="4">★★★★☆ High (Priority 4)</option>
+        <option value="3">★★★☆☆ Medium (Priority 3)</option>
+        <option value="2">★★☆☆☆ Low (Priority 2)</option>
+        <option value="1">★☆☆☆☆ Lowest (Priority 1)</option>
+      </select>
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>Assignee</label>
+      <!-- Options are filled from TEAM at init — a hand-kept copy drifted and left
+           half the team unselectable, which silently blanked their assignment on save. -->
+      <select id="edit-assignee">
+        <option value="">— Unassigned —</option>
+      </select>
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label>PR / Commit URL</label>
+      <input type="text" id="edit-pr-url" placeholder="https://github.com/togohealth-dev/emr-beta/pull/123" style="width:100%;box-sizing:border-box">
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<footer><a href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+label%3Acommand" target="_blank">View all Command issues on GitHub</a> · <a href="index.html">Portal Tracker</a> · Token stored in localStorage only · No PHI</footer>
+<div id="toast"></div>
+<div id="busy-chip" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:300;background:#1e293b;color:#fff;padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,0.25);align-items:center;gap:8px">
+  <span class="busy-spin" style="display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:busyspin 0.7s linear infinite"></span>
+  <span id="busy-text">Updating…</span>
+</div>
+<style>@keyframes busyspin{to{transform:rotate(360deg)}}</style>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Command Project Tracker
+//
+// The sibling of index.html (the Portal Development Tracker). Same look, same
+// plumbing, same GitHub token — deliberately, so moving between them costs a
+// click and no relearning. What differs is the QUESTION each page answers:
+//
+//   index.html    — "where is the portal in ONC certification, and what is in
+//                    alpha / beta / gamma right now?"
+//   command.html  — "what is Command shipping, and who ships it?"
+//
+// Command's cards live in the SAME repo (togohealth-dev/emr-beta, label
+// `command`, umbrella #754) — the split is a split of VIEWS, not of data.
+// Nothing here migrates an issue; both pages read the one source of truth.
+//
+// The organizing axis is the ship path, because for Command that is the only
+// thing that changes how you work. Greg set the rule on 2026-09-16 and it is
+// exactly two cases, with every card carrying one of them:
+//   `command-only`        does not touch the portal → localhost→gamma. No alpha,
+//                         no beta, no Scott; ANY developer can push it. Branch →
+//                         PR → "I ran it on localhost" → CI green → merge your own.
+//   `portal-integration`  touches the portal → localhost→alpha→beta→gamma,
+//                         pushed through Scott, as portal work always has been.
+// Both labels already existed on the issues (the second as `portal-review`,
+// renamed 2026-09-16); this page just stops burying them among 300 portal cards.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REPO = 'togohealth-dev/emr-beta';
+// Dedicated private store for note attachments — shared with the portal tracker
+// so an attachment posted from either page is readable from the other.
+const ATTACH_REPO = 'togohealth-dev/portal-attachments';
+const API  = 'https://api.github.com';
+
+const COMMAND_LABEL = 'command';
+
+const SCOTT = 'msdrigg';
+const TEAM = { 'morgan477':'Morgan', 'msdrigg':'Scott', 'Jordan-togoclaude':'Jordan', 'riley870':'Riley', 'gregbaird11':'Greg',
+               'edtogohealth':'Ed', 'hannah826':'Hannah', 'olivia328':'Olivia', 'Sam54539':'Sam', 'BronsonWilks':'Bronson', 'eellsworth1234':'Eric' };
+const teamName = login => TEAM[login] || login;
+
+function populateAssigneeOptions() {
+  const sel = document.getElementById('edit-assignee');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Unassigned —</option>' +
+    Object.entries(TEAM).map(([login, name]) => `<option value="${login}">${name}</option>`).join('');
+}
+
+// ── Track ────────────────────────────────────────────────────────────────────
+// The two labels are the ship path, and Greg's rule (2026-09-16) is that every
+// card carries exactly one:
+//   command-only        does not touch the portal → localhost→gamma, any developer pushes
+//   portal-integration  touches the portal        → localhost→alpha→beta→gamma, through Scott
+// A card with neither is not "probably command-only" — it is a card whose ship
+// path nobody has decided, which is precisely what you need to know before
+// starting one. It gets its own section rather than a guessed default.
+function trackOf(labels) {
+  if ((labels||[]).includes('portal-integration')) return 'portal';
+  if ((labels||[]).includes('command-only'))       return 'command';
+  return 'untriaged';
+}
+const TRACK_PILL = {
+  command:   '<span class="lane-pill lane-command">Command-only</span>',
+  portal:    '<span class="lane-pill lane-portal">Portal integration</span>',
+  untriaged: '<span class="lane-pill lane-untriaged">Untriaged</span>',
+};
+
+// ── Bundles ──────────────────────────────────────────────────────────────────
+// Cards are titled "<Bundle> 12/39 · …". That number is the intended BUILD ORDER
+// and is the only sort that makes a bundle readable, and the prefix names which
+// bundle it belongs to.
+//
+// This is parsed generically rather than hardcoded to "Command", because the
+// board now carries more than one bundle — the Command product itself, and
+// G Suite optimization (#822), which is Command-lane work that ships no code.
+// Sorting those together by bare build order would interleave "G Suite 3/12"
+// with "Command 3/39", so rows group by bundle first and order second.
+function parseBundle(title) {
+  const t = title || '';
+  const u = t.match(/^(.+?)\s+[—-]\s*UMBRELLA\b/i);
+  if (u) return { name: u[1].trim(), umbrella: true, order: 0 };
+  const m = t.match(/^(.+?)\s+(\d+)\s*\/\s*(\d+)\s*[·:]/);
+  if (m) return { name: m[1].trim(), umbrella: false, order: +m[2], label: `${m[2]}/${m[3]}` };
+  return { name: null, umbrella: false, order: Infinity };
+}
+function isUmbrella(p) { return !!p.bundle?.umbrella; }
+
+// The build-order prefix has its own column, so strip it from the title rather
+// than printing "12/39" twice on every row.
+function shortTitle(title) {
+  return (title||'')
+    .replace(/^.+?\s+\d+\s*\/\s*\d+\s*[·:]\s*/, '')
+    .replace(/^Command\s*[·:]\s*/i, '');
+}
+
+// ── Shared table helpers ─────────────────────────────────────────────────────
+function parseEst(body){ const m=(body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i); return m ? m[1]+'h' : null; }
+function estHtml(e){ return e ? `<span style="font-size:12px;color:var(--text-muted);font-weight:600">${e}</span>`
+                               : `<span style="color:var(--border)">—</span>`; }
+function estTotal(list){ const t=list.reduce((s,p)=>s+(p.codingEst?parseFloat(p.codingEst):0),0);
+  return t ? `<span style="font-size:12px;font-weight:700;color:var(--text-muted)">${Math.round(t*10)/10}h total</span>` : ''; }
+function estSum(list){ return list.reduce((s,p)=>s+(p.codingEst?parseFloat(p.codingEst):0),0); }
+
+function dotsHtml(p) {
+  if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  return `<div class="priority p${p}" title="Priority ${p}">${[1,2,3,4,5].map(n=>`<div class="dot${n<=p?' on':''}"></div>`).join('')}</div>`;
+}
+function assigneeHtml(assignees) {
+  if (!assignees?.length) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  return `<span style="font-size:11px;font-weight:600">${assignees.map(teamName).join(', ')}</span>`;
+}
+function prHtml(prUrl, prNum) {
+  if (!prUrl) return `<span style="color:var(--border);font-size:12px">—</span>`;
+  const commitMatch = prUrl.match(/\/commit\/([0-9a-f]{7,40})/i);
+  if (commitMatch) return `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open commit">${commitMatch[1].slice(0,7)} ↗</a>`;
+  return `<a href="${prUrl}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px" title="Open pull request">PR #${prNum} ↗</a>`;
+}
+function notesHtml(p) {
+  const count = p.allComments ? p.allComments.length : (p.commentCount ?? 0);
+  return `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" title="View and add notes" style="font-size:11px">💬${count?` <strong>${count}</strong>`:''}</button>`;
+}
+function promptBtn(number) {
+  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="copyProjectPrompt(${number})" title="Copy Claude session prompt">Copy Prompt</button>`;
+}
+function editBtn(number) {
+  return `<button class="btn btn-outline btn-sm" onclick="openEditModal(${number})" title="Edit title, priority and assignee">Edit</button>`;
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+// Named `currentProjects` because the notes-modal code is lifted verbatim from
+// the portal tracker and looks the issue up there. One array, one name, no fork.
+let currentProjects = [];
+let currentUser = null;
+let pendingProjectPrompt = '';
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const OAUTH_CLIENT_ID  = 'Ov23liafXkUifpOmizDR';
+const OAUTH_WORKER_URL = 'https://portal-oauth.morgan-0a4.workers.dev';
+
+const getToken = () => localStorage.getItem('gh_pat');
+
+// The GitHub OAuth app's callback is the directory, not a page, so the round
+// trip always lands on index.html. Leave a note for it to hand the browser back
+// here — otherwise signing in from this page silently dumps you on the portal
+// tracker. index.html reads and clears this key in handleOAuthCallback().
+function startOAuth() {
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+  sessionStorage.setItem('oauth_return', 'command.html');
+  const params = new URLSearchParams({
+    client_id: OAUTH_CLIENT_ID,
+    redirect_uri: location.origin + location.pathname.replace(/[^/]*$/, ''),
+    scope: 'repo',
+    state,
+  });
+  location.href = 'https://github.com/login/oauth/authorize?' + params.toString();
+}
+
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  if (!code) return false;
+  const savedState = sessionStorage.getItem('oauth_state');
+  sessionStorage.removeItem('oauth_state');
+  sessionStorage.removeItem('oauth_return');
+  if (state !== savedState) { showAuthError('OAuth state mismatch — please try again.'); return false; }
+  history.replaceState({}, '', location.pathname);
+  try {
+    const resp = await fetch(OAUTH_WORKER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const data = await resp.json();
+    if (data.access_token) { localStorage.setItem('gh_pat', data.access_token); return true; }
+    showAuthError(data.error_description || data.error || 'GitHub auth failed — please try again.');
+  } catch (e) {
+    showAuthError('Could not reach auth server — please try again.');
+  }
+  return false;
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function clearToken() { localStorage.removeItem('gh_pat'); location.reload(); }
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function ghFetch(path, opts={}) {
+  const method = (opts.method || 'GET').toUpperCase();
+  // Retry READS only — retrying a POST/PATCH would double-post a comment.
+  const attempts = method === 'GET' ? 3 : 1;
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    const res = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(opts.headers||{}) }
+    });
+    if (res.ok) return res.status===204 ? null : res.json();
+    const e = await res.json().catch(()=>({}));
+    last = new Error(e.message || `GitHub ${res.status}`);
+    if (res.status < 500 || i === attempts - 1) throw last;
+    await new Promise(r => setTimeout(r, 400 * (i + 1)));
+  }
+  throw last;
+}
+
+async function ghFetchAll(path, cap = 10) {
+  const sep = path.includes('?') ? '&' : '?';
+  let out = [], page = 1;
+  while (page <= cap) {
+    const batch = await ghFetch(`${path}${sep}page=${page}`);
+    if (!Array.isArray(batch) || !batch.length) break;
+    out = out.concat(batch);
+    if (batch.length < 100) break;
+    page++;
+  }
+  return out;
+}
+
+async function ensureUser() {
+  if (currentUser && currentUser.login) return currentUser;
+  try { currentUser = await ghFetch('/user'); }
+  catch(e) { throw new Error(`Could not confirm your GitHub account (${e.message}). Press ↻ Refresh, or sign out and back in.`); }
+  if (!currentUser || !currentUser.login) throw new Error('Not signed in to GitHub — press ↻ Refresh, or sign out and back in.');
+  return currentUser;
+}
+
+async function postComment(number, body) {
+  await ghFetch(`/repos/${REPO}/issues/${number}/comments`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({body}) });
+}
+async function addLabel(number, label) {
+  await ghFetch(`/repos/${REPO}/issues/${number}/labels`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({labels:[label]}) });
+}
+async function removeLabel(number, label) {
+  await ghFetch(`/repos/${REPO}/issues/${number}/labels/${encodeURIComponent(label)}`, { method:'DELETE' }).catch(()=>{});
+}
+
+// ── Busy / refresh ───────────────────────────────────────────────────────────
+let _busy = 0;
+function setBusy(on, text) {
+  _busy = Math.max(0, _busy + (on ? 1 : -1));
+  const chip = document.getElementById('busy-chip');
+  const t = document.getElementById('busy-text');
+  if (t && text) t.textContent = text;
+  if (chip) chip.style.display = _busy > 0 ? 'inline-flex' : 'none';
+}
+
+async function refresh(loaders, label, silent) {
+  const y = window.scrollY;
+  if (silent) document.body.classList.add('auto-refreshing');
+  else setBusy(true, label || 'Updating…');
+  try {
+    if (!currentUser) currentUser = await ghFetch('/user');
+    await Promise.all(loaders.map(fn => fn()));
+  } finally {
+    if (silent) document.body.classList.remove('auto-refreshing');
+    else setBusy(false);
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }
+}
+
+async function loadAll() {
+  await refresh([loadCommandProjects]);
+  markUpdated();
+  startAutoRefresh();
+}
+async function reloadProjects() { await refresh([loadCommandProjects], 'Saving…'); }
+
+// The portal board polls every 60s because it is a live standup tool that several
+// people move cards on at once. This one is read by a couple of people and changes
+// a few times a week, and each poll costs ~18 API calls: one issue list plus a
+// comment fetch per card that has comments. Those fetches are not optional — every
+// Command PR link to date lives in a comment and none in an issue body, so dropping
+// them would blank the PR column — so the interval is what gives instead. 60s here
+// would burn ~1,080 of the 5,000/hr budget on a board nobody is watching that hard,
+// and the portal tracker in another tab is spending from the same budget.
+const AUTO_REFRESH_MS = 300000;   // 5 minutes
+const OVERLAY_IDS = ['add-modal', 'notes-modal', 'edit-modal'];
+let autoTimer = null;
+
+/** Why this tick should be skipped, or null to go ahead. */
+function autoRefreshBlockedBy() {
+  if (document.hidden) return 'tab hidden';
+  if (!getToken()) return 'signed out';
+  if (_busy > 0) return 'a save is already running';
+  const a = document.activeElement;
+  if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return 'typing';
+  for (const id of OVERLAY_IDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    // #add-modal is shown with a class, the others with inline display — check both.
+    if (el.classList.contains('open') || getComputedStyle(el).display !== 'none') return 'a dialog is open';
+  }
+  return null;
+}
+async function autoRefreshTick() {
+  if (autoRefreshBlockedBy()) return;
+  try { await refresh([loadCommandProjects], null, true); markUpdated(); }
+  catch (e) { console.warn('auto-refresh failed', e); }   // a failed poll must not banner over a page being read
+}
+function startAutoRefresh() {
+  if (autoTimer) return;
+  autoTimer = setInterval(autoRefreshTick, AUTO_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefreshTick(); });
+}
+function markUpdated() {
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// ── Load ─────────────────────────────────────────────────────────────────────
+// One query, every Command card. The portal tracker splits its board by the
+// `current-project` / `future-idea` labels, which is why two Command cards (#811,
+// #821) carry neither and render nowhere over there. Fetching by `command`
+// instead means a card cannot go missing for want of a second label.
+async function loadCommandProjects() {
+  for (const k of ['co','ps','un','done']) {
+    const l = document.getElementById(`${k}-loading`);
+    const c = document.getElementById(`${k}-content`);
+    if (l) l.style.display = 'block';
+    if (c) c.style.display = 'none';
+  }
+  try {
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=${COMMAND_LABEL}&state=all&per_page=100`);
+    currentProjects = await Promise.all(raw.map(async issue => {
+      const labels = issue.labels.map(l => l.name);
+      const comments = issue.comments > 0
+        ? await ghFetch(`/repos/${REPO}/issues/${issue.number}/comments?per_page=20`)
+        : [];
+      return normalizeCommand(issue, labels, comments);
+    }));
+    renderUmbrella();
+    renderStats();
+    renderTrack('co', 'command');
+    renderTrack('ps', 'portal');
+    renderTrack('un', 'untriaged');
+    renderCompleted();
+    renderAbandoned();
+    for (const k of ['co','ps','un','done']) {
+      const l = document.getElementById(`${k}-loading`);
+      const c = document.getElementById(`${k}-content`);
+      if (l) l.style.display = 'none';
+      if (c) c.style.display = 'block';
+    }
+  } catch(e) {
+    for (const k of ['co','ps','un','done']) {
+      const l = document.getElementById(`${k}-loading`);
+      if (l) { l.style.display = 'block'; l.textContent = `Error: ${e.message}`; }
+    }
+    throw e;
+  }
+}
+
+function normalizeCommand(issue, labels, comments) {
+  const has = n => labels.includes(n);
+  const track = trackOf(labels);
+  const bundle = parseBundle(issue.title);
+
+  // Command-only work has no alpha/beta/gamma, so `status:pr-alpha-ready` means
+  // something different on each track and is read as `pr_open` here — "PR is up".
+  // The portal-side statuses are kept verbatim so the two boards agree on a card.
+  let status = has('status:abandoned')                               ? 'abandoned'
+    : issue.state === 'closed' || has('status:done')                 ? 'done'
+    // Blocked outranks every in-flight state: a card waiting on an outside party
+    // is not "in progress", and showing it as queued invites someone to pick up
+    // work they cannot finish. Much of the G Suite bundle is blocked on vendors.
+    : has('status:blocked')                                          ? 'blocked'
+    : has('status:beta-version')                                     ? 'beta_version'
+    : has('status:ready-beta') || has('status:ready-for-production') ? 'ready_beta'
+    : has('status:alpha-testing') || has('status:beta')              ? 'alpha_testing'
+    : has('status:needs-revision')                                   ? 'needs_revision'
+    : has('status:pr-alpha-ready') || has('status:pr-ready')         ? 'pr_open'
+    : has('status:in-progress')                                      ? 'in_progress'
+    : has('status:draft')                                            ? 'draft'
+    : (issue.assignees && issue.assignees.length)                    ? 'in_progress'
+    : 'draft';
+
+  const bodyPlusComs = (issue.body||'') + comments.map(c=>c.body||'').join(' ');
+  const prMatch     = bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
+  const commitMatch = !prMatch ? bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{7,40})/i) : null;
+  const prUrl   = prMatch     ? `https://github.com/${REPO}/pull/${prMatch[1]}`
+                : commitMatch ? `https://github.com/${REPO}/commit/${commitMatch[1]}`
+                : null;
+
+  return {
+    number: issue.number,
+    updatedAt: issue.updated_at,
+    title: issue.title,
+    body: issue.body || '',
+    url: issue.html_url,
+    labels, status, track,
+    prUrl,
+    prNum: prMatch ? prMatch[1] : null,
+    allComments: comments,
+    commentCount: issue.comments,
+    assignees: (issue.assignees||[]).map(a=>a.login),
+    priority: +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0'),
+    codingEst: parseEst(issue.body),
+    bundle,
+    // Labelled shipped, but the issue was never closed. Written as a housekeeping
+    // nudge; it earned a bigger role on its first run, catching #826 — labelled
+    // done while its own body carried a live tail ("flip shared-drive external
+    // access OFF after the SUH cutover"). The label was wrong, not the issue
+    // state. So read this as a contradiction detector between what a card is
+    // labelled and what it says: those are the cards where a control quietly
+    // stays open and nobody thinks to re-check it two quarters later.
+    openButDone: issue.state !== 'closed' && has('status:done'),
+    order: bundle.order,
+    orderLabel: bundle.label || null,
+  };
+}
+
+// ── Status badge ─────────────────────────────────────────────────────────────
+// Split by track on purpose. "PR Alpha Ready" is a meaningful state on the
+// portal side and a meaningless one for Command-only work, where a merged PR
+// IS production. Showing the portal's vocabulary on a Command-only card is how
+// people come to believe there is an alpha stage here. There is not.
+function statusBadge(p) {
+  if (p.status === 'done')      return `<span class="badge ps-done">✓ Shipped</span>`;
+  if (p.status === 'abandoned') return `<span class="badge ps-abandoned">Abandoned</span>`;
+  if (p.track === 'portal') {
+    return ({
+      draft:          `<span class="badge ps-planning">📝 Draft</span>`,
+      blocked:        `<span class="badge ps-blocked">⛔ Blocked</span>`,
+      in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+      pr_open:        `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
+      needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
+      alpha_testing:  `<span class="badge ps-alpha">α Alpha Testing</span>`,
+      ready_beta:     `<span class="badge ps-ready-prod">✅ Ready for Beta</span>`,
+      beta_version:   `<span class="badge ps-beta-version">β Beta-Version</span>`,
+    }[p.status] || '');
+  }
+  return ({
+    draft:          `<span class="badge ps-planning">📝 Queued</span>`,
+    blocked:        `<span class="badge ps-blocked">⛔ Blocked</span>`,
+    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+    pr_open:        `<span class="badge ps-pr-open">⏳ PR open</span>`,
+    needs_revision: `<span class="badge ps-needs-revision">✕ Needs work</span>`,
+    // A command-only card should never be in a portal stage; if one is, say so
+    // rather than rendering a blank cell and hiding a mislabelled card.
+    alpha_testing:  `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ alpha?</span>`,
+    ready_beta:     `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ beta?</span>`,
+    beta_version:   `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ beta?</span>`,
+  }[p.status] || '');
+}
+
+// ── Umbrella banners ─────────────────────────────────────────────────────────
+// An umbrella is not a build, it is a bundle's table of contents. Rendering one
+// as a row puts a card with no work in it at the top of a list sorted by build
+// order — so umbrellas come out of the table and sit above it, one per bundle.
+function renderUmbrella() {
+  const el = document.getElementById('umbrella-banner');
+  if (!el) return;
+  const umbrellas = currentProjects
+    .filter(isUmbrella)
+    .sort((a,b) => a.number - b.number);
+  if (!umbrellas.length) { el.innerHTML = ''; return; }
+  el.innerHTML = umbrellas.map(u => {
+    const open = currentProjects.filter(p => !isUmbrella(p) && p.bundle.name && sameBundle(p.bundle.name, u.bundle.name)
+                                             && p.status !== 'done' && p.status !== 'abandoned').length;
+    return `<div class="umbrella">
+      <span class="u-ico">⚡</span>
+      <div class="u-text">
+        <strong>${esc(u.bundle.name || u.title)}</strong>
+        ${bundleBlurb(u)}
+      </div>
+      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${open} open</span>
+      <a href="${u.url}" target="_blank" class="btn btn-outline btn-sm">Umbrella #${u.number} ↗</a>
+      <button class="btn btn-outline btn-sm" onclick="openNotes(${u.number})">💬 Notes</button>
+    </div>`;
+  }).join('');
+}
+
+// An umbrella names itself more fully than its cards do — "G Suite optimization"
+// against cards titled "G Suite 3/12 · …" — so match on prefix rather than
+// demanding the two strings agree exactly.
+// What a reader most needs at the top of a bundle is the thing that is expensive
+// to get wrong, which is rarely the first line of the issue body. Keyed by
+// bundle NAME so it survives an umbrella being renumbered or replaced.
+const BUNDLE_BLURB = {
+  'command': 'A tenant is a provider group — a row in <code>command_tenant</code>, never a name in code, a comment or a screen. Identity comes from the portal, the data lives in Supabase, and nothing patient-identifying lives here.',
+};
+function bundleBlurb(u) {
+  const key = (u.bundle?.name || '').toLowerCase();
+  return BUNDLE_BLURB[key] || esc(buildSummary(u, 220));
+}
+
+function sameBundle(cardName, umbrellaName) {
+  if (!cardName || !umbrellaName) return false;
+  const a = cardName.toLowerCase(), b = umbrellaName.toLowerCase();
+  return a === b || b.startsWith(a) || a.startsWith(b);
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const el = document.getElementById('stats');
+  if (!el) return;
+  const all       = currentProjects.filter(p => !isUmbrella(p));
+  const live      = all.filter(p => p.status !== 'abandoned');
+  const done      = live.filter(p => p.status === 'done');
+  const open      = live.filter(p => p.status !== 'done');
+  const inFlight  = open.filter(p => ['in_progress','pr_open','needs_revision','alpha_testing','ready_beta','beta_version'].includes(p.status));
+  // Two different kinds of blocked, and calling both "blocked" was confusing:
+  // one waits on Scott and the portal's staged flow, the other on a vendor or a
+  // decision outside the company entirely.
+  const needsScott = open.filter(p => p.track === 'portal');
+  const blocked    = open.filter(p => p.status === 'blocked');
+  const untriaged = open.filter(p => p.track === 'untriaged');
+  const pct       = live.length ? Math.round(done.length / live.length * 100) : 0;
+  const hrs       = Math.round(estSum(open) * 10) / 10;
+
+  el.style.gridTemplateColumns = 'repeat(auto-fit,minmax(148px,1fr))';
+  el.innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Shipped</div>
+      <div class="stat-value">${pct}%</div>
+      <div class="stat-sub">${done.length} of ${live.length} builds</div>
+      <div class="stat-progress-track"><div class="stat-progress-fill fill-mips" style="width:${pct}%"></div></div>
+    </div>
+    <div class="stat stat-sm"><div class="stat-label">Open</div><div class="stat-value">${open.length}</div><div class="stat-sub">not yet shipped</div></div>
+    <div class="stat stat-sm"><div class="stat-label">In flight</div><div class="stat-value">${inFlight.length}</div><div class="stat-sub">started or in PR</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Blocked</div><div class="stat-value" style="color:${blocked.length?'var(--red)':'inherit'}">${blocked.length}</div><div class="stat-sub">waiting on others</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Needs Scott</div><div class="stat-value" style="color:${needsScott.length?'var(--purple)':'inherit'}">${needsScott.length}</div><div class="stat-sub">portal-side</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Untriaged</div><div class="stat-value" style="color:${untriaged.length?'var(--red)':'inherit'}">${untriaged.length}</div><div class="stat-sub">no ship path</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Est. remaining</div><div class="stat-value">${hrs||'—'}${hrs?'h':''}</div><div class="stat-sub">on open builds</div></div>`;
+}
+
+// ── Track sections ───────────────────────────────────────────────────────────
+// Two tiers per track: what is moving, and what is queued behind it. Same shape
+// the portal tracker uses for its stages, so the pages read the same way.
+const TIERS = {
+  command: [
+    { statuses:['blocked'],                                 note:'⛔ Blocked — waiting on someone else, not on you' },
+    { statuses:['in_progress','pr_open','needs_revision'],  note:'In flight — started, or PR open awaiting CI / merge' },
+    { statuses:['draft'],                                   note:'Queued — not started' },
+  ],
+  portal: [
+    { statuses:['blocked'],                                 note:'⛔ Blocked — waiting on someone else' },
+    { statuses:['beta_version','ready_beta','alpha_testing','pr_open','in_progress','needs_revision'], note:'In flight on the portal tracker — localhost→alpha→beta→gamma' },
+    { statuses:['draft'],                                   note:'Queued — not started' },
+  ],
+  untriaged: [
+    { statuses:['blocked'],                                 note:'⛔ Blocked' },
+    { statuses:['in_progress','pr_open','needs_revision','alpha_testing','ready_beta','beta_version'], note:'In flight — but with no agreed ship path' },
+    { statuses:['draft'],                                   note:'Queued' },
+  ],
+};
+
+const TRACK_HEAD = `<thead><tr>
+  <th style="width:54px">#</th>
+  <th style="width:52px">Order</th>
+  <th>Build</th>
+  <th style="width:140px">Status</th>
+  <th style="width:72px">Priority</th>
+  <th style="width:76px">Assigned</th>
+  <th style="width:48px">Est</th>
+  <th style="width:62px">PR</th>
+  <th style="width:58px">Notes</th>
+  <th style="width:250px">Actions</th>
+</tr></thead>`;
+
+function renderTrack(key, track) {
+  const el = document.getElementById(`${key}-content`);
+  if (!el) return;
+  const items = currentProjects
+    .filter(p => p.track === track && p.status !== 'done' && p.status !== 'abandoned' && !isUmbrella(p));
+
+  // The Untriaged section is a problem report, not a permanent part of the page.
+  // When it is empty it says so quietly and takes up one line.
+  if (!items.length) {
+    el.innerHTML = key === 'un'
+      ? `<div style="color:var(--green-atl);font-size:13px;padding:8px 0">✓ Every open Command card has a ship path.</div>`
+      : `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Nothing open in this track.</div>`;
+    return;
+  }
+
+  // Bundle headings only earn their row when there is more than one bundle to
+  // tell apart. With a single bundle they would repeat the page title on every
+  // tier, so they stay off until a second one appears.
+  const bundleNames = [...new Set(currentProjects.filter(p => p.bundle?.name && !isUmbrella(p)).map(p => p.bundle.name))];
+  const showBundles = bundleNames.length > 1;
+
+  const rows = [];
+  let first = true;
+  for (const tier of TIERS[track]) {
+    const inTier = items.filter(p => tier.statuses.includes(p.status));
+    if (!inTier.length) continue;
+    if (!first) rows.push(`<tr class="cp-tier-gap"><td colspan="10"></td></tr>`);
+    rows.push(`<tr class="cp-tier-note"><td colspan="10">${tier.note} — ${inTier.length} ${estTotal(inTier)}</td></tr>`);
+
+    if (!showBundles) {
+      rows.push(...inTier.sort((a,b) => a.order - b.order || a.number - b.number).map(p => trackRow(p)));
+    } else {
+      // Group by bundle, bundles ordered by their earliest build number so the
+      // one furthest along the plan reads first; unbundled one-offs sit last.
+      const groups = new Map();
+      for (const p of inTier) {
+        const key = p.bundle?.name || '—';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(p);
+      }
+      const ordered = [...groups.entries()].sort((a,b) => {
+        if (a[0] === '—') return 1;
+        if (b[0] === '—') return -1;
+        return Math.min(...a[1].map(p=>p.order)) - Math.min(...b[1].map(p=>p.order));
+      });
+      for (const [name, list] of ordered) {
+        list.sort((a,b) => a.order - b.order || a.number - b.number);
+        const label = name === '—' ? 'Not part of a bundle' : name;
+        rows.push(`<tr class="int-vgroup"><td colspan="10">${esc(label)} — ${list.length} ${estTotal(list)}</td></tr>`);
+        rows.push(...list.map(p => trackRow(p)));
+      }
+    }
+    first = false;
+  }
+
+  el.innerHTML = `<div class="proj-table-wrap"><table>${TRACK_HEAD}<tbody>${rows.join('')}</tbody></table></div>`;
+}
+
+function trackRow(p) {
+  return `<tr id="proj-${p.number}">
+    <td style="font-size:12px;font-weight:600;white-space:nowrap"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none" title="Open issue #${p.number} on GitHub">#${p.number}</a></td>
+    <td style="font-size:11px;color:var(--text-muted);font-weight:700;white-space:nowrap">${p.orderLabel || '—'}</td>
+    <td>
+      <a class="proj-title" href="${p.url}" target="_blank">${esc(shortTitle(p.title))}</a>
+      <div class="proj-desc">${esc(buildSummary(p))}</div>
+    </td>
+    <td>${statusBadge(p)}</td>
+    <td>${dotsHtml(p.priority)}</td>
+    <td>${assigneeHtml(p.assignees)}</td>
+    <td>${estHtml(p.codingEst)}</td>
+    <td>${prHtml(p.prUrl, p.prNum)}</td>
+    <td>${notesHtml(p)}</td>
+    <td><div class="actions">${projectActions(p)}</div></td>
+  </tr>`;
+}
+
+// First meaningful line of the issue body — a one-line "what this is".
+function buildSummary(p, max = 160) {
+  const line = (p.body || '').split('\n').map(l => l.trim())
+    .find(l => l && !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('---') && !l.startsWith('>'));
+  if (!line) return '(no summary — open the issue for details)';
+  // The body is markdown; this cell is one line of plain text. Left as-is it
+  // renders "Part of the **Command** bundle" with the asterisks showing.
+  const clean = line.replace(/\*\*/g, '').replace(/`/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  return clip(clean, max);
+}
+
+// Cut on a word boundary. Slicing at a fixed column produced banners that ended
+// mid-word ("…but integrates with it, and"), which reads as a rendering bug.
+function clip(text, max) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:—-]+$/, '') + '…';
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+// Portal-side cards are READ-ONLY here, and that is the design, not a shortcut.
+// Their alpha/beta/gamma transitions need the shared alpha URL, the Beta-Version
+// config issue and Scott's ping flow — all of which live on the portal tracker.
+// Two boards driving one card's stage is how stage history gets lost.
+function projectActions(p) {
+  const pb = promptBtn(p.number), eb = editBtn(p.number);
+
+  if (p.track === 'portal') {
+    return `${pb} ${eb}
+      <a href="index.html#proj-${p.number}" class="btn btn-purple btn-sm" title="This card's stage is driven from the Portal Tracker — localhost→alpha→beta→gamma, through Scott">Portal Tracker →</a>
+      <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
+  }
+
+  if (p.track === 'untriaged') {
+    return `${pb} ${eb}
+      <button class="btn btn-green btn-sm" onclick="setTrack(${p.number},'command-only')" title="Does not touch the portal — localhost→gamma, any developer can push">⚡ Command-only</button>
+      <button class="btn btn-purple btn-sm" onclick="setTrack(${p.number},'portal-integration')" title="Touches the portal — localhost→alpha→beta→gamma, through Scott">🔒 Portal integration</button>
+      <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
+  }
+
+  const parts = [pb, eb];
+  if (p.status === 'blocked') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setInProgress(${p.number})" title="The blocker cleared — put this back in progress">Unblock</button>`);
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" title="Who are we waiting on? Record it here.">Who's blocking?</button>`);
+  }
+  if (p.status === 'draft') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setInProgress(${p.number})" title="Start work">Start</button>`);
+  }
+  if (p.status === 'draft' || p.status === 'in_progress') {
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="setBlocked(${p.number})" title="Waiting on someone outside the team — a vendor, a decision, another party">⛔ Blocked</button>`);
+  }
+  if (p.status === 'in_progress') {
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="setDraft(${p.number})" title="Park this — back to Queued">→ Queued</button>`);
+  }
+  if (p.status === 'in_progress' || p.status === 'needs_revision') {
+    parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrOpen(${p.number})" title="Record the PR — you will be asked to confirm you ran it on localhost">PR open</button>`);
+    // Small changes do ship without a ceremony; keep the shortcut where work has
+    // actually started, and off drafts, where it is only noise.
+    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped — skips recording a PR">Mark shipped</button>`);
+  }
+  if (p.status === 'pr_open') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="PR merged — CI green, shipped">Merged ✓</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsWork(${p.number})" title="Something is wrong — send it back">Needs work</button>`);
+  }
+  parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
+  return parts.join('');
+}
+
+const _projectsInFlight = new Set();
+async function withProjectLoading(number, fn) {
+  if (_projectsInFlight.has(number)) return;
+  _projectsInFlight.add(number);
+  const btns = document.querySelectorAll(`#proj-${number} button`);
+  btns.forEach(b => b.disabled = true);
+  setBusy(true, 'Saving…');
+  try { await ensureUser(); await fn(); await reloadProjects(); }
+  catch(e) { toast(`Error: ${e.message}`, true); }
+  finally {
+    setBusy(false);
+    _projectsInFlight.delete(number);
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// Exactly one of the two, always — so setting either clears the other. A card
+// carrying both would claim two ship paths, and trackOf() would silently pick
+// the portal one, quietly routing Command work through Scott.
+async function setTrack(number, label) {
+  await withProjectLoading(number, async () => {
+    const other = label === 'command-only' ? 'portal-integration' : 'command-only';
+    await removeLabel(number, other);
+    await addLabel(number, label);
+    await postComment(number, label === 'command-only'
+      ? `⚡ **Ship path set to \`command-only\`** by @${currentUser.login} — does not touch the portal, so **localhost→gamma** and any developer can push it. Branch → PR → confirm you ran it on localhost → CI green → merge your own PR. No alpha, no beta, no Scott.`
+      : `🔒 **Ship path set to \`portal-integration\`** by @${currentUser.login} — this touches the portal, so it takes the full **localhost→alpha→beta→gamma** path through Scott, driven from the Portal Tracker.`);
+    toast(`#${number} → ${label}`);
+  });
+}
+
+async function setInProgress(number) {
+  await withProjectLoading(number, async () => {
+    for (const l of ['status:draft','status:needs-revision','status:blocked']) await removeLabel(number, l);
+    await addLabel(number, 'status:in-progress');
+    toast(`#${number} moved to In Progress`);
+  });
+}
+
+// Much of the ops work on this board waits on a vendor, a contract or someone
+// else's decision. Recording WHO is the whole value — "blocked" with no named
+// party is a card that quietly stops moving and nobody can restart.
+async function setBlocked(number) {
+  const who = prompt('Blocked on what, or on whom?\n\nA vendor, a contract, a decision, another team — name it, because a blocker with no owner never clears.');
+  if (who === null) return;
+  if (!who.trim()) { toast('Name the blocker — an unattributed block is how a card goes quiet.', true); return; }
+  await withProjectLoading(number, async () => {
+    await postComment(number, `⛔ **Blocked** — ${who.trim()}\n\n— @${currentUser.login}`);
+    for (const l of ['status:in-progress','status:draft']) await removeLabel(number, l);
+    await addLabel(number, 'status:blocked');
+    toast(`#${number} marked blocked`);
+  });
+}
+async function setDraft(number) {
+  await withProjectLoading(number, async () => {
+    for (const l of ['status:in-progress','status:pr-alpha-ready','status:pr-ready','status:needs-revision','status:blocked']) await removeLabel(number, l);
+    await addLabel(number, 'status:draft');
+    toast(`#${number} moved to Queued`);
+  });
+}
+
+// The whole Command process rests on one sentence — that the author actually ran
+// it on localhost — because there is no reviewer and GitHub Free cannot enforce a
+// thing on a private repo. So the tracker asks for it, and writes the answer onto
+// the issue where it can be read later. An unanswered prompt cancels the move.
+async function setPrOpen(number) {
+  const p = currentProjects.find(p => p.number === number);
+  const existingPr = p?.prUrl || '';
+  const pr = prompt(existingPr
+    ? 'Confirm the PR link (press OK if unchanged, or edit if the PR was replaced):'
+    : 'Paste your GitHub PR link:', existingPr);
+  if (!pr || !pr.trim()) { toast('No link — paste a pull request URL and try again.', true); return; }
+  const prTrimmed = pr.trim();
+  const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
+  const commitMatch = prTrimmed.match(/\/commit\/([0-9a-f]{7,40})/i);
+  if (!prNumMatch && !commitMatch) { toast('Expected a GitHub …/pull/123 or …/commit/abc1234 URL.', true); return; }
+
+  const tested = prompt('What did you click through on localhost?\n\nThis goes on the issue and on the PR. There is no reviewer here — this sentence is the gate.');
+  if (tested === null) return;
+  if (!tested.trim()) { toast('Say what you tested — that confirmation is the only gate this flow has.', true); return; }
+
+  await withProjectLoading(number, async () => {
+    const linkLabel = prNumMatch ? `PR #${prNumMatch[1]}` : `commit ${commitMatch[1].slice(0,7)}`;
+    const note = `⏳ **${linkLabel} open** — ${prTrimmed}\n\n**Ran on localhost:** ${tested.trim()}\n\n— @${currentUser.login}`;
+    if (prNumMatch) await postComment(parseInt(prNumMatch[1]), note);
+    await postComment(number, note);
+    await removeLabel(number, 'status:in-progress');
+    await removeLabel(number, 'status:draft');
+    await removeLabel(number, 'status:needs-revision');
+    await addLabel(number, 'status:pr-alpha-ready');
+
+    // The PR column reads the FIRST PR link in the body, so a replaced PR has to
+    // be swapped in place — appending would leave the stale link winning.
+    const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
+    let newBody = issue.body || '';
+    if (existingPr && existingPr !== prTrimmed && newBody.includes(existingPr)) {
+      newBody = newBody.split(existingPr).join(prTrimmed);
+    } else if (!newBody.includes(prTrimmed)) {
+      newBody = newBody + `\n\n**PR:** ${prTrimmed}`;
+    }
+    if (newBody !== issue.body) {
+      await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
+    }
+    toast(`${linkLabel} recorded`);
+  });
+}
+
+async function markNeedsWork(number) {
+  const why = prompt('What needs fixing?');
+  if (why === null) return;
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✕ **Needs work** — ${why.trim() || 'sent back'}\n\n— @${currentUser.login}`);
+    await removeLabel(number, 'status:pr-alpha-ready');
+    await addLabel(number, 'status:needs-revision');
+    toast(`#${number} sent back`);
+  });
+}
+
+async function markProjectDone(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✅ **Merged and shipped by @${currentUser.login}.**`);
+    for (const l of ['status:in-progress','status:draft','status:needs-revision','status:pr-alpha-ready','status:pr-ready','status:blocked']) await removeLabel(number, l);
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
+    toast(`#${number} shipped`);
+  });
+}
+
+async function abandonProject(number) {
+  if (!confirm('Mark this as abandoned?')) return;
+  await withProjectLoading(number, async () => {
+    await postComment(number, `🚫 **Marked abandoned by @${currentUser.login}.**`);
+    await addLabel(number, 'status:abandoned');
+    toast(`Marked abandoned`);
+  });
+}
+
+// ── Completed / abandoned ────────────────────────────────────────────────────
+function renderCompleted() {
+  const content = document.getElementById('done-content');
+  if (!content) return;
+  const done = currentProjects
+    .filter(p => p.status === 'done')
+    .sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
+  if (!done.length) { content.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None yet.</div>`; return; }
+
+  const head = `<thead><tr>
+    <th style="width:54px">#</th><th style="width:52px">Order</th><th>Build</th>
+    <th style="width:110px">Track</th><th style="width:76px">Developer</th>
+    <th style="width:48px">Est</th><th style="width:62px">PR</th>
+    <th style="width:58px">Notes</th><th style="width:150px">Actions</th>
+  </tr></thead>`;
+  const rows = done.map(p => `<tr id="proj-${p.number}">
+    <td style="font-size:12px;font-weight:600;white-space:nowrap"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none">#${p.number}</a></td>
+    <td style="font-size:11px;color:var(--text-muted);font-weight:700">${p.orderLabel || '—'}</td>
+    <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(shortTitle(p.title))}</a>
+        ${p.openButDone ? `<span class="lane-pill lane-untriaged" title="Labelled status:done but the issue is still open. Check the body before closing it — an open issue under a done label usually means the card has a live tail, and the label is the thing that is wrong.">issue still open</span>` : ''}
+        <div class="proj-desc">${esc(buildSummary(p))}</div></td>
+    <td>${TRACK_PILL[p.track]}</td>
+    <td>${assigneeHtml(p.assignees)}</td>
+    <td>${estHtml(p.codingEst)}</td>
+    <td>${prHtml(p.prUrl, p.prNum)}</td>
+    <td>${notesHtml(p)}</td>
+    <td><div class="actions">${promptBtn(p.number)} ${editBtn(p.number)} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a></div></td>
+  </tr>`).join('');
+  content.innerHTML = `<div class="proj-table-wrap"><table>${head}<tbody>${rows}</tbody></table></div>`;
+}
+
+function renderAbandoned() {
+  const el = document.getElementById('ab-content');
+  if (!el) return;
+  const ab = currentProjects.filter(p => p.status === 'abandoned');
+  if (!ab.length) { el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None.</div>`; return; }
+  el.innerHTML = `<div class="proj-table-wrap"><table>
+    <thead><tr><th style="width:54px">#</th><th>Build</th><th style="width:110px">Track</th><th style="width:58px">Notes</th><th style="width:60px"></th></tr></thead>
+    <tbody>${ab.map(p => `<tr id="proj-${p.number}">
+      <td style="font-size:12px;font-weight:600"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none">#${p.number}</a></td>
+      <td><a class="proj-title" href="${p.url}" target="_blank" style="text-decoration:line-through;opacity:.7">${esc(shortTitle(p.title))}</a></td>
+      <td>${TRACK_PILL[p.track]}</td>
+      <td>${notesHtml(p)}</td>
+      <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a></td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── Notes modal ───────────────────────────────────────────────────────────────
+let notesIssueNumber = null;
+
+function closeNotesModal() { document.getElementById('notes-modal').style.display = 'none'; }
+
+function renderNotesHistory(comments) {
+  const el = document.getElementById('notes-history');
+  if (!comments.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px 0">No notes yet — be the first to add one.</div>`;
+    return;
+  }
+  el.innerHTML = comments.map(c => {
+    const isScott = c.user?.login === SCOTT;
+    const border = isScott ? 'var(--amber)' : 'var(--border)';
+    // Split body into text lines and attachment lines
+    const lines = (c.body||'').split('\n');
+    const attachBtns = [];
+    const textLines = [];
+    for (const line of lines) {
+      const m = line.match(/📎 \[([^\]]+)\]\((https?:\/\/[^)]+|portal-attach:\/\/[^)]+)\)/);
+      if (m) {
+        const [, fname, target] = m;
+        const btnStyle = `display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--primary);font-weight:600;text-decoration:none`;
+        if (target.startsWith('portal-attach://')) {
+          // Legacy tracker-only marker — fetch via API and download.
+          const path = target.slice('portal-attach://'.length);
+          attachBtns.push(`<button onclick="downloadAttachment('${path.replace(/'/g,"\\'")}','${fname.replace(/'/g,"\\'")}')" style="${btnStyle}">⬇ ${esc(fname)}</button>`);
+        } else {
+          // Real GitHub URL — a genuine link that works here and on GitHub.
+          attachBtns.push(`<a href="${esc(target)}" target="_blank" rel="noopener" style="${btnStyle}">⬇ ${esc(fname)} ↗</a>`);
+        }
+      } else {
+        textLines.push(esc(line));
+      }
+    }
+    const bodyHtml = textLines.join('<br>');
+    const attachHtml = attachBtns.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:${bodyHtml.trim()?'8':'0'}px">${attachBtns.join('')}</div>` : '';
+    return `<div style="border-left:3px solid ${border};padding:8px 12px;background:${isScott ? 'var(--amber-bg)' : '#f8faff'};border-radius:0 6px 6px 0">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <img src="${c.user?.avatar_url}" style="width:18px;height:18px;border-radius:50%">
+        <strong style="font-size:12px">@${esc(c.user?.login||'')}</strong>
+        <span style="font-size:11px;color:var(--text-muted)">${timeAgo(c.created_at)}</span>
+        ${isScott ? `<span style="font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.4px">Scott</span>` : ''}
+      </div>
+      <div style="font-size:12px;line-height:1.55;color:var(--text)">${bodyHtml}${attachHtml}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function submitNote() {
+  const text = richToText();
+  if (!text && !pendingAttachments.length) return;
+  if (!notesIssueNumber) return;
+  const btn = document.getElementById('notes-submit-btn');
+  btn.disabled = true; btn.textContent = 'Posting…';
+  try {
+    const attachLines = pendingAttachments.map(a =>
+      `📎 [${a.name}](${a.url})`
+    ).join('\n');
+    // Green mentions are already inline as "@login" in the serialized text, so GitHub
+    // emails exactly those users. (Red/unknown handles are just plain text — no such user.)
+    const body = [text, attachLines].filter(Boolean).join('\n\n');
+    await postComment(notesIssueNumber, body);
+    pendingAttachments = [];
+    renderAttachmentPills();
+    // Refresh just this project's comments and re-render history
+    const fresh = await ghFetch(`/repos/${REPO}/issues/${notesIssueNumber}/comments?per_page=100`);
+    const p = currentProjects.find(p => p.number === notesIssueNumber);
+    if (p) { p.allComments = fresh; p.latestScott = fresh.filter(c=>c.user?.login===SCOTT).slice(-1)[0]||null; }
+    resetNotify();
+    renderNotesHistory(fresh);
+    // Update the count badge in the table without full reload
+    const countBtn = document.querySelector(`button[onclick="openNotes(${notesIssueNumber})"]`);
+    if (countBtn) countBtn.innerHTML = `💬 <span style="font-weight:700">${fresh.length}</span>`;
+    toast('Note posted');
+  } catch(e) { toast(`Error: ${e.message}`, true); }
+  finally { btn.disabled = false; btn.textContent = 'Post Note'; }
+}
+
+// ── Notes file attachment ─────────────────────────────────────────────────────
+let pendingAttachments = []; // [{name, path, isImage}]
+const ATTACH_MARKER = 'portal-attach://';
+
+// ── Notes rich field: inline @-mentions with autocomplete + green/red bubbles ──
+// The note body (#notes-rich) is contenteditable. Type "@" then a name to mention
+// someone: a suggestion dropdown appears (Tab/Enter/click to pick) and the mention
+// becomes an INLINE bubble — green ✓ for a real user ("@scott" → @msdrigg, emailed on
+// post), red ✕ for an unknown handle (ignored). On post the field serializes to plain
+// text with "@login" in place of each green bubble, so GitHub emails exactly those users.
+// GitHub still notifies the issue's own participants/watchers per their subscriptions.
+let notifySuggest = [];        // suggestion logins for the current @query
+let notifySuggestIdx = -1;
+let activeMentionQuery = null; // {node, start, end, query} at the caret, or null
+
+// Friendly aliases → GitHub login: the login itself, the full team name, and first name.
+const MENTION_ALIASES = (() => {
+  const m = {};
+  for (const [login, name] of Object.entries(TEAM)) {
+    m[login.toLowerCase()] = login;
+    m[name.toLowerCase()] = login;
+    m[name.toLowerCase().split(' ')[0]] = login;
+  }
+  return m;
+})();
+function resolveMention(raw) {
+  const k = String(raw||'').trim().replace(/^@+/, '').toLowerCase();
+  return k ? (MENTION_ALIASES[k] || null) : null;
+}
+function notifyMatches(q) {
+  q = String(q||'').replace(/^@+/, '').toLowerCase();
+  return Object.keys(TEAM).filter(login =>
+    !q || login.toLowerCase().includes(q) || TEAM[login].toLowerCase().includes(q));
+}
+
+// An inline mention bubble node (contentEditable=false so it deletes/moves as one unit).
+function mentionChip(login, raw) {
+  const s = document.createElement('span');
+  s.contentEditable = 'false';
+  if (login) { s.className = 'mention-bubble ok'; s.dataset.login = login; s.textContent = '✓ ' + teamName(login); s.title = '@' + login + ' — will be emailed'; }
+  else       { s.className = 'mention-bubble bad'; s.dataset.raw = raw;   s.textContent = '✕ ' + raw;             s.title = "not a known user — won't be emailed"; }
+  return s;
+}
+// Find an "@query" immediately before the caret (collapsed selection inside a text node).
+function currentMentionQuery() {
+  const rich = document.getElementById('notes-rich');
+  const sel = window.getSelection();
+  if (!rich || !sel || !sel.rangeCount) return null;
+  const r = sel.getRangeAt(0);
+  if (!r.collapsed || r.startContainer.nodeType !== Node.TEXT_NODE || !rich.contains(r.startContainer)) return null;
+  const upto = r.startContainer.textContent.slice(0, r.startOffset);
+  const m = upto.match(/@([A-Za-z0-9-]*)$/);
+  if (!m) return null;
+  if (/[A-Za-z0-9]$/.test(upto.slice(0, m.index))) return null;   // not mid-word / an email
+  return { node: r.startContainer, start: m.index, end: r.startOffset, query: m[1] };
+}
+// Replace the @query range with a chip + trailing space; put the caret after it.
+function insertMention(q, chip) {
+  const r = document.createRange();
+  r.setStart(q.node, q.start); r.setEnd(q.node, q.end);
+  r.deleteContents();
+  const space = document.createTextNode(' ');
+  const frag = document.createDocumentFragment();
+  frag.appendChild(chip); frag.appendChild(space);
+  r.insertNode(frag);
+  const sel = window.getSelection();
+  const nr = document.createRange(); nr.setStartAfter(space); nr.collapse(true);
+  sel.removeAllRanges(); sel.addRange(nr);
+}
+function renderNotifySuggest() {
+  const box = document.getElementById('notify-suggest');
+  if (!box) return;
+  if (!notifySuggest.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = notifySuggest.map((login, i) =>
+    `<div class="opt${i===notifySuggestIdx?' hi':''}" onmousedown="event.preventDefault();pickMention(${i})">
+       <span class="mention-bubble ok" style="pointer-events:none">✓ ${esc(teamName(login))}</span>
+       <span style="color:var(--text-muted);font-size:11px">@${esc(login)}</span>
+     </div>`).join('');
+}
+function hideSuggest() { notifySuggest = []; notifySuggestIdx = -1; renderNotifySuggest(); }
+function pickMention(i) {
+  const login = notifySuggest[i];
+  const q = activeMentionQuery;
+  if (login && q) insertMention(q, mentionChip(login, null));
+  hideSuggest(); activeMentionQuery = null; refreshRichEmpty();
+  document.getElementById('notes-rich').focus();
+}
+function onRichInput() {
+  refreshRichEmpty();
+  const q = currentMentionQuery();
+  activeMentionQuery = q;
+  if (q) { notifySuggest = notifyMatches(q.query); notifySuggestIdx = notifySuggest.length ? 0 : -1; renderNotifySuggest(); }
+  else hideSuggest();
+}
+// Space/Enter without picking a suggestion: turn the typed "@handle" into a bubble
+// (green if it resolves to a user, red if not).
+function commitTypedMention() {
+  const q = currentMentionQuery();
+  if (!q || !q.query) return false;
+  insertMention(q, mentionChip(resolveMention(q.query), q.query));
+  hideSuggest(); activeMentionQuery = null; refreshRichEmpty();
+  return true;
+}
+function onRichKey(e) {
+  if (notifySuggest.length) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx+1)%notifySuggest.length; renderNotifySuggest(); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); notifySuggestIdx = (notifySuggestIdx-1+notifySuggest.length)%notifySuggest.length; renderNotifySuggest(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickMention(notifySuggestIdx < 0 ? 0 : notifySuggestIdx); return; }
+    if (e.key === 'Escape') { e.preventDefault(); hideSuggest(); return; }
+  }
+  if (e.key === ' ' || e.key === 'Enter') {
+    const q = currentMentionQuery();
+    if (q && q.query) { e.preventDefault(); commitTypedMention(); return; }
+  }
+}
+function onRichBlur() { setTimeout(hideSuggest, 150); }
+function refreshRichEmpty() {
+  const el = document.getElementById('notes-rich');
+  if (!el) return;
+  const empty = !el.querySelector('.mention-bubble') && !el.textContent.replace(/ /g,'').trim();
+  el.classList.toggle('is-empty', empty);
+}
+// Serialize the rich field to plain text: green bubble → "@login", red → "@raw",
+// block breaks → newlines. The inline "@login"s are what GitHub notifies on.
+function richToText() {
+  const src = document.getElementById('notes-rich');
+  if (!src) return '';
+  const clone = src.cloneNode(true);
+  clone.querySelectorAll('.mention-bubble').forEach(b => {
+    const t = b.dataset.login ? '@' + b.dataset.login : '@' + (b.dataset.raw || '');
+    b.replaceWith(document.createTextNode(t));
+  });
+  clone.style.position = 'absolute'; clone.style.left = '-9999px'; clone.style.whiteSpace = 'pre-wrap';
+  document.body.appendChild(clone);
+  const out = clone.innerText;
+  clone.remove();
+  return out.replace(/ /g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+function resetNotify() {
+  const el = document.getElementById('notes-rich');
+  if (el) { el.innerHTML = ''; el.classList.add('is-empty'); }
+  hideSuggest(); activeMentionQuery = null;
+}
+
+async function openNotes(number) {
+  notesIssueNumber = number;
+  pendingAttachments = [];
+  renderAttachmentPills();
+  resetNotify();
+  document.getElementById('notes-file-input').value = '';
+  // Find the item across ANY loaded section for the title + any cached comments.
+  const lists = [currentProjects, typeof futureIdeas!=='undefined'?futureIdeas:[], typeof facilityPortal!=='undefined'?facilityPortal:[], typeof integrations!=='undefined'?integrations:[], typeof referenceProjects!=='undefined'?referenceProjects:[], typeof issues!=='undefined'?issues:[]];
+  let known = null;
+  for (const L of lists) { const f = (L||[]).find(x => x.number === number); if (f) { known = f; break; } }
+  document.getElementById('notes-modal-title').textContent = known && known.title ? known.title : `Issue #${number}`;
+  document.getElementById('notes-modal').style.display = 'flex';
+  renderNotesHistory((known && known.allComments) || []);
+  // ONC/facility/future/reference don't prefetch comments — fetch this thread on demand.
+  if (!(known && known.allComments)) {
+    try { renderNotesHistory(await ghFetch(`/repos/${REPO}/issues/${number}/comments?per_page=100`)); }
+    catch(e) { /* leave empty; user can still add a note */ }
+  }
+  setTimeout(() => document.getElementById('notes-rich').focus(), 50);
+}
+
+async function handleNoteFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const btn = document.querySelector('button[onclick*="notes-file-input"]');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Uploading…'; btn.disabled = true;
+  try {
+    // Read as base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const path = `attachments/${notesIssueNumber}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const resp = await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `attach: ${file.name} on issue #${notesIssueNumber}`, content: base64 })
+    });
+    // Real GitHub blob URL — a link that actually works everywhere (tracker, the
+    // GitHub issue thread, email notifications), not a tracker-only custom scheme.
+    const url = resp?.content?.html_url || `https://github.com/${ATTACH_REPO}/blob/main/${path}`;
+    const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
+    pendingAttachments.push({ name: file.name, path, url, isImage });
+    renderAttachmentPills();
+    toast(`✓ ${file.name} uploaded`);
+  } catch(e) { toast(`Upload error: ${e.message}`, true); }
+  finally { btn.textContent = origText; btn.disabled = false; event.target.value = ''; }
+}
+
+function renderAttachmentPills() {
+  const el = document.getElementById('notes-attachments');
+  if (!pendingAttachments.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = pendingAttachments.map((a, i) => `
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px">
+      📎 <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</span>
+      <button onclick="pendingAttachments.splice(${i},1);renderAttachmentPills()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">✕</button>
+    </span>`).join('');
+}
+
+async function downloadAttachment(path, filename) {
+  try {
+    const data = await ghFetch(`/repos/${ATTACH_REPO}/contents/${path}`);
+    const bytes = Uint8Array.from(atob(data.content.replace(/\n/g,'')), c => c.charCodeAt(0));
+    const blob = new Blob([bytes]);
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch(e) {
+    const msg = /not found/i.test(e.message)
+      ? 'Attachment file is missing from the repo (it may have been lost in a force-push) — please re-upload it.'
+      : `Download error: ${e.message}`;
+    toast(msg, true);
+  }
+}
+
+// ── Add New Modal ────────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('m-title').value = '';
+  document.getElementById('m-desc').value = '';
+  document.getElementById('m-pr').value = '';
+  document.getElementById('m-track').value = '';
+  document.getElementById('m-track-note').style.display = 'none';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  document.getElementById('modal-success').style.display = 'none';
+  document.getElementById('modal-form-actions').style.display = 'flex';
+  document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = '');
+}
+
+function updateTrackNote() {
+  const v = document.getElementById('m-track').value;
+  const note = document.getElementById('m-track-note');
+  if (!v) { note.style.display = 'none'; return; }
+  note.innerHTML = v === 'command-only'
+    ? `⚡ <strong>Command-only — <code>localhost → gamma</code>.</strong> No alpha, no beta, no Scott, and any developer can push it. Branch → pull request → tick “I ran it on localhost” and say what you clicked through → CI green → merge your own PR. No reviewer, which is exactly why the confirmation is required.`
+    : `🔒 <strong>Portal integration — <code>localhost → alpha → beta → gamma</code>.</strong> Touching the portal means Scott and the full staged path, as portal work always has. It will appear on both boards, and its stage is driven from the <a href="index.html">Portal Tracker</a>.`;
+  note.style.display = 'block';
+}
+
+async function submitNewProject() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) { alert('Title is required'); return; }
+  const track = document.getElementById('m-track').value;
+  // Untriaged cards are the one failure mode this page exists to surface, so the
+  // form refuses to create one rather than quietly adding to the pile.
+  if (!track) { alert('Choose how this ships — Command-only or Portal integration.\n\nThat choice decides the ship path and who may push it, so it cannot be left blank. If it touches the portal at all, it is Portal integration.'); return; }
+
+  const desc     = document.getElementById('m-desc').value.trim();
+  const type     = document.getElementById('m-type').value;
+  const hours    = document.getElementById('m-hours').value;
+  const priority = document.getElementById('m-priority').value;
+  const prUrl    = document.getElementById('m-pr').value.trim();
+  const assign   = document.getElementById('m-assign').checked;
+
+  const btn = document.getElementById('modal-submit-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  const prSection = prUrl ? `\n\n**PR:** ${prUrl}` : '';
+  const shipLine = track === 'command-only'
+    ? `**Ships:** \`command-only\` — does not touch the portal, so **localhost→gamma**. Any developer can push it: branch → PR → confirm you ran it on localhost → CI green → merge your own PR. No alpha, no beta, no Scott.`
+    : `**Ships:** \`portal-integration\` — touches the portal, so the full **localhost→alpha→beta→gamma** path through Scott. Driven from the Portal Tracker.`;
+  const body = `${desc}\n\n${shipLine}${prSection}\n\n---\n*Coding estimate: ${hours||'?'}h · Type: ${type}*`;
+
+  // `current-project` keeps the card visible on the portal tracker's board too
+  // when it is portal-side work; a command-only card does not need it, but the
+  // label costs nothing and keeps GitHub's own filters consistent.
+  const labels = [COMMAND_LABEL, track, type, `priority-${priority}`, 'status:draft',
+                  track === 'portal-integration' ? 'current-project' : 'future-idea'];
+
+  try {
+    const issue = await ghFetch(`/repos/${REPO}/issues`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title, body, labels, assignees: assign ? [currentUser.login] : [] })
+    });
+    pendingProjectPrompt = buildCommandProjectPrompt({ number: issue.number, title, body, url: issue.html_url, labels, track: trackOf(labels) });
+    document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = 'none');
+    document.getElementById('modal-form-actions').style.display = 'none';
+    document.getElementById('modal-success-title').textContent = title;
+    document.getElementById('modal-success-link').href = issue.html_url;
+    document.getElementById('modal-success').style.display = 'block';
+    document.getElementById('modal-copy-prompt-btn').textContent = '📋 Copy Claude Prompt';
+    await loadAll();
+  } catch(e) {
+    toast(`Error: ${e.message}`, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create';
+  }
+}
+
+// ── Edit Modal ───────────────────────────────────────────────────────────────
+let editIssueNumber = null;
+function openEditModal(n) {
+  const p = currentProjects.find(p => p.number === n);
+  if (!p) return;
+  editIssueNumber = n;
+  document.getElementById('edit-title').value = p.title;
+  document.getElementById('edit-priority').value = p.labels?.find(l => l.startsWith('priority-'))?.slice(9) || '';
+  document.getElementById('edit-assignee').value = p.assignees?.[0] || '';
+  document.getElementById('edit-pr-url').value = p.prUrl || '';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').style.display = 'none';
+  editIssueNumber = null;
+}
+async function saveEdit() {
+  const n = editIssueNumber; if (!n) return;
+  const title = document.getElementById('edit-title').value.trim();
+  const prio  = document.getElementById('edit-priority').value;
+  if (!title) { toast('Title cannot be empty', true); return; }
+  const saveBtn = document.querySelector('#edit-modal .btn-primary');
+  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+  try {
+    const assignee = document.getElementById('edit-assignee').value;
+    const newPrUrl = document.getElementById('edit-pr-url').value.trim();
+    const issue = await ghFetch(`/repos/${REPO}/issues/${n}`);
+    let body = issue.body || '';
+    if (newPrUrl) {
+      if (/\*\*PR:\*\*\s*https?:\/\/\S+/i.test(body)) body = body.replace(/\*\*PR:\*\*\s*https?:\/\/\S+/i, `**PR:** ${newPrUrl}`);
+      else body = body + `\n\n**PR:** ${newPrUrl}`;
+    }
+    await ghFetch(`/repos/${REPO}/issues/${n}`, { method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ title, assignees: assignee ? [assignee] : [], body }) });
+    for (let i=1; i<=5; i++) await removeLabel(n, `priority-${i}`).catch(()=>{});
+    if (prio) await addLabel(n, `priority-${prio}`);
+    await loadAll();
+    document.getElementById('edit-modal').style.display = 'none';
+    editIssueNumber = null;
+    toast(`#${n} updated`);
+  } catch(e) {
+    toast(`Error: ${e.message}`, true);
+  } finally {
+    saveBtn.textContent = 'Save'; saveBtn.disabled = false;
+  }
+}
+
+// ── Project Prompt ───────────────────────────────────────────────────────────
+// Kept byte-for-byte in step with the portal tracker's buildCommandProjectPrompt.
+// Pointing the session at ~/claude/command/'s MD files is the whole mechanism:
+// GitHub Free cannot enforce the branch/PR rule on a private repo, so the
+// instruction has to travel with the work.
+function buildCommandProjectPrompt(proj) {
+  const firstLine = (proj.body||'').split('\n').filter(l=>l.trim()).slice(0,6).join('\n');
+  const activeCommand = currentProjects
+    .filter(p => p.status !== 'done' && p.status !== 'abandoned' && !isUmbrella(p))
+    .map(p => `  - #${p.number} "${p.title}" [${p.status}${p.track==='portal'?' · portal-side':''}]`)
+    .join('\n') || '  - None currently in progress';
+  const portalSide = proj.track === 'portal';
+
+  return `Session topic: Building "${proj.title}"
+GitHub Issue: https://github.com/${REPO}/issues/${proj.number}
+Lane: COMMAND — outside the portal. Open the session in ~/claude/command/.
+Tracker: the Command Project Tracker (command.html), not the portal board.
+
+━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
+1. ~/claude/command/CLAUDE.md
+   → lane rules, and HOW WORK REACHES PRODUCTION IN THIS LANE
+2. ~/claude/command/command-app/CLAUDE.md
+   → review & deploy, what Command may do with portal data, the patient-data line
+3. ~/claude/command/projects/docs/website-runbook.md   (marketing-site work only)
+4. The repo's own MIGRATION-NOTES.md, if you are touching togohealth-web
+
+─── WHAT THIS BUILD DOES ─────────────────────────────
+${firstLine}
+
+─── OTHER COMMAND WORK IN FLIGHT (do not duplicate) ──
+${activeCommand}
+
+─── HOW THIS SHIPS ───────────────────────────────────
+${portalSide
+? `⚠️ This card is labelled portal-integration: it TOUCHES THE PORTAL.
+Ship path: localhost → alpha → beta → gamma, through Scott, exactly as portal
+work always has been. Driven from the Portal Tracker. Do NOT merge it yourself.
+If you find it does not actually touch the portal, say so and re-label it
+command-only before building — that changes the flow entirely.`
+: `Ship path: localhost → gamma. No alpha, no beta, no Scott, and any developer
+can push it.
+
+Branch → pull request → tick "I ran it on localhost" in the PR description and
+say what you clicked through → CI green → merge your own PR. No reviewer gate:
+your statement that you actually tested it IS the gate.
+
+Do NOT push straight to main. The one exception is an emergency fix for a broken
+site, and the commit message must say so. A workflow flags every direct push.
+
+⚠️ GitHub does not enforce this — the org is on the Free plan, where branch
+protection and rulesets refuse on private repos. The rule lives in the MD files
+above. Read them; they are the enforcement.`}
+
+─── THE TWO HARD LIMITS ──────────────────────────────
+1. **Patient data.** Nothing patient-identifying lives outside the portal. Read
+   from the portal, manipulate in Command, link back — never write to the portal,
+   and never store a patient identifier here. Anything touching patient data
+   needs Scott's review; everything else does not.
+2. **Editing the portal** — its code, its database, its UI — needs Scott AND the
+   localhost→alpha→beta→gamma flow. If the build starts reaching into the portal,
+   stop and say so.
+
+─── BEFORE WRITING CODE — STATE OUT LOUD ────────────
+1. Which of the MD files above did you read, and which rule in them applies here?
+2. Does this touch patient data or edit the portal? (If yes → Scott, and say so now.)
+3. Full implementation plan — wait for approval before executing.`;
+}
+
+function copyNewProjectPrompt() {
+  if (!pendingProjectPrompt) return;
+  copyToClipboard(pendingProjectPrompt);
+  const btn = document.getElementById('modal-copy-prompt-btn');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => { btn.textContent = '📋 Copy Claude Prompt'; }, 2500);
+}
+function copyProjectPrompt(number) {
+  const p = currentProjects.find(p => p.number === number);
+  if (!p) { toast(`Can't build a prompt for #${number} — project not loaded`, true); return; }
+  copyToClipboard(buildCommandProjectPrompt(p));
+  const btn = document.getElementById(`cpbtn-${number}`);
+  if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s/60)}m ago`;
+  if (s < 86400) return `${Math.round(s/3600)}h ago`;
+  return `${Math.round(s/86400)}d ago`;
+}
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.background = err ? '#dc2626' : '#1e293b';
+  el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// Section open/closed state persists per browser. Its own key — sharing the
+// portal tracker's would collapse sections here that share a name there.
+const SEC_STATE_KEY = 'command_tracker_sections_v1';
+const SEC_COLLAPSED_BY_DEFAULT = ['done','ab'];
+function readSecState() {
+  try { return JSON.parse(localStorage.getItem(SEC_STATE_KEY) || '{}'); } catch { return {}; }
+}
+function toggleSection(key) {
+  const el = document.getElementById('sec-' + key);
+  if (!el) return;
+  el.classList.toggle('sec-collapsed');
+  const st = readSecState();
+  st[key] = el.classList.contains('sec-collapsed') ? 'closed' : 'open';
+  try { localStorage.setItem(SEC_STATE_KEY, JSON.stringify(st)); } catch {}
+}
+function applySectionState() {
+  const st = readSecState();
+  document.querySelectorAll('.section-block[id^="sec-"]').forEach(el => {
+    const key = el.id.slice(4);
+    const remembered = st[key];
+    el.classList.toggle('sec-collapsed', remembered ? remembered === 'closed' : SEC_COLLAPSED_BY_DEFAULT.includes(key));
+  });
+}
+function jumpTo(key) {
+  const el = document.getElementById('sec-' + key) || document.getElementById(key);
+  if (!el) return;
+  el.classList.remove('sec-collapsed');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(async () => {
+  populateAssigneeOptions();
+  applySectionState();
+  await handleOAuthCallback();
+  if (getToken()) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    try {
+      await loadAll();
+      // Deep link from the portal tracker: command.html#proj-761 scrolls to the card.
+      if (location.hash.startsWith('#proj-')) {
+        const el = document.getElementById(location.hash.slice(1));
+        if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
+    } catch (e) {
+      // GitHub App user tokens expire after 8h — a stale one throws on the first
+      // /user call and would otherwise leave every section spinning forever.
+      if (/bad credentials|401|requires authentication/i.test(e.message||'')) {
+        localStorage.removeItem('gh_pat');
+        document.getElementById('auth-overlay').style.display = 'flex';
+        showAuthError('Your session expired. Please sign in again.');
+      } else {
+        const el = document.getElementById('error-msg');
+        if (el) { el.style.display = 'block'; el.textContent = `Error: ${e.message}`; }
+      }
+    }
+  }
+})();
+</script>
+</body>
+</html>

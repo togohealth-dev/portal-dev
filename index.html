@@ -41,6 +41,14 @@
   .section-nav a { font-size: 13px; color: var(--primary); cursor: pointer; padding: 4px 11px; border-radius: 6px; text-decoration: none; font-weight: 500; }
   .section-nav a:hover { background: #eef2ff; }
   .section-block { scroll-margin-top: 108px; }
+  /* ── Board switch ──
+     The two trackers are siblings, not a page and a subpage, so the link from
+     each to the other is styled as a distinct control rather than blending into
+     the row of section jumps beside it. */
+  .board-switch { font-weight:700 !important; background:#eef2ff; border:1px solid #c7d2fe;
+                  color:var(--primary) !important; border-radius:6px; padding:4px 11px !important; }
+  .board-switch:hover { background:#e0e7ff !important; }
+
   .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .header-left img { flex-shrink: 0; }   /* never let the logo get squeezed to nothing */
   .logo { font-weight: 700; font-size: 16px; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -388,6 +396,7 @@
   </div>
   <div class="header-right">
     <a href="https://togo-pcc-research.togohealth.workers.dev" target="_blank" class="btn btn-outline" title="PCC Marketplace research — passphrase required">🔒 PCC<span class="lbl-wide"> Research</span> ↗</a>
+    <a href="command.html" class="btn btn-outline" title="Command — the business-ops product outside the portal. Separate board, separate ship rules.">⚡<span class="lbl-wide"> Command</span></a>
     <a href="admin-view.html" class="btn btn-outline" title="Admin view — what needs you, pipeline counts, and what's next in each bundle">📋<span class="lbl-wide"> Admin view</span></a>
     <a href="https://github.com/togohealth-dev/emr-beta/issues" target="_blank" class="btn btn-outline">GitHub ↗</a>
     <span id="last-updated" style="font-size:11px;color:var(--text-muted);align-self:center;white-space:nowrap" title="The board re-reads GitHub every 60 seconds"></span>
@@ -411,6 +420,7 @@
   <a onclick="jumpTo('onc')" title="Certification progress, weighted by each project's live stage">ONC<span id="onc-nav-pct"></span></a>
   <a href="archive.html" title="Completed production projects and abandoned ones">🗄️ Archive ↗</a>
   <span style="color:var(--border)">·</span>
+  <a href="command.html" class="board-switch" title="Command — the business-ops product outside the portal. Its own board: command-only work ships localhost→gamma without Scott.">⚡ Command Tracker →</a>
   <a href="contributors.html" title="Coding hours per person, measured from the contributed code">⏱️ Contributor Hours</a>
   <a href="admin-view.html" title="Admin view — what needs you, pipeline counts, what's next in each bundle">📋 Admin view ↗</a>
 </nav>
@@ -618,7 +628,10 @@
       <div class="modal-onc-note" id="m-command-note" style="display:none">
         ⚡ Labels this <code>command</code> and swaps the Claude prompt for the Command lane's rules —
         <code>~/claude/command/</code> MD files, no Scott review, and branch → PR → confirm you ran it on
-        localhost → merge your own.
+        localhost → merge your own.<br>
+        <strong>It will appear on the <a href="command.html">Command Tracker</a>, not here</strong> — unless it
+        touches the portal, in which case label it <code>portal-integration</code>: it keeps the full
+        localhost→alpha→beta→gamma path through Scott and stays on both boards.
       </div>
     </div>
     <div class="modal-field">
@@ -1374,6 +1387,15 @@ async function handleOAuthCallback() {
     const data = await resp.json();
     if (data.access_token) {
       localStorage.setItem('gh_pat', data.access_token);
+      // The OAuth app's callback is this directory, not a page, so a sign-in
+      // begun on command.html always lands back here. Hand it back rather than
+      // silently dumping the user on a board they weren't looking at.
+      const ret = sessionStorage.getItem('oauth_return');
+      sessionStorage.removeItem('oauth_return');
+      if (ret && /^[a-z0-9-]+\.html$/i.test(ret) && ret !== 'index.html') {
+        location.replace(ret);
+        return true;
+      }
       return true;
     }
     showAuthError(data.error_description || data.error || 'GitHub auth failed — please try again.');
@@ -1573,12 +1595,37 @@ async function loadBetaVersionUrl() {
   } catch { betaVersionUrl = null; }
 }
 
+// ── Command split ─────────────────────────────────────────────────────────────
+// Command is a separate product with a separate board: command.html, driven by
+// the same `command`-labelled issues in this repo. This page stops rendering
+// them — with one carve-out.
+//
+// Greg's rule (2026-09-16): a Command card carries exactly one ship path.
+//   `command-only`        does not touch the portal → localhost→gamma, and any
+//                         developer can push it. Nothing here for this board.
+//   `portal-integration`  touches the portal → localhost→alpha→beta→gamma,
+//                         pushed through Scott. That is THIS board's flow.
+//
+// So a card labelled `command` + `portal-integration` is portal code, and every
+// mechanism it needs (the shared alpha URL, the Beta-Version config issue, the
+// review ping) lives here. Those stay, where they can actually be staged; the
+// Command board shows them read-only with a link back. Everything else Command
+// goes to command.html.
+//
+// To hide Command work absolutely, drop the `portal-integration` clause below —
+// but know that it takes those builds off the only board that can stage them.
+function isCommandOwned(labels) {
+  const l = labels || [];
+  return l.includes('command') && !l.includes('portal-integration');
+}
+
 async function loadCurrentProjects() {
   document.getElementById('cp-loading').style.display = 'block';
   document.getElementById('cp-content').style.display = 'none';
   try {
     await loadBetaVersionUrl();
-    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`);
+    const raw = (await ghFetchAll(`/repos/${REPO}/issues?labels=current-project&state=all&per_page=100`))
+      .filter(i => !isCommandOwned(i.labels.map(l => l.name)));
     // Fetch latest comment for each open project (for Scott's feedback / beta URL)
     currentProjects = await Promise.all(raw.map(async issue => {
       const labels = issue.labels.map(l => l.name);
@@ -1607,7 +1654,8 @@ async function loadFutureIdeas() {
   document.getElementById('fi-loading').style.display = 'block';
   document.getElementById('fi-content').style.display = 'none';
   try {
-    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=future-idea&state=open&per_page=100`);
+    const raw = (await ghFetchAll(`/repos/${REPO}/issues?labels=future-idea&state=open&per_page=100`))
+      .filter(i => !isCommandOwned(i.labels.map(l => l.name)));
     futureIdeas = raw.map(issue => {
       const labels = issue.labels.map(l => l.name);
       const priority = +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'2');
