@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command · Admin View</title>
+<link rel="icon" href="icons/togo-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:#f6f7f9; --surface:#ffffff; --ink:#151d27; --muted:#5b6a7b; --faint:#8996a5;
+    --rule:#e2e7ed; --accent:#4a7fc7; --wash:#e9f0fa;
+    --attention:#a94f3b; --review:#9b7420; --live:#2e7357;
+    --serif:"Newsreader", ui-serif, Georgia, serif;
+    --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0e151d; --surface:#161f29; --ink:#e4eaf1; --muted:#8695a6; --faint:#6b7a8b;
+      --rule:#25313f; --accent:#7ba9e6; --wash:#1c2938;
+      --attention:#d98a72; --review:#c9a24e; --live:#5ba585;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e151d; --surface:#161f29; --ink:#e4eaf1; --muted:#8695a6; --faint:#6b7a8b;
+    --rule:#25313f; --accent:#7ba9e6; --wash:#1c2938;
+    --attention:#d98a72; --review:#c9a24e; --live:#5ba585;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans);
+         font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 72px; }
+  a { color:inherit; }
+
+  /* Auth gate */
+  #auth-overlay { position:fixed; inset:0; background:var(--ground); display:flex;
+                  align-items:center; justify-content:center; z-index:100; padding:24px; }
+  .auth-card { background:var(--surface); border:1px solid var(--rule); border-radius:6px;
+               padding:30px; max-width:420px; }
+  .auth-card h1 { font-family:var(--serif); font-size:22px; font-weight:500; margin:0 0 10px; }
+  .auth-card p { font-size:13.5px; color:var(--muted); margin:0 0 18px; }
+  .btn { font-family:var(--sans); font-size:13.5px; border:1px solid var(--rule);
+         background:var(--surface); color:var(--ink); padding:8px 14px; border-radius:4px;
+         cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; width:100%; text-align:center; }
+  .btn-primary:hover { color:#fff; opacity:.92; }
+  #auth-error { color:var(--attention); font-size:12.5px; margin-top:12px; display:none; }
+
+  .masthead { display:flex; align-items:baseline; justify-content:space-between; gap:20px;
+              flex-wrap:wrap; padding:26px 0 18px; border-bottom:1px solid var(--rule); }
+  .brand { display:flex; align-items:baseline; gap:10px; }
+  .brand .mark { font-family:var(--serif); font-size:21px; font-weight:500; letter-spacing:-.01em; }
+  .brand .sub { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); }
+  .masthead nav { display:flex; gap:16px; flex-wrap:wrap; align-items:baseline; }
+  .masthead nav a { font-size:13px; color:var(--muted); text-decoration:none;
+                    border-bottom:1px solid transparent; padding-bottom:1px; }
+  .masthead nav a:hover { color:var(--accent); border-bottom-color:var(--accent); }
+  .masthead nav a:focus-visible, .btn:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+
+  .today { padding:34px 0 28px; }
+  .today .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:.11em;
+                    color:var(--faint); margin-bottom:12px; }
+  .today p { font-family:var(--serif); font-size:clamp(25px,4vw,38px); line-height:1.24;
+             font-weight:400; margin:0; max-width:28ch; text-wrap:balance; }
+  .today p em { font-style:italic; color:var(--accent); }
+
+  .needs { background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+           padding:4px 20px 8px; margin-bottom:34px; }
+  .needs .hdr { display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+                padding:14px 0 10px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+  .needs h2 { font-family:var(--serif); font-size:17px; font-weight:500; margin:0; }
+  .needs .hdr span.hint { font-size:12px; color:var(--faint); }
+  .row { display:flex; align-items:baseline; gap:14px; padding:11px 0; border-bottom:1px solid var(--rule); }
+  .row:last-child { border-bottom:0; }
+  .row .id { font-family:var(--mono); font-size:12px; color:var(--faint);
+             font-variant-numeric:tabular-nums; flex:none; width:46px; }
+  .row .what { flex:1; min-width:0; }
+  .row .what a { text-decoration:none; }
+  .row .what a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+  .row .why { display:block; font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .tag { flex:none; font-size:11px; font-weight:500; padding:2px 9px; border-radius:2px;
+         white-space:nowrap; border:1px solid currentColor; }
+  .tag.attention { color:var(--attention); }
+  .tag.review { color:var(--review); }
+  .tag.build { color:var(--accent); }
+  .tag.queued { color:var(--faint); }
+  .tag.live-t { color:var(--live); }
+
+  section > h2.sec { font-family:var(--serif); font-size:19px; font-weight:500; margin:0 0 3px; }
+  section > p.sec-sub { font-size:13px; color:var(--muted); margin:0 0 16px; max-width:64ch; }
+  .rail-scroll { overflow-x:auto; margin-bottom:38px; padding-bottom:4px; }
+  .rail { display:grid; grid-template-columns:repeat(6, minmax(160px,1fr)); border:1px solid var(--rule);
+          border-radius:4px; background:var(--surface); min-width:960px; }
+  .stage { padding:0 15px 14px; border-right:1px solid var(--rule); }
+  .stage:last-child { border-right:0; }
+  .stage .cap { display:flex; align-items:center; gap:7px; padding:13px 0 9px;
+                border-bottom:1px solid var(--rule); margin-bottom:9px; }
+  .stage .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .stage .name { font-size:11.5px; font-weight:600; }
+  .stage .n { margin-left:auto; font-family:var(--mono); font-size:16px; font-weight:500;
+              font-variant-numeric:tabular-nums; }
+  .stage ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .stage li { font-size:12.5px; line-height:1.4; }
+  .stage li a { font-weight:500; text-decoration:none; }
+  .stage li a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+  .stage .more { font-size:11.5px; color:var(--faint); margin-top:8px; }
+
+  .alarm { border:1px solid var(--rule); border-left:2px solid var(--attention);
+           background:var(--surface); padding:13px 16px; font-size:13.5px; line-height:1.55;
+           margin-bottom:16px; border-radius:0 4px 4px 0; }
+  .alarm b { font-weight:600; }
+  .alarm .count { font-family:var(--mono); font-weight:500; color:var(--attention); }
+  .tbl-scroll { overflow-x:auto; }
+  table.bundles { width:100%; border-collapse:collapse; background:var(--surface);
+                  border:1px solid var(--rule); border-radius:4px; min-width:780px; }
+  table.bundles th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.09em;
+                     color:var(--faint); font-weight:600; padding:10px 14px;
+                     border-bottom:1px solid var(--rule); white-space:nowrap; }
+  table.bundles td { padding:10px 14px; border-bottom:1px solid var(--rule); font-size:13px;
+                     vertical-align:baseline; }
+  table.bundles tr:last-child td { border-bottom:0; }
+  td.bt { font-weight:500; white-space:nowrap; }
+  td.bn { font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--muted);
+          white-space:nowrap; font-size:12.5px; }
+  .pos { font-family:var(--mono); font-size:11.5px; color:var(--accent); font-weight:500; }
+  .bid { font-family:var(--mono); font-size:11.5px; color:var(--faint); }
+  td a { text-decoration:none; }
+  td a:hover { text-decoration:underline; text-decoration-color:var(--accent); }
+
+  .lanes { border:1px solid var(--rule); border-radius:4px; background:var(--surface); margin-bottom:14px; }
+  .lane { display:grid; grid-template-columns:154px 1fr auto; gap:18px; align-items:center;
+          padding:15px 20px; border-bottom:1px solid var(--rule); }
+  .lane:last-child { border-bottom:0; }
+  .lane .vendor { font-family:var(--serif); font-size:16px; }
+  .lane .vendor small { display:block; font-family:var(--sans); font-size:11px; color:var(--faint);
+                        letter-spacing:.06em; text-transform:uppercase; margin-top:2px; }
+  .lane .next { font-size:13px; min-width:0; }
+  .lane .next .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+                     color:var(--faint); display:block; margin-bottom:2px; }
+  .lane .cards { font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; }
+  .bundle-note { background:var(--wash); border-radius:4px; padding:13px 16px; font-size:13px;
+                 margin-bottom:38px; line-height:1.5; }
+
+  .elsewhere { display:flex; flex-wrap:wrap; gap:10px 26px; padding:2px 0 26px; }
+  .elsewhere a { font-size:13.5px; text-decoration:none; border-bottom:1px solid var(--rule); padding-bottom:2px; }
+  .elsewhere a:hover { border-bottom-color:var(--accent); color:var(--accent); }
+  .elsewhere a span { color:var(--faint); font-family:var(--mono); font-size:11.5px; }
+  details.machinery { border-top:1px solid var(--rule); padding-top:16px; font-size:13px; color:var(--muted); }
+  details.machinery summary { cursor:pointer; font-size:12px; text-transform:uppercase;
+                              letter-spacing:.09em; color:var(--faint); list-style:none; }
+  details.machinery summary::-webkit-details-marker { display:none; }
+  details.machinery summary::before { content:"▸ "; }
+  details.machinery[open] summary::before { content:"▾ "; }
+  details.machinery summary:hover { color:var(--accent); }
+  .maptable { width:100%; border-collapse:collapse; margin-top:14px; max-width:660px; }
+  .maptable td { padding:5px 12px 5px 0; border-bottom:1px solid var(--rule); font-size:12.5px; }
+  .maptable td:first-child { color:var(--ink); }
+  .maptable td:last-child { font-family:var(--mono); font-size:11.5px; color:var(--faint); }
+  footer { font-size:12px; color:var(--faint); padding-top:26px; }
+  .loading { font-size:13px; color:var(--faint); padding:10px 0; }
+  @media (max-width:640px) {
+    .wrap { padding:0 18px 56px; }
+    .lane { grid-template-columns:1fr; gap:8px; }
+    .row { flex-wrap:wrap; }
+  }
+
+  /* ── Command admin additions ── */
+  .track-h { display:flex; align-items:baseline; gap:10px; margin:0 0 3px; flex-wrap:wrap; }
+  .track-h h3 { font-family:var(--serif); font-size:16px; font-weight:500; margin:0; }
+  .track-h .flow { font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.02em; }
+  .track-h .who { font-size:11.5px; color:var(--muted); }
+  .rail.r4 { grid-template-columns:repeat(4, minmax(160px,1fr)); min-width:640px; }
+  .rail.r6 { grid-template-columns:repeat(6, minmax(160px,1fr)); min-width:960px; }
+  table.waiting { width:100%; border-collapse:collapse; background:var(--surface);
+                  border:1px solid var(--rule); border-radius:4px; min-width:620px; }
+  table.waiting th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.09em;
+                     color:var(--faint); font-weight:600; padding:10px 14px;
+                     border-bottom:1px solid var(--rule); white-space:nowrap; }
+  table.waiting td { padding:11px 14px; border-bottom:1px solid var(--rule); font-size:13px; vertical-align:baseline; }
+  table.waiting tr:last-child td { border-bottom:0; }
+  td.party { font-weight:500; white-space:nowrap; }
+  td.party.you { color:var(--attention); }
+  .detail { display:block; font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .ok { border:1px solid var(--rule); border-left:2px solid var(--live); background:var(--surface);
+        padding:13px 16px; font-size:13.5px; margin-bottom:16px; border-radius:0 4px 4px 0; }
+  .ok b { font-weight:600; color:var(--live); }
+  ul.checks { list-style:none; margin:0; padding:0; }
+  ul.checks li { display:flex; gap:11px; align-items:baseline; padding:9px 0;
+                 border-bottom:1px solid var(--rule); font-size:13px; }
+  ul.checks li:last-child { border-bottom:0; }
+  ul.checks .mark { flex:none; font-family:var(--mono); font-size:12px; }
+  ul.checks .pass .mark { color:var(--live); }
+  ul.checks .fail .mark { color:var(--attention); }
+  ul.checks .rule { flex:1; min-width:0; }
+  ul.checks .rule small { display:block; color:var(--faint); font-size:11.5px; margin-top:1px; }
+  ul.checks .n { font-family:var(--mono); font-size:12px; color:var(--faint); flex:none; }
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h1>Command · Admin View</h1>
+    <p>Sign in with GitHub. Only members of <strong>togohealth-dev</strong> can open the tracker.</p>
+    <button class="btn btn-primary" onclick="startOAuth()">Sign in with GitHub</button>
+    <p id="auth-error"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand"><span class="mark">Command</span><span class="sub">Admin view</span></div>
+    <nav>
+      <a href="#waiting">Waiting on</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#bundles">Bundles</a>
+      <a href="#health">Health</a>
+      <a href="command.html" title="The full Command board — every card, every action">&larr;&nbsp;Command board</a>
+      <a href="admin-view.html" title="The portal's admin view">Portal admin</a>
+      <a onclick="loadAll()" style="cursor:pointer" title="Reload from GitHub">Refresh</a>
+    </nav>
+  </header>
+
+  <div class="today">
+    <div class="eyebrow" id="today-date"></div>
+    <p id="today-line" class="loading">Loading the board&hellip;</p>
+  </div>
+
+  <div class="needs">
+    <div class="hdr"><h2>What needs you</h2><span class="hint">Everything else can wait</span></div>
+    <div id="needs-body"><div class="loading">Loading&hellip;</div></div>
+  </div>
+
+  <section id="waiting">
+    <h2 class="sec">Who we're waiting on</h2>
+    <p class="sec-sub">Blocked cards, grouped by the party that has to move first. A blocker with no named party is not tracked here &mdash; it is reported as a fault in <a href="#health">Health</a>, because a block nobody owns is how a card goes quiet for a quarter.</p>
+    <div class="tbl-scroll"><table class="waiting">
+      <thead><tr><th>Waiting on</th><th>What they owe</th><th>Cards</th><th>Est</th></tr></thead>
+      <tbody id="waiting-body"><tr><td colspan="4" class="loading">Loading&hellip;</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section id="pipeline">
+    <h2 class="sec">Where everything is</h2>
+    <p class="sec-sub">Two rails, because the two tracks genuinely have different stages. Drawing them as one would imply a Command-only card passes through alpha and beta. It does not &mdash; that is the whole point of the split.</p>
+    <div id="rails"><div class="loading">Loading&hellip;</div></div>
+  </section>
+
+  <section id="bundles">
+    <h2 class="sec">What's next in each bundle</h2>
+    <p class="sec-sub">A bundle is a numbered run of cards meant to ship in order. This is the one card in each that is genuinely next &mdash; the lowest-numbered card not yet shipped and not blocked.</p>
+    <div id="bundle-alarm"></div>
+    <div class="tbl-scroll"><table class="bundles">
+      <thead><tr><th>Bundle</th><th>Shipped</th><th>Moving</th><th>Blocked</th><th>Next card</th><th>Stage</th></tr></thead>
+      <tbody id="bundle-body"><tr><td colspan="6" class="loading">Loading&hellip;</td></tr></tbody>
+    </table></div>
+    <p class="sec-sub" style="margin-top:12px">&ldquo;Moving&rdquo; counts cards being built or with a PR open. A bundle with a queued next card and several moving cards is being worked out of order &mdash; sometimes right, always worth seeing.</p>
+  </section>
+
+  <section id="health">
+    <h2 class="sec">Ship-path health</h2>
+    <p class="sec-sub">Every Command card carries exactly one ship path, and the labels must not contradict it or each other. GitHub Free cannot enforce that on a private repo, so it is checked here on every load &mdash; and by <code>scripts/ship-path-guard.py</code>, which runs the same rules on a schedule.</p>
+    <div id="health-body"><div class="loading">Loading&hellip;</div></div>
+  </section>
+
+  <section id="elsewhere">
+    <h2 class="sec">Everything else</h2>
+    <p class="sec-sub">Still here, just not in your way.</p>
+    <div class="elsewhere">
+      <a href="command.html">Command board <span>every card + actions</span></a>
+      <a href="index.html">Portal tracker <span>ONC · alpha&rarr;beta&rarr;gamma</span></a>
+      <a href="admin-view.html">Portal admin view <span>the sibling of this page</span></a>
+      <a href="https://command.togohealth.com" target="_blank">command.togohealth.com <span>the product</span></a>
+      <a href="https://github.com/togohealth-dev/emr-beta/issues?q=is%3Aissue+label%3Acommand" target="_blank">Command issues on GitHub &#8599;</a>
+    </div>
+    <details class="machinery">
+      <summary>Show the label machinery</summary>
+      <p>The plain words above are GitHub labels underneath, and the issue is the only source of truth. Relabelling a card <em>is</em> the update; both boards reflect it on their next load.</p>
+      <table class="maptable">
+        <tr><td>Command-only</td><td>command-only &mdash; localhost&rarr;gamma, any developer pushes</td></tr>
+        <tr><td>Portal integration</td><td>portal-integration &mdash; localhost&rarr;alpha&rarr;beta&rarr;gamma, via Scott</td></tr>
+        <tr><td>Queued</td><td>status:draft &middot; no status label</td></tr>
+        <tr><td>Being built</td><td>status:in-progress &middot; assigned</td></tr>
+        <tr><td>Blocked</td><td>status:blocked &mdash; plus a <b>Who's blocking:</b> comment</td></tr>
+        <tr><td>PR open / With Scott</td><td>status:pr-alpha-ready</td></tr>
+        <tr><td>On alpha</td><td>status:alpha-testing</td></tr>
+        <tr><td>On beta</td><td>status:ready-beta &middot; status:beta-version</td></tr>
+        <tr><td>Shipped</td><td>closed &middot; status:done</td></tr>
+        <tr><td>Dropped</td><td>status:abandoned</td></tr>
+      </table>
+    </details>
+  </section>
+
+  <footer>Reads <code>togohealth-dev/emr-beta</code> issues labelled <code>command</code>. Token stored in localStorage only &middot; No PHI.</footer>
+</div>
+
+<script>
+const REPO = 'togohealth-dev/emr-beta';
+const OAUTH_CLIENT_ID  = 'Ov23liafXkUifpOmizDR';
+const OAUTH_WORKER_URL = 'https://portal-oauth.morgan-0a4.workers.dev';
+const ISSUE = n => `https://github.com/${REPO}/issues/${n}`;
+const getToken = () => localStorage.getItem('gh_pat');
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+// The OAuth app's callback is registered against the directory, not a filename,
+// so every page in this folder redirects to the directory and shares the token
+// through localStorage.
+function startOAuth() {
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+  location.href = 'https://github.com/login/oauth/authorize?' + new URLSearchParams({
+    client_id: OAUTH_CLIENT_ID,
+    redirect_uri: location.origin + location.pathname.replace(/[^/]*$/, ''),
+    scope: 'repo', state,
+  });
+}
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code'), state = params.get('state');
+  if (!code) return false;
+  const saved = sessionStorage.getItem('oauth_state');
+  sessionStorage.removeItem('oauth_state');
+  if (state !== saved) { showAuthError('OAuth state mismatch — please try again.'); return false; }
+  history.replaceState({}, '', location.pathname);
+  try {
+    const resp = await fetch(OAUTH_WORKER_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code }),
+    });
+    const data = await resp.json();
+    if (data.access_token) { localStorage.setItem('gh_pat', data.access_token); return true; }
+    showAuthError(data.error || 'Sign-in failed — please try again.');
+  } catch (e) { showAuthError(e.message); }
+  return false;
+}
+async function ghFetchAll(path, cap = 6) {
+  const sep = path.includes('?') ? '&' : '?';
+  let out = [], page = 1;
+  while (page <= cap) {
+    const r = await fetch(`https://api.github.com${path}${sep}page=${page}`, {
+      headers:{ Authorization:`Bearer ${getToken()}`, Accept:'application/vnd.github+json' },
+    });
+    if (!r.ok) throw new Error(r.status === 401 ? '401 bad credentials' : `GitHub ${r.status}`);
+    const batch = await r.json();
+    out = out.concat(batch);
+    if (batch.length < 100) break;
+    page++;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Command · Admin view
+//
+// The sibling of admin-view.html, which asks the same question of the portal.
+// This one answers: what is Command shipping, and who has to move first?
+//
+// Deliberately read-only. The Command board (command.html) is where cards are
+// changed; a second page that also mutates state is a second place for the two
+// to disagree. Everything here links there.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COMMAND_LABEL = 'command';
+
+// Greg's rule (2026-09-16): every Command card carries exactly one ship path.
+const TRACKS = {
+  command: {
+    label: 'Command-only',
+    flow:  'localhost → gamma',
+    who:   'any developer can push it — no alpha, no beta, no Scott',
+    order: ['queued','building','pr','blocked'],
+  },
+  portal: {
+    label: 'Portal integration',
+    flow:  'localhost → alpha → beta → gamma',
+    who:   'through Scott, driven from the Portal Tracker',
+    order: ['queued','building','review','alpha','beta','blocked'],
+  },
+};
+function trackOf(labels) {
+  if (labels.includes('portal-integration')) return 'portal';
+  if (labels.includes('command-only'))       return 'command';
+  return null;   // untriaged — reported as a fault, never guessed at
+}
+
+const STAGES = {
+  queued:   { label:'Queued',      color:'var(--faint)',     tag:'queued'    },
+  building: { label:'Being built', color:'var(--accent)',    tag:'build'     },
+  pr:       { label:'PR open',     color:'var(--review)',    tag:'review'    },
+  review:   { label:'With Scott',  color:'var(--review)',    tag:'review'    },
+  alpha:    { label:'On alpha',    color:'var(--accent)',    tag:'build'     },
+  beta:     { label:'On beta',     color:'var(--live)',      tag:'live-t'    },
+  blocked:  { label:'Blocked',     color:'var(--attention)', tag:'attention' },
+};
+
+// `status:pr-alpha-ready` means "PR is up" on both tracks, but it means very
+// different things: on Command-only the next event is you merging it, on the
+// portal side it is Scott deploying an alpha. Same label, two names.
+function stageOf(issue, labels, track) {
+  if (labels.includes('status:abandoned')) return 'abandoned';
+  if (issue.state === 'closed' || labels.includes('status:done')) return 'shipped';
+  if (labels.includes('status:blocked')) return 'blocked';
+  if (labels.includes('status:beta-version') || labels.includes('status:ready-beta')) return 'beta';
+  if (labels.includes('status:alpha-testing')) return 'alpha';
+  if (labels.includes('status:pr-alpha-ready') || labels.includes('status:pr-ready')) return track === 'portal' ? 'review' : 'pr';
+  if (labels.includes('status:needs-revision')) return 'building';
+  if (labels.includes('status:in-progress')) return 'building';
+  if ((issue.assignees||[]).length) return 'building';
+  return 'queued';
+}
+
+const BUNDLE_RE   = /^(.+?)\s+(\d+)\s*\/\s*(\d+)\s*[·:]\s*(.*)$/;
+const UMBRELLA_RE = /^(.+?)\s+[—-]\s*UMBRELLA\b/i;
+
+// The convention the board writes and people follow by hand:
+//   **Who's blocking:** <party> — <detail>
+// Read the LAST one, so a re-block after a clear supersedes the stale note.
+const BLOCKER_RE = /\*\*Who['’]s blocking:\*\*\s*([^\n—–-]+)(?:[—–-]\s*([\s\S]*))?/i;
+
+function blockerFrom(comments) {
+  for (const c of [...(comments||[])].reverse()) {
+    const m = BLOCKER_RE.exec(c.body || '');
+    if (m) return { party: m[1].trim().replace(/[.,;]$/,''), detail: (m[2]||'').trim().replace(/\s+/g,' ') };
+  }
+  return null;
+}
+
+// Greg is the one reader who can unblock his own cards, so his are called out.
+const YOU_RE = /\b(greg|business team|the business)\b/i;
+
+let cards = [];
+
+function normalise(issue, comments) {
+  const labels = (issue.labels||[]).map(l => l.name);
+  const track  = trackOf(labels);
+  const um     = UMBRELLA_RE.exec(issue.title);
+  const m      = BUNDLE_RE.exec(issue.title);
+  const est    = (issue.body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i);
+  return {
+    number: issue.number,
+    title: issue.title,
+    labels, track,
+    state: issue.state,
+    stage: stageOf(issue, labels, track),
+    umbrella: !!um,
+    bundle: um ? { name: um[1].trim(), pos: 0 }
+          : m  ? { name: m[1].trim(), pos: +m[2], of: +m[3], rest: m[4] }
+          : null,
+    est: est ? parseFloat(est[1]) : 0,
+    assignees: (issue.assignees||[]).map(a => a.login),
+    blocker: blockerFrom(comments),
+  };
+}
+
+const shortTitle = t => (t||'').replace(/^.+?\s+\d+\s*\/\s*\d+\s*[·:]\s*/, '').replace(/^Command\s*[·:]\s*/i, '');
+const hrs = n => n ? `${Math.round(n*10)/10}h` : '—';
+
+// ── The one-line state of the board ──────────────────────────────────────────
+function renderToday() {
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' });
+  const live    = cards.filter(c => c.stage !== 'abandoned' && !c.umbrella);
+  const open    = live.filter(c => c.stage !== 'shipped');
+  const blocked = open.filter(c => c.stage === 'blocked');
+  const moving  = open.filter(c => ['building','pr','review','alpha','beta'].includes(c.stage));
+  const yours   = blocked.filter(c => c.blocker && YOU_RE.test(c.blocker.party));
+
+  let line;
+  if (!open.length)        line = `Everything on the Command board has shipped.`;
+  else if (yours.length)   line = `<em>${yours.length}</em> blocked card${yours.length>1?'s are':' is'} waiting on you — and ${moving.length} other${moving.length===1?'':'s'} moving.`;
+  else if (blocked.length) line = `${moving.length} moving, <em>${blocked.length}</em> blocked on other people, ${open.length - moving.length - blocked.length} queued.`;
+  else                     line = `${moving.length} moving and nothing blocked — ${open.length} cards open in all.`;
+  const el = document.getElementById('today-line');
+  el.classList.remove('loading');
+  el.innerHTML = line;
+}
+
+function needsRow(c, why, tag) {
+  return `<div class="row">
+    <span class="id">#${c.number}</span>
+    <span class="what"><a href="${ISSUE(c.number)}" target="_blank">${esc(shortTitle(c.title))}</a>
+      <span class="why">${why}</span></span>
+    <span class="tag ${tag}">${STAGES[c.stage]?.label || c.stage}</span>
+  </div>`;
+}
+
+// Ordered by what actually needs Greg, not by card number: things only he can
+// clear, then things nobody has classified, then blocks owned by other people.
+function renderNeeds() {
+  const open = cards.filter(c => c.stage !== 'shipped' && c.stage !== 'abandoned' && !c.umbrella);
+  const out  = [];
+
+  for (const c of open.filter(c => c.stage === 'blocked' && c.blocker && YOU_RE.test(c.blocker.party)))
+    out.push(needsRow(c, `Waiting on <b>${esc(c.blocker.party)}</b>${c.blocker.detail ? ' — ' + esc(c.blocker.detail.slice(0,120)) : ''}`, 'attention'));
+
+  for (const c of open.filter(c => !c.track))
+    out.push(needsRow(c, `No ship path — label it <code>command-only</code> or <code>portal-integration</code> before anyone starts it`, 'attention'));
+
+  for (const c of open.filter(c => c.stage === 'blocked' && !c.blocker))
+    out.push(needsRow(c, `Blocked with nobody named — add a <b>Who's blocking:</b> note or it will go quiet`, 'attention'));
+
+  for (const c of open.filter(c => c.stage === 'blocked' && c.blocker && !YOU_RE.test(c.blocker.party)))
+    out.push(needsRow(c, `Chase <b>${esc(c.blocker.party)}</b>${c.blocker.detail ? ' — ' + esc(c.blocker.detail.slice(0,110)) : ''}`, 'review'));
+
+  document.getElementById('needs-body').innerHTML = out.length
+    ? out.join('')
+    : `<div class="row"><span class="what">Nothing is waiting on you. Every open card has a ship path and a named owner.</span></div>`;
+}
+
+// ── Two rails, one per track ────────────────────────────────────────────────
+function renderRails() {
+  const html = Object.entries(TRACKS).map(([key, t]) => {
+    const mine = cards.filter(c => c.track === key && c.stage !== 'shipped' && c.stage !== 'abandoned' && !c.umbrella);
+    const cls  = t.order.length > 4 ? 'r6' : 'r4';
+    const cols = t.order.map(st => {
+      const list = mine.filter(c => c.stage === st).sort((a,b) => (a.bundle?.pos||999) - (b.bundle?.pos||999));
+      const shown = list.slice(0, 6).map(c =>
+        `<li><a href="${ISSUE(c.number)}" target="_blank">${esc(shortTitle(c.title).slice(0,58))}</a></li>`).join('');
+      const more = list.length > 6 ? `<div class="more">+${list.length - 6} more</div>` : '';
+      return `<div class="stage">
+        <div class="cap"><span class="dot" style="background:${STAGES[st].color}"></span>
+          <span class="name">${STAGES[st].label}</span><span class="n">${list.length}</span></div>
+        <ul>${shown || '<li style="color:var(--faint)">—</li>'}</ul>${more}</div>`;
+    }).join('');
+    return `<div class="track-h">
+        <h3>${t.label}</h3>
+        <span class="flow">${esc(t.flow)}</span>
+        <span class="who">${esc(t.who)}</span>
+      </div>
+      <div class="rail-scroll"><div class="rail ${cls}">${cols}</div></div>`;
+  }).join('');
+  document.getElementById('rails').innerHTML = html;
+}
+
+// ── Who we're waiting on ────────────────────────────────────────────────────
+function renderWaiting() {
+  const blocked = cards.filter(c => c.stage === 'blocked' && c.blocker);
+  const by = new Map();
+  for (const c of blocked) {
+    const k = c.blocker.party;
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(c);
+  }
+  // Greg's own blocks first — they are the only ones he can clear himself.
+  const rows = [...by.entries()].sort((a, b) => {
+    const ay = YOU_RE.test(a[0]) ? 0 : 1, byy = YOU_RE.test(b[0]) ? 0 : 1;
+    return ay - byy || b[1].length - a[1].length;
+  });
+  const body = document.getElementById('waiting-body');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="4">Nothing is blocked.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(([party, list]) => {
+    const detail = list.map(c => c.blocker.detail).find(Boolean) || '';
+    return `<tr>
+      <td class="party${YOU_RE.test(party) ? ' you' : ''}">${esc(party)}</td>
+      <td>${esc(detail.slice(0, 150)) || '<span style="color:var(--faint)">—</span>'}
+        <span class="detail">${list.map(c => `<a href="${ISSUE(c.number)}" target="_blank">#${c.number}</a> ${esc(shortTitle(c.title).slice(0,52))}`).join(' &middot; ')}</span></td>
+      <td class="bn">${list.length}</td>
+      <td class="bn">${hrs(list.reduce((s,c) => s + c.est, 0))}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── What's next in each bundle ──────────────────────────────────────────────
+function renderBundles() {
+  const named = cards.filter(c => c.bundle?.name && !c.umbrella);
+  const by = new Map();
+  for (const c of named) {
+    const k = c.bundle.name;
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(c);
+  }
+  const rows = [...by.entries()].sort((a,b) => b[1].length - a[1].length).map(([name, list]) => {
+    const livey   = list.filter(c => c.stage !== 'abandoned');
+    const shipped = livey.filter(c => c.stage === 'shipped');
+    const moving  = livey.filter(c => ['building','pr','review','alpha','beta'].includes(c.stage));
+    const blocked = livey.filter(c => c.stage === 'blocked');
+    // "Next" is the lowest-numbered card that is neither shipped nor blocked —
+    // a blocked card is not next, it is parked, however low its number.
+    const next = livey.filter(c => c.stage !== 'shipped' && c.stage !== 'blocked')
+                      .sort((a,b) => (a.bundle.pos||999) - (b.bundle.pos||999))[0];
+    return `<tr>
+      <td class="bt">${esc(name)}</td>
+      <td class="bn">${shipped.length}/${livey.length}</td>
+      <td class="bn">${moving.length || '—'}</td>
+      <td class="bn" ${blocked.length ? 'style="color:var(--attention)"' : ''}>${blocked.length || '—'}</td>
+      <td>${next
+        ? `<span class="pos">${next.bundle.pos}/${next.bundle.of}</span> <a href="${ISSUE(next.number)}" target="_blank">${esc(shortTitle(next.title).slice(0,62))}</a> <span class="bid">#${next.number}</span>`
+        : '<span style="color:var(--faint)">nothing left to start</span>'}</td>
+      <td>${next ? `<span class="tag ${STAGES[next.stage].tag}">${STAGES[next.stage].label}</span>` : ''}</td>
+    </tr>`;
+  });
+  document.getElementById('bundle-body').innerHTML = rows.join('') ||
+    `<tr><td colspan="6">No bundles.</td></tr>`;
+
+  // A bundle whose next card is blocked while others move is being worked out
+  // of order — sometimes right, always worth saying out loud.
+  const stalled = [...by.entries()].filter(([, l]) => {
+    const open = l.filter(c => c.stage !== 'shipped' && c.stage !== 'abandoned');
+    const lowest = open.sort((a,b) => (a.bundle.pos||999) - (b.bundle.pos||999))[0];
+    return lowest && lowest.stage === 'blocked' &&
+           open.some(c => ['building','pr','review','alpha','beta'].includes(c.stage));
+  });
+  document.getElementById('bundle-alarm').innerHTML = stalled.length
+    ? `<div class="alarm"><b>Working out of order.</b> <span class="count">${stalled.length}</span>
+       bundle${stalled.length>1?'s have':' has'} a blocked card at the front while later cards move:
+       ${stalled.map(([n]) => esc(n)).join(', ')}. Fine if deliberate — worth a look if not.</div>`
+    : '';
+}
+
+// ── Ship-path health ────────────────────────────────────────────────────────
+// These are the same seven rules scripts/ship-path-guard.py runs on a schedule.
+// Keep the two lists in step: if you add a rule here, add it there, and say so
+// in the guard's docstring. The page is the fast read; the script is the alarm.
+const RULES = [
+  { id: 'track-missing',
+    rule: 'Every Command card carries a ship path',
+    why:  'command-only or portal-integration — it decides the flow and who may push',
+    find: cs => cs.filter(c => !c.track) },
+
+  { id: 'track-both',
+    rule: 'No card carries both ship paths',
+    why:  'trackOf() resolves a tie to portal-integration, quietly routing Command work through Scott',
+    find: cs => cs.filter(c => c.labels.includes('command-only') && c.labels.includes('portal-integration')) },
+
+  { id: 'stage-contradiction',
+    rule: 'A command-only card carries no alpha or beta stage label',
+    why:  'that track is localhost→gamma; an alpha label on it means the ship path is wrong, or the label is',
+    find: cs => cs.filter(c => c.track === 'command' &&
+            ['status:alpha-testing','status:ready-beta','status:beta-version'].some(l => c.labels.includes(l))) },
+
+  { id: 'portal-invisible',
+    rule: 'Every portal-integration card is visible on the portal board',
+    why:  'that board lists by current-project / future-idea — a card with neither renders on no board at all',
+    find: cs => cs.filter(c => c.track === 'portal' && c.state === 'open' &&
+            !c.labels.includes('current-project') && !c.labels.includes('future-idea')) },
+
+  { id: 'blocker-unnamed',
+    rule: 'Every blocked card names who is blocking it',
+    why:  'a block with no owner has nobody to chase, and goes quiet',
+    find: cs => cs.filter(c => c.stage === 'blocked' && !c.blocker) },
+
+  { id: 'priority-ambiguous',
+    rule: 'A card carries at most one priority label',
+    why:  'both boards read the FIRST priority-* they find, so two makes a card\'s priority depend on label order rather than on anyone\'s decision',
+    find: cs => cs.filter(c => c.labels.filter(l => l.startsWith('priority-')).length > 1) },
+
+  { id: 'done-not-closed',
+    rule: 'A card labelled status:done is closed',
+    why:  'check the body before closing — an open issue under a done label usually means the label is the wrong half',
+    find: cs => cs.filter(c => c.state === 'open' && c.labels.includes('status:done')) },
+];
+
+function renderHealth() {
+  const live = cards.filter(c => c.stage !== 'abandoned');
+  const results = RULES.map(r => ({ ...r, hits: r.find(live) }));
+  const failing = results.filter(r => r.hits.length);
+
+  const banner = failing.length
+    ? `<div class="alarm"><b>${failing.length} rule${failing.length>1?'s':''} failing.</b>
+        ${failing.reduce((n,r) => n + r.hits.length, 0)} card${failing.reduce((n,r)=>n+r.hits.length,0)===1?'':'s'} to fix.
+        Each one below lists the cards it caught.</div>`
+    : `<div class="ok"><b>All seven rules pass.</b> Every Command card has one ship path, names its blocker, and shows up on the board that owns it.</div>`;
+
+  const list = results.map(r => `
+    <li class="${r.hits.length ? 'fail' : 'pass'}">
+      <span class="mark">${r.hits.length ? '✕' : '✓'}</span>
+      <span class="rule">${esc(r.rule)}
+        <small>${esc(r.why)}</small>
+        ${r.hits.length ? `<small style="color:var(--attention);margin-top:4px">${
+          r.hits.map(c => `<a href="${ISSUE(c.number)}" target="_blank">#${c.number}</a> ${esc(shortTitle(c.title).slice(0,48))}`).join(' &middot; ')
+        }</small>` : ''}
+      </span>
+      <span class="n">${r.hits.length || ''}</span>
+    </li>`).join('');
+
+  document.getElementById('health-body').innerHTML = banner + `<ul class="checks">${list}</ul>`;
+}
+
+// ── Load ────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=${COMMAND_LABEL}&state=all&per_page=100`);
+    // Comments carry the blocker note, and nothing else does — but only blocked
+    // cards need one, so fetch for those rather than for all 58.
+    cards = await Promise.all(raw.map(async issue => {
+      const labels = (issue.labels||[]).map(l => l.name);
+      const needsComments = labels.includes('status:blocked') && issue.comments > 0;
+      const comments = needsComments
+        ? await ghFetchAll(`/repos/${REPO}/issues/${issue.number}/comments?per_page=100`, 2)
+        : [];
+      return normalise(issue, comments);
+    }));
+    renderToday();
+    renderNeeds();
+    renderWaiting();
+    renderRails();
+    renderBundles();
+    renderHealth();
+  } catch (e) {
+    if (/401|bad credentials/i.test(e.message)) {
+      localStorage.removeItem('gh_pat');
+      document.getElementById('auth-overlay').style.display = 'flex';
+      showAuthError('Your session expired. Please sign in again.');
+      return;
+    }
+    document.getElementById('today-line').textContent = `Could not load the board: ${e.message}`;
+  }
+}
+
+(async () => {
+  await handleOAuthCallback();
+  if (getToken()) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    loadAll();
+  }
+})();
+</script>
+</body>
+</html>
