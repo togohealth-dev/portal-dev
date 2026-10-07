@@ -396,6 +396,10 @@
   .lane-portal  { background:#ede9fe; color:#5b21b6; }
   .lane-untriaged { background:#fee2e2; color:#991b1b; }
   .area-billing { background:#dcfce7; color:#166534; }
+  .cp-tier-link { color: var(--text); cursor: pointer; text-decoration: none; border-bottom: 1px dashed var(--border); }
+  .cp-tier-link:hover { color: var(--primary); border-bottom-color: var(--primary); }
+  .cp-tier-count { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 4px; }
+  .proj-title + .lane-pill { margin-left: 6px; }
   .area-credentialing { background:#e0f2fe; color:#075985; }
   .area-reports { background:#fef3c7; color:#92400e; }
 </style>
@@ -432,12 +436,12 @@
 
 <nav class="section-nav">
   <span class="nav-label">Jump to</span>
-  <a onclick="jumpTo('bi')" title="Billing, claims, coding and payer rules">💵 Billing &amp; claims</a>
-  <a onclick="jumpTo('cr')" title="Provider credentialing, licensure, exclusion checks and payer enrollment">🪪 Credentialing &amp; enrollment</a>
-  <a onclick="jumpTo('rp')" title="Collections, RVU, payroll and contract-rate reporting">📊 Financial reports</a>
-  <a onclick="jumpTo('un')" title="Practice Management cards with no area yet">⚠️ Untriaged</a>
+  <a onclick="jumpToGroup('beta')"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta</a>
+  <a onclick="jumpToGroup('alpha')"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</a>
+  <a onclick="jumpToGroup('progress')">🛠️ In Progress</a>
+  <a onclick="jumpTo('fu')">💡 Future Builds</a>
   <span style="color:var(--border)">·</span>
-  <a onclick="jumpTo('done')">✓ Completed</a>
+  <a onclick="jumpTo('done')">✓ <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</a>
   <a onclick="jumpTo('ab')">🗄️ Abandoned</a>
   <span style="color:var(--border)">·</span>
   <a href="index.html" class="board-switch" title="The portal's own board — ONC certification, and the localhost→alpha→beta→gamma flow through Scott">← Portal Tracker</a>
@@ -448,7 +452,7 @@
   <div class="page-header">
     <div>
       <h1>Practice Management — Project Tracker</h1>
-      <p>Billing, credentialing and the financial reporting behind them — pulled from the <a href="index.html">Portal</a> and <a href="command.html">Command</a> boards into one view. Cards are the <code>practice-mgmt</code>-labelled issues on <code>togohealth-dev/emr-beta</code>; each one still lives on, and is staged from, its home board. <strong>Every card here ships <code>localhost → alpha → beta → gamma</code>, through Scott</strong> — the same path as physician-portal work, including cards built in Command.</p>
+      <p>Billing, credentialing and the financial reporting behind them. Cards are the <code>practice-mgmt</code>-labelled issues on <code>togohealth-dev/emr-beta</code>. <strong>Every card ships <code>localhost → alpha → beta → gamma</code>, through Scott</strong> — the same stage board, buttons and Claude prompt as the <a href="index.html">Portal Tracker</a>, which reads the same labels, so a card moved on either board moves on both.</p>
     </div>
     <button class="btn btn-primary" onclick="openAddModal()">+ Add PM Project</button>
   </div>
@@ -457,58 +461,31 @@
 
   <div class="stats" id="stats"></div>
 
-  <!-- ── AREAS ── -->
-  <div class="section-block" id="sec-bi">
+  <!-- ── CURRENT PROJECTS: the stage board ── -->
+  <div class="section-block" id="sec-cp">
     <div class="section-hdr">
-      <h2>💵 Billing &amp; claims</h2>
-      <p class="track-note">Charge capture, CPT/ICD coding rules, claims and payer rules, denials and the biller's queue. Labelled <code>pm-billing</code>.</p>
-      <button class="sec-toggle" onclick="toggleSection('bi')">▾</button>
+      <h2>🚀 Current Projects</h2>
+      <p class="track-note">Claimed cards, newest stage first: <strong>Beta-Version → Alpha Testing → In Progress / Needs Revision / Drafts</strong>. One forward button per stage, exactly as on the Portal Tracker — <em>PR Alpha Ready</em> pings Scott, <em>Mark Alpha Testing</em> uses the shared alpha, <em>Ready for Beta</em> queues it, <em>Promote to Beta-Version</em>, then <em>Mark γ</em>.</p>
+      <button class="sec-toggle" onclick="toggleSection('cp')">▾</button>
     </div>
     <div class="sec-body">
-      <div id="bi-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="bi-content" style="display:none"></div>
+      <div id="cp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="cp-content" style="display:none"></div>
     </div>
   </div>
 
   <hr class="section-divider">
 
-  <div class="section-block" id="sec-cr">
+  <!-- ── FUTURE BUILDS: claimable ── -->
+  <div class="section-block" id="sec-fu">
     <div class="section-hdr">
-      <h2>🪪 Credentialing &amp; enrollment</h2>
-      <p class="track-note">Provider credentialing files, licensure and DEA, exclusion and background screening, hospital privileges, PECOS/NPPES/CAQH and payer enrollment. Labelled <code>pm-credentialing</code>.</p>
-      <button class="sec-toggle" onclick="toggleSection('cr')">▾</button>
+      <h2>💡 Future Builds</h2>
+      <p class="track-note">Not started. <strong>Claim</strong> assigns the card to you and moves it onto the stage board as In Progress; <strong>Copy Prompt</strong> gives the Claude session that builds it (its first step claims the card, so either order works). Grouped by area.</p>
+      <button class="sec-toggle" onclick="toggleSection('fu')">▾</button>
     </div>
     <div class="sec-body">
-      <div id="cr-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="cr-content" style="display:none"></div>
-    </div>
-  </div>
-
-  <hr class="section-divider">
-
-  <div class="section-block" id="sec-rp">
-    <div class="section-hdr">
-      <h2>📊 Financial &amp; billing reports</h2>
-      <p class="track-note">Collections, expected-vs-received, RVU and payroll reporting, and the contract rates they are measured against. Labelled <code>pm-reports</code>.</p>
-      <button class="sec-toggle" onclick="toggleSection('rp')">▾</button>
-    </div>
-    <div class="sec-body">
-      <div id="rp-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="rp-content" style="display:none"></div>
-    </div>
-  </div>
-
-  <hr class="section-divider">
-
-  <div class="section-block" id="sec-un">
-    <div class="section-hdr">
-      <h2>⚠️ Untriaged</h2>
-      <p class="track-note">Cards labelled <code>practice-mgmt</code> with no area. Pick one and it moves into a section above.</p>
-      <button class="sec-toggle" onclick="toggleSection('un')">▾</button>
-    </div>
-    <div class="sec-body">
-      <div id="un-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
-      <div id="un-content" style="display:none"></div>
+      <div id="fu-loading" style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>
+      <div id="fu-content" style="display:none"></div>
     </div>
   </div>
 
@@ -517,8 +494,8 @@
   <!-- ── COMPLETED ── -->
   <div class="section-block" id="sec-done">
     <div class="section-hdr">
-      <h2>✓ Completed</h2>
-      <p class="track-note">Shipped. Closed issues on this board.</p>
+      <h2>✓ <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</h2>
+      <p class="track-note">Shipped to gamma. Closed issues on this board.</p>
       <button class="sec-toggle" onclick="toggleSection('done')">▾</button>
     </div>
     <div class="sec-body">
@@ -657,6 +634,25 @@
   </div>
 </div>
 <!-- ── EDIT MODAL ── -->
+<div id="beta-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="modal-card" style="width:480px">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:4px"><img class="stage-ico" src="icons/alpha.png" alt="α"> Mark as Alpha Testing</h3>
+    <p id="beta-modal-title" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
+    <div class="modal-field">
+      <label>Alpha deploy URL <span style="color:var(--text-muted);font-weight:400;font-size:11px">— defaults to the shared alpha; change only if this build has its own URL</span></label>
+      <input type="url" id="beta-url-input" placeholder="https://alpha.portal.togohealth.com/">
+    </div>
+    <div class="modal-field">
+      <label>Note <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="beta-note-input" placeholder="e.g. what's in this alpha build / what to test">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeBetaModal()">Cancel</button>
+      <button class="btn btn-green" id="beta-submit-btn" onclick="submitMarkAlpha()">Mark Alpha Testing</button>
+    </div>
+  </div>
+</div>
+
 <div id="edit-modal" onclick="closeEditModal(event)" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200">
   <div class="modal-card" style="width:480px" onclick="event.stopPropagation()">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Edit Project</h3>
@@ -804,11 +800,12 @@
 //   pm-credentialing  credentialing, licensure, screening, payer enrollment
 //   pm-reports        collections / RVU / payroll / contract-rate reporting
 //
-// This page is a VIEW across the other two boards, not a third workflow. Each
-// card keeps its home board (Command if it carries `command`, otherwise the
-// Portal) and is staged there — alpha/beta/gamma needs the portal tracker's
-// machinery, Command's ship-path rule lives on command.html. Two boards
-// driving one card's stage is how stage history gets lost.
+// Since 2026-10-08 this board drives stages itself, exactly like index.html:
+// Claim, Copy Prompt, Start, PR Alpha Ready (pings Scott), Mark Alpha Testing,
+// Ready for Beta, Promote to Beta-Version, Mark γ. It writes the SAME labels,
+// comments and "Stages:" stamps as the Portal Tracker, so a card moved on one
+// board shows the same stage on the other. Every PM card ships
+// localhost→alpha→beta→gamma through Scott (Tanner's rule, 2026-10-07).
 //
 // PM_SEED lists the cards picked for this board on 2026-10-07. It lets the board
 // render before anyone with triage rights has applied the labels; once a card
@@ -862,47 +859,73 @@ function populateAssigneeOptions() {
     Object.entries(TEAM).map(([login, name]) => `<option value="${login}">${name}</option>`).join('');
 }
 
-// ── Track ────────────────────────────────────────────────────────────────────
-// The two labels are the ship path, and Greg's rule (2026-09-16) is that every
-// card carries exactly one:
-//   command-only        does not touch the portal → localhost→gamma, any developer pushes
-//   portal-integration  touches the portal        → localhost→alpha→beta→gamma, through Scott
-// A card with neither is not "probably command-only" — it is a card whose ship
-// path nobody has decided, which is precisely what you need to know before
-// starting one. It gets its own section rather than a guessed default.
+// ONC criterion context, copied from index.html (used by the Claude prompt).
+const CTX = {
+  "(d)(2)":  { builtPct:75, existing:"audit.record_version table + INSERT/UPDATE/DELETE triggers on 5 tables. visit_events table (20251117). No read logging. Tracking not enabled on medication/observation/diagnosis/allergy/visit_orders tables. No filterable report.", upstream:["(d)(1) RBAC — user identity must be resolvable in middleware context"], enables:["(d)(3) audit reports reads from the same audit_log table","(d)(6) emergency access writes a break-glass entry to the same table","Every EHI route needs this middleware — build it drop-in attachable"], scaffold:"Enable audit.enable_tracking() on all remaining EHI tables. Add read-event logging middleware. Build filterable /admin/access-log. (d)(3) queries the same table.", hours:8 },
+  "(d)(5)":  { builtPct:80, existing:"SecurityPopup in AppRoot.tsx: warns at 20min, auto-logs out at 40min. Resets on any click. Needs: (1) adjust to 30-min ONC threshold, (2) require Firebase re-auth on resume (not just click-to-dismiss).", upstream:["Firebase Auth (exists)"], enables:["(d)(13) MFA session management extends this idle timer pattern"], scaffold:"Fix timeout to 30min configurable. Add Firebase re-authentication on resume. (d)(13) adds TOTP prompt to the same resume flow.", hours:3 },
+  "(d)(1)":  { builtPct:65, existing:"Firebase Auth + JWT verified on every request (AuthUser extractor). Facility-scoped RBAC exists. ProfessionalRole enum has GAdmin/GDoctor/GApp/GNurse. Most admin routes check is_admin(). Clinical routes (medications, observations) check patient-facility authorization but NOT role. No systematic role enforcement matrix.", upstream:[], enables:["(d)(6) emergency access needs role context in middleware","(d)(13) MFA enforcement is per-route via same role middleware"], scaffold:"Build reusable Axum role middleware extractor. Apply to all clinical routes. Every route attaches it with one line.", hours:5 },
+  "(a)(8)":  { builtPct:25, existing:"allergy table exists with allergy_id, patient_id, narrative (free text only). CRUD in patient/other_medical.rs. No RxNorm coding, no allergy type, no reaction/severity fields.", upstream:["RxNorm lookup (same NLM API as (a)(1))"], enables:["(a)(9) CDS drug-allergy check queries patient_allergy","(b)(1) C-CDA allergy section reads patient_allergy","(b)(3) eRx safety check needs allergy list"], scaffold:"Add RxNorm coding, allergy type, reaction, severity to allergy table. Add RxNorm lookup UI.", hours:6 },
+  "(a)(5)":  { builtPct:25, existing:"Patient table has sex, dob, address, email, phone, gender (added 20240627). metadata jsonb column exists. No race, ethnicity, preferred_language, gender_identity, or pronouns columns. USCDI v3 fields not captured.", upstream:[], enables:["(b)(1) C-CDA demographics section reads these same columns","(g)(10) FHIR US Core Patient profile requires all USCDI v3 fields"], scaffold:"DB migration: add race, ethnicity, preferred_language, gender_identity, pronouns columns. Add to PatientUpdate/PatientCreate API types.", hours:4 },
+  "(d)(13)": { builtPct:10, existing:"MFA forms exist in Flutter mobile apps (mfa_page.dart). Portal/web (Next.js) has NO MFA — no TOTP enrollment, no Firebase MFA setup, no MFA requirement check in AuthProvider.tsx. Clinical portal is unprotected by MFA.", upstream:["(d)(1) RBAC — MFA enforcement per-route via same middleware","(d)(5) session management — MFA re-prompt on idle resume"], enables:[], scaffold:"Firebase TOTP enrollment flow in settings page. MFA enforcement in same role middleware as (d)(1). (d)(5) idle resume: TOTP prompt before unlocking.", hours:5 },
+  "(g)(4)":  { builtPct:0,  existing:"No QMS documentation anywhere in the repository. No Quality Policy, Change Control Procedure, Incident Response Plan, Test Plans, or CAPA log.", upstream:[], enables:[], scaffold:"~40 hrs documentation. Deliverables: Quality Policy, Change Control Procedure, Incident Response Plan, Test Plans per criterion, CAPA log. Start with Change Control — ATL asks for it first.", hours:40 },
+  "(a)(9)":  { builtPct:20, existing:"14 MIPS measures as SQL queries (retrospective reporting). No real-time CDS framework. No drug-allergy or drug-drug interaction alerts at order entry. No provider decision logging.", upstream:["(a)(8) allergy list","(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"CDS response schema: {criterion_id, evidence_source, alert_text, provider_decision, decision_reason, logged_at}. NLM RxNav API. Build as Rust service function, not inline in route handler.", hours:10 },
+  "(a)(1)":  { builtPct:60, existing:"Medication table + visit_orders OrderType::Medication exist. Free-text 'narrative' field. No rxnorm_code column, no dose/route/frequency structure. coding table supports code+system but medications not linked.", upstream:[], enables:["(a)(9) CDS drug-allergy needs rxnorm_code column","(b)(3) eRx needs RxNorm first","(b)(1) C-CDA medication section requires RxNorm"], scaffold:"Add rxnorm_code VARCHAR to medication table. Add RxNorm lookup UI (NLM RxNav API — free). Structured dose/route/frequency fields.", hours:8 },
+  "(a)(2)":  { builtPct:30, existing:"visit_orders OrderType::Lab exists. Free-text order_text. No loinc_code column. coding table can store LOINC but lab orders not linked.", upstream:[], enables:["(a)(9) CDS needs LOINC-coded lab orders","(c)(1) CQM needs computable lab data","(b)(1) C-CDA results needs LOINC"], scaffold:"Add loinc_code VARCHAR to visit_orders. LOINC lookup UI reused with (a)(3).", hours:6 },
+  "(a)(3)":  { builtPct:30, existing:"visit_orders OrderType::Imaging exists. Free-text order_text. No LOINC coding.", upstream:[], enables:["(b)(1) C-CDA imaging needs LOINC"], scaffold:"Same LOINC column + lookup as (a)(2). Reuse the order entry UI component.", hours:5 },
+  "(a)(11)": { builtPct:25, existing:"observation table exists with observation_type referencing coding table (LOINC-capable). Clinical data types user-configurable. No evidence LOINC 72166-2 (smoking status) is specifically loaded or required.", upstream:[], enables:["(b)(1) C-CDA social history reads smoking status with LOINC"], scaffold:"Seed LOINC 72166-2 into coding table. Enforce smoking status as a required structured observation. Not free text or boolean.", hours:2 },
+  "(b)(3)":  { builtPct:3,  existing:"Pharmacy table added (20250610) with name/phone/address. Medications are free-text. iPrescribe/Rcopia is an external manual workflow outside the EMR codebase. No NCPDP SCRIPT generation, no Surescripts connectivity.", upstream:["(a)(1) CPOE meds with RxNorm codes"], enables:[], scaffold:"Structure medication orders for NCPDP SCRIPT NewRx format. Vendor options: Prescryptive, NewCrop, DrFirst Rcopia (already paying for iPrescribe).", hours:12 },
+  "(c)(1)":  { builtPct:10, existing:"14 MIPS measures as custom SQL queries. /admin/mips CSV/JSON download. No QRDA III XML. No eMeasure CQL evaluation. No VSAC value set binding. Measures compute from ICD-10/CPT but are not ONC-compliant CQM submissions.", upstream:["(a)(1) coded meds","(a)(2) coded labs"], enables:["(g)(2) reuses QRDA III generator"], scaffold:"QRDA III XML via quick-xml. Standalone Rust module (qrda::generate). (g)(2) extends this same generator.", hours:10 },
+  "(b)(1)":  { builtPct:3,  existing:"patient_export exports CSV + visit note ZIP. No C-CDA R2.1 XML generation. No HL7 CDA library in Cargo.toml. Not started.", upstream:["(a)(5) USCDI v3 demographics","(a)(8) allergy list with RxNorm","(a)(1)/(a)(2) coded orders"], enables:["(e)(1) patient portal transmit reuses C-CDA XML generator"], scaffold:"C-CDA R2.1 XML via quick-xml in Rust. Standalone module (ccda::generate). (e)(1) calls same function.", hours:10 },
+  "(d)(3)":  { builtPct:25, existing:"/audit page + AuditGrid exists but shows visit/scheduling audit, not user EHI access log. audit.rs provides get_audit_events_multi by patient record. No filterable admin report by user + date range + data element accessed.", upstream:["(d)(2) audit_log table must exist first"], enables:[], scaffold:"Filterable query on audit_log by user/patient/date/action. Export reuses patient-export pattern.", hours:4 },
+  "(d)(6)":  { builtPct:0,  existing:"No break-glass/emergency access mechanism. No special route, UI, or database flag. No break-glass audit trail. Not started.", upstream:["(d)(1) RBAC","(d)(2) audit log"], enables:[], scaffold:"Break-glass session flag granting elevated read access. On flag set: write to audit_log with action='emergency_access'. Alert admin via ctx.send_mail.", hours:5 },
+  "(d)(7)":  { builtPct:80, existing:"Cloud Run enforces HTTPS/TLS on all external connections (data in transit ✓). Firebase JWT in memory only — not in localStorage (confirmed). SWR caches API response data in IndexedDB (6h maxAge) — contains PHI, not encrypted at app layer. Gap: no sign-out hook clears IDB cache. ONC (d)(7) test typically satisfied by OS-level disk encryption policy + app-layer session termination.", upstream:[], enables:[], scaffold:"(1) Add clear() on sign-out to flush swr-idb-cache. (2) Write policy doc: all end-user devices must have OS disk encryption (FileVault/BitLocker). (3) Tighten CORS from AllowOrigin::any(). 2h code + 3h docs.", hours:3 },
+  "(d)(8)":  { builtPct:5,  existing:"No SHA-256 hash columns on any EHI tables. audit.record_version stores JSON snapshots but no cryptographic integrity hashes. Not started.", upstream:[], enables:[], scaffold:"Add hash column to key EHI tables. SHA-256 of clinical fields on write. Recompute and compare on read. Rust utility function.", hours:4 },
+  "(d)(12)": { builtPct:88, existing:"READY FOR ATL — Firebase JWT transmitted over TLS only (Cloud Run). Token retrieved via getIdToken() — in-memory, NOT in localStorage (confirmed). Not logged server-side (Rust backend does not log raw token). Not in URL params. Firebase credentials in firebase.json are public API keys (by design, not secrets). Only action: write 1-page attestation doc for ATL.", upstream:[], enables:[], scaffold:"Write docs/atl/d12-credential-encryption-attestation.md. Include: Firebase JWT flow, HTTPS enforcement, no localStorage/URL param storage, no server-side logging. Zero code changes required.", hours:2 },
+  "(e)(2)":  { builtPct:10, existing:"messaging_tables migration (20260112): member, chat, conversation tables exist. No messaging route in api_router. No frontend messaging UI. chat.text is plain text (not encrypted). Schema exists but feature not implemented.", upstream:["(d)(1) RBAC","(d)(2) audit log"], enables:[], scaffold:"Expose messaging routes. Build messaging UI. Encrypt chat.text. Every message write emits audit_log entry.", hours:8 },
+  "(g)(2)":  { builtPct:10, existing:"14 MIPS measures auto-computed from SQL + CSV download. Not QRDA III. No automated submission pipeline. No CMS/payer connectivity.", upstream:["(c)(1) CQM — QRDA III generator must exist first"], enables:[], scaffold:"Extends (c)(1) QRDA III generator with automated measure computation. Same module.", hours:8 },
+  "(g)(5)":  { builtPct:60, existing:"Headless UI v2 throughout — fully WCAG 2.1 AA compliant by design (ARIA roles, keyboard nav, focus trapping). Standard HTML form elements. RISK: @glideapps/glide-data-grid (canvas-based, not screen-reader accessible) used in clinical scheduling grid — but ATL tests specific clinical workflows, not the whole app. If ATL tests patient chart, medication entry, note signing (all Headless UI), these workflows can pass today.", upstream:[], enables:[], scaffold:"Commission targeted WCAG 2.0 AA audit of 5 core ATL-tested workflows: patient lookup, demographics entry, medication entry, note creation, problem list. Fix keyboard/ARIA gaps found. 8-16h depending on audit results.", hours:8 },
+  "(g)(10)": { builtPct:0,  existing:"No FHIR R4 server, no US Core profiles, no SMART App Launch. Search for 'fhir' in portal/ returns zero results. Not started.", upstream:["(a)(5) USCDI v3","(a)(8) allergies","(a)(1)/(a)(2) coded orders"], enables:[], scaffold:"FHIR R4 server in Rust. US Core R4 profiles from existing Postgres columns. SMART App Launch 2.0 extends (d)(1) RBAC. Test with ONC Inferno.", hours:20 },
+  "(e)(1)":  { builtPct:4, existing:"patient-portal/ has questionnaire intake form only. No patient login, no record view, no C-CDA download, no transmit. patient_export module exports provider-side CSV. No patient VDT capability.", upstream:["(b)(1) C-CDA generator"], enables:[], scaffold:"View/download/transmit. Download calls ccda::generate (same as (b)(1)). Transmit via ctx.send_mail with C-CDA attachment.", hours:10 },
+  // New criteria discovered in June 2026 audit
+  "(d)(9)":  { builtPct:100, existing:"DONE — Cloud Run enforces TLS on all external connections. HTTPS everywhere. Firebase JWT verified against Google public keys over HTTPS. Zero code changes needed. Write attestation doc only.", upstream:[], enables:[], scaffold:"docs/atl/d9-trusted-connection-attestation.md — describe Cloud Run TLS enforcement. 1 hour documentation.", hours:1 },
+  "(a)(6)":  { builtPct:95, existing:"DONE — ICD-10 coded diagnosis list fully built. diagnosis table with icd10_code_id FK to coding table. Full CRUD in patient/diagnosis.rs. ICD-10 lookup UI. Linked to visit workflow.", upstream:[], enables:["(a)(4) drug-allergy CDS queries the problem list"], scaffold:"Write docs/atl/a6-problem-list-attestation.md. Verify ICD-10 codes are displayed (not free text) in the patient chart.", hours:1 },
+  "(a)(16)": { builtPct:95, existing:"DONE — Visit notes with structured sections (subjective, objective, assessment, plan), note signing with provider signature, note history and access. All built.", upstream:[], enables:[], scaffold:"Write docs/atl/a16-electronic-notes-attestation.md. Demonstrate create/edit/sign flow to ATL.", hours:1 },
+  "(a)(7)":  { builtPct:30, existing:"Medication table + visit_orders exist in production. Free-text 'narrative' field. No rxnorm_code column. coding table can hold RxNorm but medications not linked. ONC requires RxNorm-coded medications.", upstream:[], enables:["(a)(4) drug interactions need RxNorm on meds","(b)(3) eRx needs RxNorm","(b)(1) C-CDA medication section"], scaffold:"Add rxnorm_code VARCHAR to medication table. RxNorm lookup UI (NLM RxNav API — free). Build lookup component generically — shared with (a)(1) CPOE.", hours:6 },
+  "(a)(4)":  { builtPct:0,  existing:"No CDS for drug-drug or drug-allergy interactions. Requires (a)(8) allergy with RxNorm + (a)(1)/(a)(7) meds with RxNorm first.", upstream:["(a)(8) allergy list with RxNorm","(a)(1)/(a)(7) medications with RxNorm codes"], enables:[], scaffold:"NLM RxNav interaction API. Drug-allergy check: compare new rxnorm_code against patient_allergy.rxnorm_code. Alert at order entry. Provider must log decision + reason.", hours:10 },
+  "(g)(3)":  { builtPct:0,  existing:"No User-Centered Design process documentation. No summative usability testing report. No problem severity ratings. Pure documentation — no code required. ~40h of documentation work.", upstream:[], enables:[], scaffold:"(1) UCD Process doc. (2) Summative usability testing report (actual sessions with clinical staff required). (3) Problem log + how addressed. ONC guidance: healthit.gov/test-method/safety-enhanced-design", hours:40 },
+  "(d)(10)": { builtPct:35, existing:"audit.record_version captures data changes (INSERT/UPDATE/DELETE on 5 tables). Missing: login/logout/failed-login events — not captured anywhere. ONC (d)(10) requires detecting these security-relevant events explicitly.", upstream:["(d)(2) audit infrastructure"], enables:["(d)(3) security audit report includes auth events"], scaffold:"Add auth_events table: (id, professional_id, event_type, ip_address, user_agent, ts). Log in AuthUser extractor or post-auth middleware. Include in (d)(3) filterable report.", hours:6 },
+  "(b)(2)":  { builtPct:0,  existing:"No C-CDA import or reconciliation workflow. Cannot be built until (b)(1) C-CDA generation exists.", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"C-CDA parser (XML → Rust types). Reconciliation UI: side-by-side comparison of incoming vs existing meds/allergies/problems. Provider selects which to incorporate.", hours:16 },
+  "(h)(1)":  { builtPct:0,  existing:"No Direct protocol implementation. No Direct address provisioning. Downstream of (b)(1). Requires vendor selection (Surescripts, Kno2, CommonWell).", upstream:["(b)(1) C-CDA generation"], enables:[], scaffold:"Direct address provisioning via vendor. Send C-CDA via Direct SMTP. Receive incoming Direct messages. Vendor selection is the first step.", hours:20 },
+};
+
+// ── Area ─────────────────────────────────────────────────────────────────────
+// One area label per card decides its chip and the Future Builds group:
+//   pm-billing · pm-credentialing · pm-reports   (none → "No area")
 function trackOf(labels, number) {
   const l = labels || [];
   for (const [area, a] of Object.entries(AREAS)) if (l.includes(a.label)) return area;
   if (!l.includes(PM_LABEL) && PM_SEED[number]) return PM_SEED[number];
   return 'untriaged';
 }
-// Where the card is staged. A Command card that is portal-integration is
-// portal code, so it is staged on the portal board like any other portal card.
+// Where the CODE lives. It no longer changes how a card ships — every Practice
+// Management card ships localhost→alpha→beta→gamma through Scott — but a card
+// built in Command reads Command's MD files first, so the prompt needs to know.
 function homeOf(labels) {
-  const l = labels || [];
-  return l.includes('command') && !l.includes('portal-integration') ? 'command' : 'portal';
+  return (labels || []).includes('command') ? 'command' : 'portal';
 }
 const TRACK_PILL = {
   billing:       '<span class="lane-pill area-billing">Billing</span>',
   credentialing: '<span class="lane-pill area-credentialing">Credentialing</span>',
   reports:       '<span class="lane-pill area-reports">Reports</span>',
-  untriaged:     '<span class="lane-pill lane-untriaged">Untriaged</span>',
+  untriaged:     '<span class="lane-pill lane-untriaged" title="No pm-billing / pm-credentialing / pm-reports label — set one with Edit">No area</span>',
 };
 const HOME_PILL = {
-  portal:  '<span class="lane-pill lane-portal" title="Staged from the Portal Tracker">Portal</span>',
-  command: '<span class="lane-pill lane-command" title="Staged from the Command Tracker">Command</span>',
+  portal:  '',
+  command: '<span class="lane-pill lane-command" title="Code lives in Command; ships localhost→alpha→beta→gamma like every PM card">Command</span>',
 };
 
 // ── Bundles ──────────────────────────────────────────────────────────────────
-// Cards are titled "<Bundle> 12/39 · …". That number is the intended BUILD ORDER
-// and is the only sort that makes a bundle readable, and the prefix names which
-// bundle it belongs to.
-//
-// This is parsed generically rather than hardcoded to "Command", because the
-// board now carries more than one bundle — the Command product itself, and
-// G Suite optimization (#822), which is Command-lane work that ships no code.
-// Sorting those together by bare build order would interleave "G Suite 3/12"
-// with "Command 3/39", so rows group by bundle first and order second.
+// "<Bundle> 4/14 · …" — the number is build order; umbrellas are tables of contents.
 function parseBundle(title) {
   const t = title || '';
   const u = t.match(/^(.+?)\s+[—-]\s*UMBRELLA\b/i);
@@ -912,33 +935,19 @@ function parseBundle(title) {
   return { name: null, umbrella: false, order: Infinity };
 }
 function isUmbrella(p) { return !!p.bundle?.umbrella; }
-function bundleShort(name) {
-  const n = (name || '').trim();
-  if (/^employee file$/i.test(n)) return 'EF';
-  return n.length > 8 ? n.split(/\s+/).map(w => w[0]).join('').toUpperCase() : n;
-}
 
-// The build-order prefix has its own column, so strip it from the title rather
-// than printing "12/39" twice on every row.
-function shortTitle(title) {
-  return (title||'')
-    .replace(/^.+?\s+\d+\s*\/\s*\d+\s*[·:]\s*/, '')
-    .replace(/^Command\s*[·:]\s*/i, '');
-}
-
-// ── Shared table helpers ─────────────────────────────────────────────────────
+// ── Shared table helpers (same as the Portal Tracker) ────────────────────────
 function parseEst(body){ const m=(body||'').match(/Coding estimate:\s*(\d+(?:\.\d+)?)\s*h/i); return m ? m[1]+'h' : null; }
 function estHtml(e){ return e ? `<span style="font-size:12px;color:var(--text-muted);font-weight:600">${e}</span>`
                                : `<span style="color:var(--border)">—</span>`; }
-function estTotal(list){ const t=list.reduce((s,p)=>s+(p.codingEst?parseFloat(p.codingEst):0),0);
-  return t ? `<span style="font-size:12px;font-weight:700;color:var(--text-muted)">${Math.round(t*10)/10}h total</span>` : ''; }
 function estSum(list){ return list.reduce((s,p)=>s+(p.codingEst?parseFloat(p.codingEst):0),0); }
-
 function dotsHtml(p) {
   if (!p) return `<span style="color:var(--border);font-size:12px">—</span>`;
   return `<div class="priority p${p}" title="Priority ${p}">${[1,2,3,4,5].map(n=>`<div class="dot${n<=p?' on':''}"></div>`).join('')}</div>`;
 }
-function assigneeHtml(assignees) {
+function assigneeHtml(assignees, labels = []) {
+  if (!assignees?.length && labels.includes('status:in-progress'))
+    return `<span style="color:#dc2626;font-size:11px;font-weight:700" title="In progress with no owner — every in-progress card must be assigned">⚠ No owner</span>`;
   if (!assignees?.length) return `<span style="color:var(--border);font-size:12px">—</span>`;
   return `<span style="font-size:11px;font-weight:600">${assignees.map(teamName).join(', ')}</span>`;
 }
@@ -953,24 +962,31 @@ function notesHtml(p) {
   return `<button class="btn btn-outline btn-sm" onclick="openNotes(${p.number})" title="View and add notes" style="font-size:11px">💬${count?` <strong>${count}</strong>`:''}</button>`;
 }
 function promptBtn(number) {
-  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="copyProjectPrompt(${number})" title="Copy Claude session prompt">Copy Prompt</button>`;
+  return `<button class="btn btn-outline btn-sm" id="cpbtn-${number}" onclick="copyProjectPrompt(${number})" title="Copy the Claude session prompt for this card">Copy Prompt</button>`;
 }
 function editBtn(number) {
-  return `<button class="btn btn-outline btn-sm" onclick="openEditModal(${number})" title="Edit title, priority and assignee">Edit</button>`;
+  return `<button class="btn btn-outline btn-sm" onclick="openEditModal(${number})" title="Edit title, priority, assignee, PR and area">Edit</button>`;
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
-// Named `currentProjects` because the notes-modal code is lifted verbatim from
-// the portal tracker and looks the issue up there. One array, one name, no fork.
-let currentProjects = [];
+let currentProjects = [];   // every PM card (current + future + done) — notes/edit look cards up here
 let currentUser = null;
 let pendingProjectPrompt = '';
+let cpAssigneeFilter = 'all';
+let cpAreaFilter = 'all';
+
+// Shared with the Portal Tracker: one alpha environment, one Beta-Version link.
+const BETA_VERSION_CONFIG_ISSUE = 192; // 🔧 Tracker Config — holds the shared Beta-Version link
+const ALPHA_DEFAULT_URL = 'https://alpha.portal.togohealth.com/';
+let betaVersionUrl = null;
+let betaIssueNumber = null;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const OAUTH_CLIENT_ID  = 'Ov23liafXkUifpOmizDR';
 const OAUTH_WORKER_URL = 'https://portal-oauth.morgan-0a4.workers.dev';
 
 const getToken = () => localStorage.getItem('gh_pat');
+
 
 // The GitHub OAuth app's callback is the directory, not a page, so the round
 // trip always lands on index.html. Leave a note for it to hand the browser back
@@ -1111,7 +1127,7 @@ async function reloadProjects() { await refresh([loadPMProjects], 'Saving…'); 
 // would burn ~1,080 of the 5,000/hr budget on a board nobody is watching that hard,
 // and the portal tracker in another tab is spending from the same budget.
 const AUTO_REFRESH_MS = 300000;   // 5 minutes
-const OVERLAY_IDS = ['add-modal', 'notes-modal', 'edit-modal'];
+const OVERLAY_IDS = ['add-modal', 'notes-modal', 'edit-modal', 'beta-modal'];
 let autoTimer = null;
 
 /** Why this tick should be skipped, or null to go ahead. */
@@ -1145,12 +1161,12 @@ function markUpdated() {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
-// Every practice-mgmt card, plus seeded cards not yet labelled (see PM_SEED).
-// (Inherited note from command.html:) The portal tracker splits its board by the
-// `current-project` / `future-idea` labels, which is why two Command cards (#811,
-// #821) carry neither and render nowhere over there. Fetching by `command`
-// instead means a card cannot go missing for want of a second label.
-const SEC_KEYS = ['bi','cr','rp','un','done'];
+// Every practice-mgmt card. Which section it lands in comes from the SAME labels
+// the Portal Tracker reads, so the two boards always agree on a card:
+//   current-project  → the stage board (Draft → In Progress → PR Alpha Ready →
+//                      Alpha Testing → Ready for Beta → Beta-Version → γ)
+//   otherwise        → Future Builds, waiting to be claimed
+const SEC_KEYS = ['cp','fu','done'];
 async function loadPMProjects() {
   for (const k of SEC_KEYS) {
     const l = document.getElementById(`${k}-loading`);
@@ -1159,33 +1175,25 @@ async function loadPMProjects() {
     if (c) c.style.display = 'none';
   }
   try {
-    // Labelled cards first; then any seeded card not labelled yet. With more
-    // than a handful missing, one paged sweep of the repo is cheaper than a
-    // request per issue.
+    await loadBetaVersionUrl();
     const raw = await ghFetchAll(`/repos/${REPO}/issues?labels=${PM_LABEL}&state=all&per_page=100`);
     const have = new Set(raw.map(i => i.number));
     const missing = Object.keys(PM_SEED).map(Number).filter(n => !have.has(n));
-    if (missing.length > 8) {
-      const want = new Set(missing);
-      const sweep = await ghFetchAll(`/repos/${REPO}/issues?state=all&per_page=100`, 20);
-      raw.push(...sweep.filter(i => !i.pull_request && want.has(i.number)));
-    } else if (missing.length) {
+    if (missing.length) {
       const got = await Promise.all(missing.map(n => ghFetch(`/repos/${REPO}/issues/${n}`).catch(() => null)));
       raw.push(...got.filter(Boolean));
     }
-    currentProjects = await Promise.all(raw.map(async issue => {
+    currentProjects = await Promise.all(raw.filter(i => !i.pull_request).map(async issue => {
       const labels = issue.labels.map(l => l.name);
       const comments = issue.comments > 0
         ? await ghFetch(`/repos/${REPO}/issues/${issue.number}/comments?per_page=20`)
         : [];
-      return normalizeCommand(issue, labels, comments);
+      return normalizePM(issue, labels, comments);
     }));
     renderUmbrella();
     renderStats();
-    renderTrack('bi', 'billing');
-    renderTrack('cr', 'credentialing');
-    renderTrack('rp', 'reports');
-    renderTrack('un', 'untriaged');
+    renderCurrentProjects();
+    renderFutureBuilds();
     renderCompleted();
     renderAbandoned();
     for (const k of SEC_KEYS) {
@@ -1203,30 +1211,29 @@ async function loadPMProjects() {
   }
 }
 
-function normalizeCommand(issue, labels, comments) {
-  const has = n => labels.includes(n);
-  const track = trackOf(labels, issue.number);
-  const home = homeOf(labels);
-  const bundle = parseBundle(issue.title);
+async function loadBetaVersionUrl() {
+  try {
+    const cfg = await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`);
+    const m = (cfg.body || '').match(/BETA_VERSION_URL:\s*(https?:\/\/\S+)/i);
+    betaVersionUrl = m ? m[1].replace(/[.,)>*]+$/, '') : null;
+  } catch { betaVersionUrl = null; }
+}
 
-  // Command-only work has no alpha/beta/gamma, so `status:pr-alpha-ready` means
-  // something different on each track and is read as `pr_open` here — "PR is up".
-  // The portal-side statuses are kept verbatim so the two boards agree on a card.
-  let status = has('status:abandoned')                               ? 'abandoned'
-    : issue.state === 'closed' || has('status:done')                 ? 'done'
-    // Blocked outranks every in-flight state: a card waiting on an outside party
-    // is not "in progress", and showing it as queued invites someone to pick up
-    // work they cannot finish. Much of the G Suite bundle is blocked on vendors.
-    : has('status:blocked')                                          ? 'blocked'
-    : has('status:beta-version')                                     ? 'beta_version'
-    : has('status:ready-beta') || has('status:ready-for-production') ? 'ready_beta'
-    : has('status:alpha-testing') || has('status:beta')              ? 'alpha_testing'
-    : has('status:needs-revision')                                   ? 'needs_revision'
-    : has('status:pr-alpha-ready') || has('status:pr-ready')         ? 'pr_open'
-    : has('status:in-progress')                                      ? 'in_progress'
-    : has('status:draft')                                            ? 'draft'
-    : (issue.assignees && issue.assignees.length)                    ? 'in_progress'
-    : 'draft';
+// Same status derivation as the Portal Tracker's normalizeProject(), so a card
+// shows the same stage on both boards.
+function normalizePM(issue, labels, comments) {
+  const has = n => labels.includes(n);
+  let status = has('status:abandoned')                                ? 'abandoned'
+    : issue.state === 'closed'                                        ? 'done'          // γ Production
+    : has('status:beta-version')                                      ? 'beta_version'
+    : has('status:ready-beta') || has('status:ready-for-production')  ? 'ready_beta'
+    : has('status:alpha-testing') || has('status:beta')               ? 'alpha_testing'
+    : has('status:needs-revision')                                    ? 'needs_revision'
+    : has('status:pr-alpha-ready') || has('status:pr-ready')          ? 'pr_alpha_ready'
+    : has('status:draft')                                             ? 'draft'
+    : has('status:in-progress')                                       ? 'in_progress'
+    : (issue.assignees && issue.assignees.length)                     ? 'in_progress'
+    : 'planning';
 
   const bodyPlusComs = (issue.body||'') + comments.map(c=>c.body||'').join(' ');
   const prMatch     = bodyPlusComs.match(/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
@@ -1235,82 +1242,70 @@ function normalizeCommand(issue, labels, comments) {
                 : commitMatch ? `https://github.com/${REPO}/commit/${commitMatch[1]}`
                 : null;
 
+  // Per-card alpha link, posted by "Mark Alpha Testing" (or by Scott).
+  let alphaUrl = null;
+  for (const c of [...comments].reverse()) {
+    const m = (c.body||'').match(/(?:🚀\s*)?\*{0,2}\s*(?:(?:alpha|beta)(?:\s+(?:deploy(?:ed)?|done|ready|live|url|link|up|test(?:ing)?))?|live\s+at|deployed\s+(?:to|at))\s*\*{0,2}\s*[:\-]?\s*\*{0,2}\s*(https?:\/\/\S+)/i);
+    if (m) { alphaUrl = m[1].replace(/[.,)>*]+$/, ''); break; }
+  }
+
+  const bundle = parseBundle(issue.title);
+  // On the stage board = `current-project`, exactly as on the Portal Tracker. A
+  // card that is already past Draft but lost that label still counts as current.
+  const isCurrent = has('current-project') || !['planning','draft','done','abandoned'].includes(status) && !has('future-idea');
   return {
     number: issue.number,
     updatedAt: issue.updated_at,
     title: issue.title,
     body: issue.body || '',
     url: issue.html_url,
-    labels, status, track, home,
-    // statusBadge() picks its vocabulary from p.track; here that is the home board.
-    // Board rule (Tanner, 2026-10-07): every Practice Management card ships
-    // localhost→alpha→beta→gamma through Scott, wherever it is built.
-    flow: 'portal',
+    labels, status, isCurrent,
+    track: trackOf(labels, issue.number),
+    home: homeOf(labels),
     prUrl,
     prNum: prMatch ? prMatch[1] : null,
+    alphaUrl,
     allComments: comments,
     commentCount: issue.comments,
     assignees: (issue.assignees||[]).map(a=>a.login),
     priority: +(labels.find(l=>l.startsWith('priority-'))?.slice(9)||'0'),
     codingEst: parseEst(issue.body),
+    oncRefs: extractOncRefs((issue.title||'') + ' ' + (issue.body||'')),
     bundle,
-    // Labelled shipped, but the issue was never closed. Written as a housekeeping
-    // nudge; it earned a bigger role on its first run, catching #826 — labelled
-    // done while its own body carried a live tail ("flip shared-drive external
-    // access OFF after the SUH cutover"). The label was wrong, not the issue
-    // state. So read this as a contradiction detector between what a card is
-    // labelled and what it says: those are the cards where a control quietly
-    // stays open and nobody thinks to re-check it two quarters later.
-    openButDone: issue.state !== 'closed' && has('status:done'),
     order: bundle.order,
-    orderLabel: bundle.label ? `${bundleShort(bundle.name)} ${bundle.label}` : null,
   };
 }
 
-// ── Status badge ─────────────────────────────────────────────────────────────
-// Split by track on purpose. "PR Alpha Ready" is a meaningful state on the
-// portal side and a meaningless one for Command-only work, where a merged PR
-// IS production. Showing the portal's vocabulary on a Command-only card is how
-// people come to believe there is an alpha stage here. There is not.
-function statusBadge(p) {
-  if (p.status === 'done')      return `<span class="badge ps-done">✓ Shipped</span>`;
-  if (p.status === 'abandoned') return `<span class="badge ps-abandoned">Abandoned</span>`;
-  if (p.flow === 'portal') {
-    return ({
-      draft:          `<span class="badge ps-planning">📝 Draft</span>`,
-      blocked:        `<span class="badge ps-blocked">⛔ Blocked</span>`,
-      in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
-      pr_open:        `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
-      needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
-      alpha_testing:  `<span class="badge ps-alpha">α Alpha Testing</span>`,
-      ready_beta:     `<span class="badge ps-ready-prod">✅ Ready for Beta</span>`,
-      beta_version:   `<span class="badge ps-beta-version">β Beta-Version</span>`,
-    }[p.status] || '');
-  }
-  return ({
-    draft:          `<span class="badge ps-planning">📝 Queued</span>`,
-    blocked:        `<span class="badge ps-blocked">⛔ Blocked</span>`,
-    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
-    pr_open:        `<span class="badge ps-pr-open">⏳ PR open</span>`,
-    needs_revision: `<span class="badge ps-needs-revision">✕ Needs work</span>`,
-    // A command-only card should never be in a portal stage; if one is, say so
-    // rather than rendering a blank cell and hiding a mislabelled card.
-    alpha_testing:  `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ alpha?</span>`,
-    ready_beta:     `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ beta?</span>`,
-    beta_version:   `<span class="badge ps-needs-revision" title="Portal stage label on a command-only card — check its labels">⚠ beta?</span>`,
-  }[p.status] || '');
+function extractOncRefs(text) {
+  const matches = text.match(/\([a-z]\)\(\d+\)/g) || [];
+  return [...new Set(matches)];
 }
 
+// ── Status badge (identical to the Portal Tracker) ───────────────────────────
+const statusBadge = (s, alphaUrl, betaVersionUrl) => {
+  const aUrl = alphaUrl || ALPHA_DEFAULT_URL;
+  const aTip = alphaUrl ? "Open this project's own alpha build" : 'Open the shared alpha environment (alpha.portal.togohealth.com)';
+  if (s === 'alpha_testing') return `<a href="${aUrl}" target="_blank" class="badge ps-alpha" style="text-decoration:none" title="${aTip}"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing ↗</a>`;
+  if (s === 'ready_beta') return `<a href="${aUrl}" target="_blank" class="badge ps-ready-prod" style="text-decoration:none" title="Alpha-tested, queued for Beta-Version — ${aTip}">✅ Ready for Beta ↗</a>`;
+  if (s === 'beta_version') return betaVersionUrl
+    ? `<a href="${betaVersionUrl}" target="_blank" class="badge ps-beta-version" style="text-decoration:none" title="Open the shared Beta-Version"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version ↗</a>`
+    : `<span class="badge ps-beta-version" style="opacity:.7" title="No Beta-Version link set yet — Scott sets it in the top of this section"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version ⚠</span>`;
+  return ({
+    planning:       `<span class="badge ps-planning">📝 Draft</span>`,
+    draft:          `<span class="badge ps-planning">📝 Draft</span>`,
+    in_progress:    `<span class="badge ps-in-progress">● In Progress</span>`,
+    pr_alpha_ready: `<span class="badge ps-pr-ready">⏳ PR Alpha Ready</span>`,
+    needs_revision: `<span class="badge ps-needs-revision">✕ Needs Revision</span>`,
+    done:           `<span class="badge ps-done">✓ <img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</span>`,
+    abandoned:      `<span class="badge ps-abandoned">Abandoned</span>`,
+  }[s] || '');
+};
+
 // ── Umbrella banners ─────────────────────────────────────────────────────────
-// An umbrella is not a build, it is a bundle's table of contents. Rendering one
-// as a row puts a card with no work in it at the top of a list sorted by build
-// order — so umbrellas come out of the table and sit above it, one per bundle.
 function renderUmbrella() {
   const el = document.getElementById('umbrella-banner');
   if (!el) return;
-  const umbrellas = currentProjects
-    .filter(isUmbrella)
-    .sort((a,b) => a.number - b.number);
+  const umbrellas = currentProjects.filter(isUmbrella).sort((a,b) => a.number - b.number);
   if (!umbrellas.length) { el.innerHTML = ''; return; }
   el.innerHTML = umbrellas.map(u => {
     const open = currentProjects.filter(p => !isUmbrella(p) && p.bundle.name && sameBundle(p.bundle.name, u.bundle.name)
@@ -1327,25 +1322,15 @@ function renderUmbrella() {
     </div>`;
   }).join('');
 }
-
-// An umbrella names itself more fully than its cards do — "G Suite optimization"
-// against cards titled "G Suite 3/12 · …" — so match on prefix rather than
-// demanding the two strings agree exactly.
-// What a reader most needs at the top of a bundle is the thing that is expensive
-// to get wrong, which is rarely the first line of the issue body. Keyed by
-// bundle NAME so it survives an umbrella being renumbered or replaced.
 const BUNDLE_BLURB = {
   'practice management': 'PMG cohort collections, the expected-amount rate engine, the biller work queue and the exec collections dashboard — build order PM 1/14–14/14.',
   'onboarding': 'Provider and facility onboarding, credentialing and payer enrollment — Employee file 1/20–20/20 and PGPM 1/7–7/7.',
 };
-// Cards are titled "PM 4/14 · …" under an umbrella named "Practice Management";
-// the onboarding umbrella covers two prefixes. Map card prefixes to umbrellas.
 const BUNDLE_ALIAS = { 'pm':'practice management', 'employee file':'onboarding', 'pgpm':'onboarding' };
 function bundleBlurb(u) {
   const key = (u.bundle?.name || '').toLowerCase();
   return BUNDLE_BLURB[key] || esc(buildSummary(u, 220));
 }
-
 function sameBundle(cardName, umbrellaName) {
   if (!cardName || !umbrellaName) return false;
   let a = cardName.toLowerCase(); const b = umbrellaName.toLowerCase();
@@ -1357,153 +1342,218 @@ function sameBundle(cardName, umbrellaName) {
 function renderStats() {
   const el = document.getElementById('stats');
   if (!el) return;
-  const all       = currentProjects.filter(p => !isUmbrella(p));
-  const live      = all.filter(p => p.status !== 'abandoned');
-  const done      = live.filter(p => p.status === 'done');
-  const open      = live.filter(p => p.status !== 'done');
-  const inFlight  = open.filter(p => ['in_progress','pr_open','needs_revision','alpha_testing','ready_beta','beta_version'].includes(p.status));
-  // Two different kinds of blocked, and calling both "blocked" was confusing:
-  // one waits on Scott and the portal's staged flow, the other on a vendor or a
-  // decision outside the company entirely.
-  const blocked    = open.filter(p => p.status === 'blocked');
-  const untriaged  = open.filter(p => p.track === 'untriaged');
-  const byArea     = a => open.filter(p => p.track === a).length;
-  const pct       = live.length ? Math.round(done.length / live.length * 100) : 0;
-  const hrs       = Math.round(estSum(open) * 10) / 10;
-
-  el.style.gridTemplateColumns = 'repeat(auto-fit,minmax(148px,1fr))';
+  const all   = currentProjects.filter(p => !isUmbrella(p) && p.status !== 'abandoned');
+  const done  = all.filter(p => p.status === 'done');
+  const open  = all.filter(p => p.status !== 'done');
+  const cur   = open.filter(p => p.isCurrent);
+  const n = s => cur.filter(p => s.includes(p.status)).length;
+  const pct = all.length ? Math.round(done.length / all.length * 100) : 0;
+  const hrs = Math.round(estSum(open) * 10) / 10;
+  el.style.gridTemplateColumns = 'repeat(auto-fit,minmax(130px,1fr))';
   el.innerHTML = `
     <div class="stat">
-      <div class="stat-label">Shipped</div>
+      <div class="stat-label"><img class="stage-ico" src="icons/gamma.png" alt="γ"> Production</div>
       <div class="stat-value">${pct}%</div>
-      <div class="stat-sub">${done.length} of ${live.length} builds</div>
+      <div class="stat-sub">${done.length} of ${all.length} shipped</div>
       <div class="stat-progress-track"><div class="stat-progress-fill fill-mips" style="width:${pct}%"></div></div>
     </div>
-    <div class="stat stat-sm"><div class="stat-label">Open</div><div class="stat-value">${open.length}</div><div class="stat-sub">not yet shipped</div></div>
-    <div class="stat stat-sm"><div class="stat-label">In flight</div><div class="stat-value">${inFlight.length}</div><div class="stat-sub">started or in PR</div></div>
-    <div class="stat stat-sm"><div class="stat-label">Blocked</div><div class="stat-value" style="color:${blocked.length?'var(--red)':'inherit'}">${blocked.length}</div><div class="stat-sub">waiting on others</div></div>
-    <div class="stat stat-sm"><div class="stat-label">💵 Billing</div><div class="stat-value">${byArea('billing')}</div><div class="stat-sub">open</div></div>
-    <div class="stat stat-sm"><div class="stat-label">🪪 Credentialing</div><div class="stat-value">${byArea('credentialing')}</div><div class="stat-sub">open</div></div>
-    <div class="stat stat-sm"><div class="stat-label">📊 Reports</div><div class="stat-value">${byArea('reports')}</div><div class="stat-sub">open</div></div>
-    ${untriaged.length ? `<div class="stat stat-sm"><div class="stat-label">Untriaged</div><div class="stat-value" style="color:var(--red)">${untriaged.length}</div><div class="stat-sub">no area</div></div>` : ''}
+    <div class="stat stat-sm"><div class="stat-label"><img class="stage-ico" src="icons/beta.png" alt="β"> Beta</div><div class="stat-value">${n(['beta_version','ready_beta'])}</div><div class="stat-sub">in or queued for beta</div></div>
+    <div class="stat stat-sm"><div class="stat-label"><img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha</div><div class="stat-value">${n(['alpha_testing','pr_alpha_ready'])}</div><div class="stat-sub">testing or PR ready</div></div>
+    <div class="stat stat-sm"><div class="stat-label">In progress</div><div class="stat-value">${n(['in_progress','needs_revision'])}</div><div class="stat-sub">incl. needs revision</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Drafts</div><div class="stat-value">${n(['draft','planning'])}</div><div class="stat-sub">current, not started</div></div>
+    <div class="stat stat-sm"><div class="stat-label">Future builds</div><div class="stat-value">${open.filter(p => !p.isCurrent).length}</div><div class="stat-sub">ready to claim</div></div>
     <div class="stat stat-sm"><div class="stat-label">Est. remaining</div><div class="stat-value">${hrs||'—'}${hrs?'h':''}</div><div class="stat-sub">on open builds</div></div>`;
 }
 
-// ── Track sections ───────────────────────────────────────────────────────────
-// Two tiers per track: what is moving, and what is queued behind it. Same shape
-// the portal tracker uses for its stages, so the pages read the same way.
-const AREA_TIERS = [
-  { statuses:['blocked'],                                                                            note:'⛔ Blocked — waiting on someone else' },
-  { statuses:['beta_version','ready_beta','alpha_testing','pr_open','in_progress','needs_revision'], note:'In flight — started, in PR, or moving through alpha / beta' },
-  { statuses:['draft'],                                                                              note:'Queued — not started' },
+// ── Current Projects: the stage board (same groups as the Portal Tracker) ────
+const CP_GROUPS = [
+  { key:'beta', anchor:'cp-beta', title:'<img class="stage-ico" src="icons/beta.png" alt="β"> Beta-Version',
+    tiers:[
+      { statuses:['beta_version'], note:'In the combined Beta-Version (shared beta build)' },
+      { statuses:['ready_beta'],   note:'Ready for Beta — alpha-tested, queued for the next promotion' },
+    ] },
+  { key:'alpha', anchor:'cp-alpha', title:'<img class="stage-ico" src="icons/alpha.png" alt="α"> Alpha Testing',
+    tiers:[
+      { statuses:['alpha_testing'],  note:'Live alpha builds — each on the production database' },
+      { statuses:['pr_alpha_ready'], note:'PR alpha-ready — awaiting Scott’s alpha deploy' },
+    ] },
+  { key:'progress', anchor:'cp-progress', title:'🛠️ In Progress / Needs Revision / Drafts', icon:'🛠️',
+    tiers:[
+      { statuses:['in_progress'],      note:'In progress',              label:'In Progress' },
+      { statuses:['needs_revision'],   note:'Needs revision',           label:'Needs Revision' },
+      { statuses:['draft','planning'], note:'Drafts — not started yet', label:'Drafts' },
+    ] },
 ];
-const TIERS = { billing: AREA_TIERS, credentialing: AREA_TIERS, reports: AREA_TIERS, untriaged: AREA_TIERS };
+const AREA_FILTER_OPTS = [['all','All areas'],['billing','💵 Billing'],['credentialing','🪪 Credentialing'],['reports','📊 Reports'],['untriaged','No area']];
+function areaOk(p) { return cpAreaFilter === 'all' || p.track === cpAreaFilter; }
 
-const TRACK_HEAD = `<thead><tr>
-  <th style="width:54px">#</th>
-  <th style="width:76px">Order</th>
-  <th>Build</th>
-  <th style="width:84px">Board</th>
-  <th style="width:140px">Status</th>
-  <th style="width:72px">Priority</th>
-  <th style="width:76px">Assigned</th>
-  <th style="width:48px">Est</th>
-  <th style="width:62px">PR</th>
-  <th style="width:58px">Notes</th>
-  <th style="width:250px">Actions</th>
-</tr></thead>`;
-
-function renderTrack(key, track) {
-  const el = document.getElementById(`${key}-content`);
-  if (!el) return;
-  const items = currentProjects
-    .filter(p => p.track === track && p.status !== 'done' && p.status !== 'abandoned' && !isUmbrella(p));
-
-  // The Untriaged section is a problem report, not a permanent part of the page.
-  // When it is empty it says so quietly and takes up one line.
-  if (!items.length) {
-    el.innerHTML = key === 'un'
-      ? `<div style="color:var(--green-atl);font-size:13px;padding:8px 0">✓ Every open Practice Management card has an area.</div>`
-      : `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Nothing open in this area.</div>`;
-    return;
-  }
-
-  // Bundle headings only earn their row when there is more than one bundle to
-  // tell apart. With a single bundle they would repeat the page title on every
-  // tier, so they stay off until a second one appears.
-  const bundleNames = [...new Set(currentProjects.filter(p => p.bundle?.name && !isUmbrella(p)).map(p => p.bundle.name))];
-  const showBundles = bundleNames.length > 1;
-
-  const rows = [];
-  let first = true;
-  for (const tier of TIERS[track]) {
-    const inTier = items.filter(p => tier.statuses.includes(p.status));
-    if (!inTier.length) continue;
-    if (!first) rows.push(`<tr class="cp-tier-gap"><td colspan="11"></td></tr>`);
-    rows.push(`<tr class="cp-tier-note"><td colspan="11">${tier.note} — ${inTier.length} ${estTotal(inTier)}</td></tr>`);
-
-    if (!showBundles) {
-      rows.push(...inTier.sort((a,b) => a.order - b.order || a.number - b.number).map(p => trackRow(p)));
-    } else {
-      // Group by bundle, bundles ordered by their earliest build number so the
-      // one furthest along the plan reads first; unbundled one-offs sit last.
-      const groups = new Map();
-      for (const p of inTier) {
-        const key = p.bundle?.name || '—';
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(p);
-      }
-      const ordered = [...groups.entries()].sort((a,b) => {
-        if (a[0] === '—') return 1;
-        if (b[0] === '—') return -1;
-        return Math.min(...a[1].map(p=>p.order)) - Math.min(...b[1].map(p=>p.order));
-      });
-      for (const [name, list] of ordered) {
-        list.sort((a,b) => a.order - b.order || a.number - b.number);
-        const label = name === '—' ? 'Not part of a bundle' : name;
-        rows.push(`<tr class="int-vgroup"><td colspan="11">${esc(label)} — ${list.length} ${estTotal(list)}</td></tr>`);
-        rows.push(...list.map(p => trackRow(p)));
-      }
-    }
-    first = false;
-  }
-
-  el.innerHTML = `<div class="proj-table-wrap"><table>${TRACK_HEAD}<tbody>${rows.join('')}</tbody></table></div>`;
+function cardTitleCell(p) {
+  return `<td>
+      <a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+      ${TRACK_PILL[p.track]} ${HOME_PILL[p.home]}
+      <div class="proj-desc">${esc(buildSummary(p, 120))}</div>
+    </td>`;
+}
+function numCell(p) {
+  return `<td style="font-size:12px;font-weight:600;white-space:nowrap"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none" title="Open issue #${p.number} on GitHub">#${p.number}</a></td>`;
 }
 
-function trackRow(p) {
-  return `<tr id="proj-${p.number}">
-    <td style="font-size:12px;font-weight:600;white-space:nowrap"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none" title="Open issue #${p.number} on GitHub">#${p.number}</a></td>
-    <td style="font-size:11px;color:var(--text-muted);font-weight:700;white-space:nowrap">${p.orderLabel || '—'}</td>
-    <td>
-      <a class="proj-title" href="${p.url}" target="_blank">${esc(shortTitle(p.title))}</a>
-      ${p.labels.includes('command-only') ? `<span class="lane-pill lane-untriaged" title="Labelled command-only (localhost→gamma), but every Practice Management card ships localhost→alpha→beta→gamma. Re-label it portal-integration.">⚠ ship path</span>` : ''}
-      <div class="proj-desc">${esc(buildSummary(p))}</div>
-    </td>
-    <td>${HOME_PILL[p.home]}</td>
-    <td>${statusBadge(p)}</td>
+function renderCurrentProjects() {
+  const el = document.getElementById('cp-content');
+  if (!el) return;
+  const allActive = currentProjects.filter(p => p.isCurrent && !isUmbrella(p) && p.status !== 'abandoned' && p.status !== 'done');
+
+  const logins = [...new Set(allActive.flatMap(p => p.assignees || []))].sort((a,b)=>teamName(a).localeCompare(teamName(b)));
+  const hasUnassigned = allActive.some(p => !p.assignees?.length);
+  if (cpAssigneeFilter !== 'all' && cpAssigneeFilter !== '__unassigned__' && !logins.includes(cpAssigneeFilter)) cpAssigneeFilter = 'all';
+  if (cpAssigneeFilter === '__unassigned__' && !hasUnassigned) cpAssigneeFilter = 'all';
+  const filtered = allActive.filter(p => areaOk(p) && (
+      cpAssigneeFilter === 'all'            ? true
+    : cpAssigneeFilter === '__unassigned__' ? !p.assignees?.length
+    : (p.assignees || []).includes(cpAssigneeFilter)));
+  const opts = [`<option value="all"${cpAssigneeFilter==='all'?' selected':''}>All</option>`]
+    .concat(logins.map(l => `<option value="${esc(l)}"${cpAssigneeFilter===l?' selected':''}>${esc(teamName(l))}</option>`))
+    .concat(hasUnassigned ? [`<option value="__unassigned__"${cpAssigneeFilter==='__unassigned__'?' selected':''}>Unassigned</option>`] : [])
+    .join('');
+  const areaOpts = AREA_FILTER_OPTS.map(([v,t]) => `<option value="${v}"${cpAreaFilter===v?' selected':''}>${t}</option>`).join('');
+
+  const head = `<thead><tr>
+    <th style="width:54px">#</th><th>Build</th><th style="width:150px">Status</th>
+    <th style="width:72px">Priority</th><th style="width:100px">Assigned</th>
+    <th style="width:48px">Est</th><th style="width:62px">PR</th>
+    <th style="width:58px">Notes</th><th style="width:240px">Actions</th>
+  </tr></thead>`;
+  const rowHtml = p => `<tr id="proj-${p.number}">
+    ${numCell(p)}
+    ${cardTitleCell(p)}
+    <td>${statusBadge(p.status, p.alphaUrl, betaVersionUrl)}</td>
     <td>${dotsHtml(p.priority)}</td>
-    <td>${assigneeHtml(p.assignees)}</td>
+    <td>${assigneeHtml(p.assignees, p.labels)}</td>
     <td>${estHtml(p.codingEst)}</td>
     <td>${prHtml(p.prUrl, p.prNum)}</td>
     <td>${notesHtml(p)}</td>
     <td><div class="actions">${projectActions(p)}</div></td>
   </tr>`;
+
+  const filterBar = `<div style="margin:2px 0 12px;font-size:12px;color:var(--text-muted);display:flex;gap:14px;flex-wrap:wrap">
+    <span>Filter by assignee:
+      <select onchange="setCpAssignee(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;cursor:pointer;margin-left:4px">${opts}</select></span>
+    <span>Area:
+      <select onchange="setCpArea(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;cursor:pointer;margin-left:4px">${areaOpts}</select></span></div>`;
+
+  if (!allActive.length) {
+    el.innerHTML = filterBar + `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">Nothing on the stage board yet — claim a card from <a onclick="jumpTo('fu')" style="color:var(--primary);cursor:pointer">Future Builds</a> to start it.</div>`;
+    return;
+  }
+
+  const sections = CP_GROUPS.map(g => {
+    const groupCount = filtered.filter(p => g.tiers.some(t => t.statuses.includes(p.status))).length;
+    const tierCount = t => filtered.filter(p => t.statuses.includes(p.status)).length;
+    const titleText = g.tiers.every(t => t.label)
+      ? `${g.icon} ` + g.tiers.map((t, i) =>
+          `<a class="cp-tier-link" onclick="jumpToTier('${g.key}',${i})" title="Scroll to ${t.label}">${t.label}<span class="cp-tier-count">${tierCount(t)}</span></a>`).join(' / ')
+      : g.title;
+    let titleHtml = `<span style="font-weight:700;font-size:14px">${titleText}</span>
+      <span style="font-size:12px;color:var(--text-muted);font-weight:500">(${groupCount})</span>`;
+    if (g.key === 'beta') {
+      titleHtml += betaVersionUrl
+        ? ` — <a href="${betaVersionUrl}" target="_blank" style="font-size:12px;color:var(--primary)">open the Beta-Version ↗</a>`
+        : ` — <span style="font-size:12px;color:var(--text-muted)">no link set yet</span>`;
+      titleHtml += ` <button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="setBetaVersionLink()" title="Set/update the single shared Beta-Version deploy link (shared with the Portal Tracker)">Set link</button>`;
+    }
+    let bodyRows = ''; let renderedTier = false;
+    g.tiers.forEach((t, ti) => {
+      const items = filtered.filter(p => t.statuses.includes(p.status))
+        .sort((a,b) => (b.priority - a.priority) || (a.order - b.order) || (a.number - b.number));
+      if (!items.length) return;
+      if (renderedTier) bodyRows += `<tr class="cp-tier-gap"><td colspan="9"></td></tr>`;
+      if (t.note) bodyRows += `<tr class="cp-tier-note" id="cp-tier-${g.key}-${ti}"><td colspan="9">${t.note}</td></tr>`;
+      bodyRows += items.map(rowHtml).join('');
+      renderedTier = true;
+    });
+    if (!bodyRows) bodyRows = `<tr><td colspan="9" style="color:var(--text-muted);font-size:13px;padding:10px">None${(cpAssigneeFilter!=='all'||cpAreaFilter!=='all')?' for this filter — <a onclick="setCpAssignee(\'all\');setCpArea(\'all\')" style="color:var(--primary);cursor:pointer">show all</a>':''}.</td></tr>`;
+    const closed = cpGroupClosed(g.key);
+    return `<div id="${g.anchor}" class="cp-group${closed ? ' cp-collapsed' : ''}" style="scroll-margin-top:120px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px">
+        <button class="cp-toggle" onclick="toggleCpGroup('${g.key}')" title="Collapse or expand this stage" aria-expanded="${closed ? 'false' : 'true'}">▾</button>
+        ${titleHtml}</div>
+      <div class="cp-body proj-table-wrap"><table>${head}<tbody>${bodyRows}</tbody></table></div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = filterBar + sections;
 }
+function setCpAssignee(value) { cpAssigneeFilter = value; renderCurrentProjects(); renderFutureBuilds(); }
+function setCpArea(value)     { cpAreaFilter = value;     renderCurrentProjects(); renderFutureBuilds(); }
+
+function setBetaVersionLink() {
+  const url = prompt('Enter the shared Beta-Version deploy link (applies to ALL Beta-Version projects, on this board and the Portal Tracker). Leave blank to clear:', betaVersionUrl || '');
+  if (url === null) return;
+  const clean = url.trim();
+  if (clean && !/^https?:\/\//i.test(clean)) { toast('Enter a full https:// URL (or blank to clear).', true); return; }
+  (async () => {
+    try {
+      const cfg = await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`);
+      const line = `BETA_VERSION_URL: ${clean || '(none yet)'}`;
+      const newBody = /BETA_VERSION_URL:.*/i.test(cfg.body||'')
+        ? (cfg.body||'').replace(/BETA_VERSION_URL:.*/i, line)
+        : `${cfg.body||''}\n\n${line}`;
+      await ghFetch(`/repos/${REPO}/issues/${BETA_VERSION_CONFIG_ISSUE}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ body: newBody }) });
+      betaVersionUrl = clean || null;
+      renderCurrentProjects();
+      toast(clean ? 'Beta-Version link set' : 'Beta-Version link cleared');
+    } catch(e) { toast(`Error: ${e.message}`, true); }
+  })();
+}
+
+// ── Future Builds: claimable, grouped by area ────────────────────────────────
+function renderFutureBuilds() {
+  const el = document.getElementById('fu-content');
+  if (!el) return;
+  const fut = currentProjects.filter(p => !p.isCurrent && !isUmbrella(p) && p.status !== 'done' && p.status !== 'abandoned' && areaOk(p)
+    && (cpAssigneeFilter === 'all' || (cpAssigneeFilter === '__unassigned__' ? !p.assignees?.length : (p.assignees||[]).includes(cpAssigneeFilter))));
+  if (!fut.length) { el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No future builds${cpAreaFilter!=='all'||cpAssigneeFilter!=='all'?' for this filter':''}.</div>`; return; }
+  const head = `<thead><tr>
+    <th style="width:54px">#</th><th>Build</th><th style="width:90px">Status</th>
+    <th style="width:72px">Priority</th><th style="width:100px">Assigned</th>
+    <th style="width:48px">Est</th><th style="width:58px">Notes</th><th style="width:240px">Actions</th>
+  </tr></thead>`;
+  const groups = [['billing','💵 Billing & claims'],['credentialing','🪪 Credentialing & enrollment'],['reports','📊 Financial & billing reports'],['untriaged','⚠️ No area yet']];
+  let rows = '';
+  for (const [area, label] of groups) {
+    const list = fut.filter(p => p.track === area)
+      .sort((a,b) => (b.priority - a.priority) || (a.order - b.order) || (a.number - b.number));
+    if (!list.length) continue;
+    rows += `<tr class="int-vgroup"><td colspan="8">${label} — ${list.length} ${estTotal(list)}</td></tr>`;
+    rows += list.map(p => `<tr id="proj-${p.number}">
+      ${numCell(p)}
+      ${cardTitleCell(p)}
+      <td><span class="badge" style="background:var(--bg);color:var(--text-muted);font-size:11px;padding:2px 8px;border:1px solid var(--border)">Future</span></td>
+      <td>${dotsHtml(p.priority)}</td>
+      <td>${assigneeHtml(p.assignees, p.labels)}</td>
+      <td>${estHtml(p.codingEst)}</td>
+      <td>${notesHtml(p)}</td>
+      <td><div class="actions">
+        ${promptBtn(p.number)}
+        ${editBtn(p.number)}
+        <button class="btn btn-primary btn-sm" onclick="claimIdea(${p.number})" title="Claim this build — assigns it to you and moves it onto the stage board as In Progress">Claim</button>
+        <button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>
+      </div></td>
+    </tr>`).join('');
+  }
+  el.innerHTML = `<div class="proj-table-wrap"><table>${head}<tbody>${rows}</tbody></table></div>`;
+}
+function estTotal(list){ const t=estSum(list);
+  return t ? `<span style="font-size:12px;font-weight:700;color:var(--text-muted)">${Math.round(t*10)/10}h total</span>` : ''; }
 
 // First meaningful line of the issue body — a one-line "what this is".
 function buildSummary(p, max = 160) {
   const line = (p.body || '').split('\n').map(l => l.trim())
     .find(l => l && !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('---') && !l.startsWith('>'));
   if (!line) return '(no summary — open the issue for details)';
-  // The body is markdown; this cell is one line of plain text. Left as-is it
-  // renders "Part of the **Command** bundle" with the asterisks showing.
   const clean = line.replace(/\*\*/g, '').replace(/`/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
   return clip(clean, max);
 }
-
-// Cut on a word boundary. Slicing at a fixed column produced banners that ended
-// mid-word ("…but integrates with it, and"), which reads as a rendering bug.
 function clip(text, max) {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
@@ -1511,32 +1561,48 @@ function clip(text, max) {
   return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:—-]+$/, '') + '…';
 }
 
-// ── Actions ──────────────────────────────────────────────────────────────────
-// Portal-side cards are READ-ONLY here, and that is the design, not a shortcut.
-// Their alpha/beta/gamma transitions need the shared alpha URL, the Beta-Version
-// config issue and Scott's ping flow — all of which live on the portal tracker.
-// Two boards driving one card's stage is how stage history gets lost.
+// ── Actions: the Portal Tracker's stage buttons, one forward step at a time ──
 function projectActions(p) {
+  const pb = promptBtn(p.number);
   const eb = editBtn(p.number);
-  const homeLink = p.home === 'command'
-    ? `<a href="command.html#proj-${p.number}" class="btn btn-green btn-sm" title="Staged from the Command Tracker — its ship-path rule lives there">Command Tracker →</a>`
-    : `<a href="index.html#proj-${p.number}" class="btn btn-purple btn-sm" title="Staged from the Portal Tracker — localhost→alpha→beta→gamma, through Scott. Copy Prompt is there too.">Portal Tracker →</a>`;
-  const parts = [];
-  // The Command prompt is self-contained; the portal prompt depends on the
-  // portal tracker's ONC context, so it is copied from the Portal Tracker.
-  if (p.home === 'command') parts.push(promptBtn(p.number));
-  parts.push(eb);
-  if (p.track === 'untriaged') {
-    for (const [area, a] of Object.entries(AREAS))
-      parts.push(`<button class="btn btn-outline btn-sm" onclick="setArea(${p.number},'${area}')" title="Put this in ${a.name}">${a.ico} ${a.name.split(' ')[0]}</button>`);
+  if (p.status === 'done' || p.status === 'abandoned') return `${pb} ${eb} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`;
+  const parts = [pb, eb];
+  if (p.status === 'draft' || p.status === 'planning') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setInProgress(${p.number})" title="Start work — move to In Progress and assign it to you">Start</button>`);
   }
-  parts.push(homeLink);
-  parts.push(`<a href="${p.url}" target="_blank" class="btn btn-outline btn-sm" title="Open GitHub issue">↗</a>`);
-  return parts.join(' ');
+  if (p.status === 'in_progress') {
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="setDraft(${p.number})" title="Park as a Draft (not actively being worked)">→ Draft</button>`);
+  }
+  if (p.status === 'planning' || p.status === 'in_progress' || p.status === 'draft') {
+    parts.push(`<button class="btn btn-amber btn-sm" onclick="setPrAlphaReady(${p.number})" title="Mark PR alpha-ready and notify Scott">PR Alpha Ready</button>`);
+    if (p.prUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Send Scott a heads-up comment">Notify Scott</button>`);
+  }
+  if (p.status === 'pr_alpha_ready') {
+    parts.push(`<button class="btn btn-green btn-sm" onclick="openAlphaModal(${p.number})" title="Move to Alpha Testing (uses the shared alpha environment unless you paste a build-specific URL)">Mark Alpha Testing</button>`);
+    parts.push(`<button class="btn btn-outline btn-sm" onclick="notifyScott(${p.number})" title="Ping Scott again on this PR">Re-ping Scott</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision — posts on PR and tags developer">Needs Revision</button>`);
+  }
+  if (p.status === 'needs_revision') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="setPrAlphaReady(${p.number})" title="Fixed — mark PR alpha-ready again">PR Updated</button>`);
+  }
+  if (p.status === 'alpha_testing') {
+    if (!p.alphaUrl) parts.push(`<button class="btn btn-outline btn-sm" onclick="openAlphaModal(${p.number})" title="Alpha uses the shared environment (alpha.portal.togohealth.com). Only add a link if this build has its own URL.">Alpha link (optional)</button>`);
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="markReadyBeta(${p.number})" title="Alpha-tested — queue for the next Beta-Version promotion">Ready for Beta</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Not passing alpha — send back for revision">Needs Revision</button>`);
+  }
+  if (p.status === 'ready_beta') {
+    parts.push(`<button class="btn btn-primary btn-sm" onclick="promoteBetaVersion(${p.number})" title="Promote into the shared Beta-Version (normally done every other Tuesday)">Promote to Beta-Version</button>`);
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Send back for revision">Needs Revision</button>`);
+  }
+  if (p.status === 'beta_version') {
+    parts.push(`<button class="btn btn-danger btn-sm" onclick="markNeedsRevision(${p.number})" title="Issue found in beta — send back for revision">Needs Revision</button>`);
+  }
+  parts.push(`<button class="btn btn-green btn-sm" onclick="markProjectDone(${p.number})" title="Shipped to production — move to γ Production (Completed)">Mark <img class="stage-ico" src="icons/gamma.png" alt="γ"></button>`);
+  parts.push(`<button class="btn btn-danger btn-sm" onclick="abandonProject(${p.number})" title="Mark as abandoned">Abandon</button>`);
+  return parts.join('');
 }
 
-// One area per card. Setting it also applies `practice-mgmt`, which is what
-// keeps the card on this board once its seed entry is gone.
+// One area per card. Setting it also applies `practice-mgmt`.
 async function setArea(number, area) {
   await withProjectLoading(number, async () => {
     for (const l of AREA_LABELS) if (l !== AREAS[area].label) await removeLabel(number, l).catch(()=>{});
@@ -1546,6 +1612,7 @@ async function setArea(number, area) {
   });
 }
 
+// Double-click guard: a stage change is 4–6 sequential GitHub writes.
 const _projectsInFlight = new Set();
 async function withProjectLoading(number, fn) {
   if (_projectsInFlight.has(number)) return;
@@ -1562,83 +1629,63 @@ async function withProjectLoading(number, fn) {
   }
 }
 
-// Exactly one of the two, always — so setting either clears the other. A card
-// carrying both would claim two ship paths, and trackOf() would silently pick
-// the portal one, quietly routing Command work through Scott.
-async function setTrack(number, label) {
-  await withProjectLoading(number, async () => {
-    const other = label === 'command-only' ? 'portal-integration' : 'command-only';
-    await removeLabel(number, other);
-    await addLabel(number, label);
-    await postComment(number, label === 'command-only'
-      ? `⚡ **Ship path set to \`command-only\`** by @${currentUser.login} — does not touch the portal, so **localhost→gamma** and any developer can push it. Branch → PR → confirm you ran it on localhost → CI green → merge your own PR. No alpha, no beta, no Scott.`
-      : `🔒 **Ship path set to \`portal-integration\`** by @${currentUser.login} — this touches the portal, so it takes the full **localhost→alpha→beta→gamma** path through Scott, driven from the Portal Tracker.`);
-    toast(`#${number} → ${label}`);
-  });
+// ── Stage transitions — the Portal Tracker's, verbatim in effect ─────────────
+// Same labels, same comments, same Scott pings, same stage stamps, so a card
+// moved here reads exactly the same on the Portal Tracker and vice versa.
+function openAlphaModal(number) {
+  betaIssueNumber = number;
+  const p = currentProjects.find(p => p.number === number);
+  document.getElementById('beta-modal-title').textContent = p ? p.title : `Issue #${number}`;
+  document.getElementById('beta-url-input').value = ALPHA_DEFAULT_URL;
+  document.getElementById('beta-note-input').value = '';
+  document.getElementById('beta-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('beta-url-input').focus(), 50);
+}
+function closeBetaModal() { document.getElementById('beta-modal').style.display = 'none'; }
+async function submitMarkAlpha() {
+  let url    = document.getElementById('beta-url-input').value.trim();
+  const note = document.getElementById('beta-note-input').value.trim();
+  if (!url) url = ALPHA_DEFAULT_URL;
+  const btn  = document.getElementById('beta-submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await ensureUser();
+    const shared = url === ALPHA_DEFAULT_URL;
+    const body = `🚀 **Alpha:** ${url}${shared ? ' _(shared alpha environment)_' : ''}${note ? `\n\n${note}` : ''}\n\n— @${currentUser.login}`;
+    await postComment(betaIssueNumber, body);
+    await removeLabel(betaIssueNumber, 'status:pr-alpha-ready');
+    await removeLabel(betaIssueNumber, 'status:needs-revision');
+    await addLabel(betaIssueNumber, 'status:alpha-testing');
+    closeBetaModal();
+    toast('Moved to Alpha Testing');
+    await reloadProjects();
+  } catch(e) { toast(`Error: ${e.message}`, true); setBusy(false); }
+  finally { btn.disabled = false; btn.textContent = 'Mark Alpha Testing'; }
 }
 
-async function setInProgress(number) {
-  await withProjectLoading(number, async () => {
-    for (const l of ['status:draft','status:needs-revision','status:blocked']) await removeLabel(number, l);
-    await addLabel(number, 'status:in-progress');
-    toast(`#${number} moved to In Progress`);
-  });
-}
-
-// Much of the ops work on this board waits on a vendor, a contract or someone
-// else's decision. Recording WHO is the whole value — "blocked" with no named
-// party is a card that quietly stops moving and nobody can restart.
-async function setBlocked(number) {
-  const who = prompt('Blocked on what, or on whom?\n\nA vendor, a contract, a decision, another team — name it, because a blocker with no owner never clears.');
-  if (who === null) return;
-  if (!who.trim()) { toast('Name the blocker — an unattributed block is how a card goes quiet.', true); return; }
-  await withProjectLoading(number, async () => {
-    await postComment(number, `⛔ **Blocked** — ${who.trim()}\n\n— @${currentUser.login}`);
-    for (const l of ['status:in-progress','status:draft']) await removeLabel(number, l);
-    await addLabel(number, 'status:blocked');
-    toast(`#${number} marked blocked`);
-  });
-}
-async function setDraft(number) {
-  await withProjectLoading(number, async () => {
-    for (const l of ['status:in-progress','status:pr-alpha-ready','status:pr-ready','status:needs-revision','status:blocked']) await removeLabel(number, l);
-    await addLabel(number, 'status:draft');
-    toast(`#${number} moved to Queued`);
-  });
-}
-
-// The whole Command process rests on one sentence — that the author actually ran
-// it on localhost — because there is no reviewer and GitHub Free cannot enforce a
-// thing on a private repo. So the tracker asks for it, and writes the answer onto
-// the issue where it can be read later. An unanswered prompt cancels the move.
-async function setPrOpen(number) {
+async function setPrAlphaReady(number) {
   const p = currentProjects.find(p => p.number === number);
   const existingPr = p?.prUrl || '';
   const pr = prompt(existingPr
     ? 'Confirm the PR link (press OK if unchanged, or edit if the PR was replaced):'
-    : 'Paste your GitHub PR link:', existingPr);
-  if (!pr || !pr.trim()) { toast('No link — paste a pull request URL and try again.', true); return; }
+    : 'Paste your GitHub PR or commit link:', existingPr);
+  if (!pr || !pr.trim()) { toast('No link — paste a pull request or commit URL and try again.', true); return; }
   const prTrimmed = pr.trim();
   const prNumMatch = prTrimmed.match(/\/pull\/(\d+)/);
   const commitMatch = prTrimmed.match(/\/commit\/([0-9a-f]{7,40})/i);
-  if (!prNumMatch && !commitMatch) { toast('Expected a GitHub …/pull/123 or …/commit/abc1234 URL.', true); return; }
-
-  const tested = prompt('What did you click through on localhost?\n\nThis goes on the issue and on the PR. There is no reviewer here — this sentence is the gate.');
-  if (tested === null) return;
-  if (!tested.trim()) { toast('Say what you tested — that confirmation is the only gate this flow has.', true); return; }
-
+  const prNum = prNumMatch ? prNumMatch[1] : null;
+  const commitSha = commitMatch ? commitMatch[1].slice(0,7) : null;
+  if (!prNum && !commitSha) { toast('Expected a GitHub …/pull/123 or …/commit/abc1234 URL.', true); return; }
   await withProjectLoading(number, async () => {
-    const linkLabel = prNumMatch ? `PR #${prNumMatch[1]}` : `commit ${commitMatch[1].slice(0,7)}`;
-    const note = `⏳ **${linkLabel} open** — ${prTrimmed}\n\n**Ran on localhost:** ${tested.trim()}\n\n— @${currentUser.login}`;
-    if (prNumMatch) await postComment(parseInt(prNumMatch[1]), note);
-    await postComment(number, note);
+    if (prNum) {
+      await postComment(parseInt(prNum), `🔔 **PR ready for review — @${SCOTT}**\n\nSubmitted by @${currentUser.login} — please review when you get a chance.\n\nProject tracker: togohealth-dev/emr-beta#${number} (Practice Management)`);
+    }
+    const linkLabel = prNum ? `PR #${prNum}` : `commit ${commitSha}`;
+    await postComment(number, `🔔 **Ready for review — @${SCOTT}**\n\n${linkLabel}: ${prTrimmed}\n\n— @${currentUser.login}`);
     await removeLabel(number, 'status:in-progress');
-    await removeLabel(number, 'status:draft');
     await removeLabel(number, 'status:needs-revision');
     await addLabel(number, 'status:pr-alpha-ready');
-
-    // The PR column reads the FIRST PR link in the body, so a replaced PR has to
-    // be swapped in place — appending would leave the stale link winning.
+    await stampStage(number, 'alpha-ready');
     const issue = await ghFetch(`/repos/${REPO}/issues/${number}`);
     let newBody = issue.body || '';
     if (existingPr && existingPr !== prTrimmed && newBody.includes(existingPr)) {
@@ -1649,27 +1696,63 @@ async function setPrOpen(number) {
     if (newBody !== issue.body) {
       await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: newBody}) });
     }
-    toast(`${linkLabel} recorded`);
+    toast(`${linkLabel} saved · @${SCOTT} pinged`);
   });
 }
 
-async function markNeedsWork(number) {
-  const why = prompt('What needs fixing?');
-  if (why === null) return;
+// Starting work claims it. POST /assignees ADDS — never silently drops whoever
+// was already on the card.
+async function setInProgress(number) {
   await withProjectLoading(number, async () => {
-    await postComment(number, `✕ **Needs work** — ${why.trim() || 'sent back'}\n\n— @${currentUser.login}`);
-    await removeLabel(number, 'status:pr-alpha-ready');
+    const me = await ensureUser();
+    await removeLabel(number, 'status:draft');
+    await removeLabel(number, 'status:needs-revision');
+    await addLabel(number, 'status:in-progress');
+    let assigned = false;
+    try {
+      const after = await ghFetch(`/repos/${REPO}/issues/${number}/assignees`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignees: [me.login] }),
+      });
+      assigned = (after?.assignees ?? []).some((a) => a.login === me.login);
+    } catch (e) { console.warn('assign on start failed', e); }
+    toast(assigned
+      ? `#${number} started — In Progress, assigned to you`
+      : `#${number} moved to In Progress — could not assign you (are you a collaborator on ${REPO}?)`);
+  });
+}
+async function setDraft(number) {
+  await withProjectLoading(number, async () => {
+    for (const l of ['status:in-progress','status:pr-alpha-ready','status:pr-ready','status:needs-revision']) await removeLabel(number, l);
+    await addLabel(number, 'status:draft');
+    toast(`#${number} moved to Draft`);
+  });
+}
+
+async function notifyScott(number) {
+  const p = currentProjects.find(p => p.number === number);
+  if (!p?.prUrl || !p.prNum) { toast('No PR found for this project — use PR Alpha Ready to submit one first.', true); return; }
+  const msg = prompt('Add a message for Scott (or press OK for default):');
+  if (msg === null) return;
+  await withProjectLoading(number, async () => {
+    const body = `🔔 **Heads up @${SCOTT}** — update on this build.\n\n${msg||'Wanted to flag this for your review.'}\n\n— @${currentUser.login}\n\nProject tracker: togohealth-dev/emr-beta#${number} (Practice Management)`;
+    await postComment(parseInt(p.prNum), body);
+    toast(`@${SCOTT} pinged on PR #${p.prNum}`);
+  });
+}
+
+async function markNeedsRevision(number) {
+  const p = currentProjects.find(p => p.number === number);
+  const msg = prompt('Revision notes for the developer (required):');
+  if (!msg || !msg.trim()) { toast('Please add revision notes so the developer knows what to fix.', true); return; }
+  await withProjectLoading(number, async () => {
+    const assigneeTags = p.assignees.length ? p.assignees.map(a => `@${a}`).join(', ') : '';
+    const body = `🔄 **Needs Revision${assigneeTags ? ' — ' + assigneeTags : ''}**\n\n${msg.trim()}\n\n— @${currentUser.login}`;
+    if (p.prNum) await postComment(parseInt(p.prNum), body);
+    await postComment(number, body);
+    for (const l of ['status:pr-alpha-ready','status:alpha-testing','status:ready-beta','status:beta-version','status:pr-ready','status:beta','status:ready-for-production']) await removeLabel(number, l);
     await addLabel(number, 'status:needs-revision');
-    toast(`#${number} sent back`);
-  });
-}
-
-async function markProjectDone(number) {
-  await withProjectLoading(number, async () => {
-    await postComment(number, `✅ **Merged and shipped by @${currentUser.login}.**`);
-    for (const l of ['status:in-progress','status:draft','status:needs-revision','status:pr-alpha-ready','status:pr-ready','status:blocked']) await removeLabel(number, l);
-    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
-    toast(`#${number} shipped`);
+    toast(`#${number} marked Needs Revision`);
   });
 }
 
@@ -1682,33 +1765,93 @@ async function abandonProject(number) {
   });
 }
 
-// ── Completed / abandoned ────────────────────────────────────────────────────
+async function markReadyBeta(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✅ **Ready for Beta** — alpha-tested and cleared by @${currentUser.login}. Queued for the next Beta-Version promotion.`);
+    await removeLabel(number, 'status:alpha-testing');
+    await addLabel(number, 'status:ready-beta');
+    toast(`Marked Ready for Beta`);
+  });
+}
+
+// Records WHEN a card reached each stage as a "Stages:" line in the issue body —
+// the same line the Portal Tracker writes. First date per stage wins.
+async function stampStage(number, stage) {
+  try {
+    const iss = await ghFetch(`/repos/${REPO}/issues/${number}`);
+    const body = iss.body || '';
+    const today = new Date().toISOString().slice(0,10);
+    const line = body.match(/^Stages:.*$/m);
+    if (line && new RegExp(`\\b${stage} \\d{4}-\\d{2}-\\d{2}`).test(line[0])) return;
+    const updated = line
+      ? body.replace(line[0], `${line[0]} · ${stage} ${today}`)
+      : `${body.replace(/\s*$/,'')}\n\nStages: ${stage} ${today}`;
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({body: updated}) });
+  } catch(e) { /* stamping must never block the transition itself */ }
+}
+
+async function promoteBetaVersion(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `🚀 **Promoted to Beta-Version** by @${currentUser.login}.`);
+    await removeLabel(number, 'status:ready-beta');
+    await removeLabel(number, 'status:alpha-testing');
+    await addLabel(number, 'status:beta-version');
+    await stampStage(number, 'beta');
+    toast(`Promoted to Beta-Version`);
+  });
+}
+
+async function markProjectDone(number) {
+  await withProjectLoading(number, async () => {
+    await postComment(number, `✅ **Shipped to γ Production (Gamma) by @${currentUser.login}.**`);
+    for (const l of ['status:beta-version','status:ready-beta','status:alpha-testing','status:pr-alpha-ready','status:ready-for-production']) await removeLabel(number, l);
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state:'closed'}) });
+    await stampStage(number, 'gamma');
+    toast(`Moved to γ Production`);
+  });
+}
+
+// Claim = the Portal Tracker's claimIdea(): assign to me, move onto the stage
+// board as In Progress. `practice-mgmt` and the area label stay.
+async function claimIdea(number) {
+  await withProjectLoading(number, async () => {
+    const p = currentProjects.find(p => p.number === number);
+    if (p?.labels.includes('status:blocked')) { toast(`#${number} is blocked — clear the blocker before claiming it.`, true); return; }
+    if (p?.assignees?.length && !p.assignees.includes(currentUser.login)
+        && !confirm(`#${number} is assigned to ${p.assignees.map(teamName).join(', ')}. Take it over?`)) return;
+    await ghFetch(`/repos/${REPO}/issues/${number}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ assignees: [currentUser.login] }) });
+    await postComment(number, `🙋 **Claimed by @${currentUser.login}** — moving to Current Projects (Practice Management). Ships localhost → alpha → beta → gamma.`);
+    for (const l of ['future-idea','facility-portal','woundcare','integrations','integration:not-yet','status:draft']) await removeLabel(number, l);
+    await addLabel(number, 'current-project');
+    await addLabel(number, 'status:in-progress');
+    toast(`Claimed — #${number} is In Progress and assigned to you. Copy Prompt to start the session.`);
+  });
+}
+
+// ── Completed (γ Production) / abandoned ─────────────────────────────────────
 function renderCompleted() {
   const content = document.getElementById('done-content');
   if (!content) return;
   const done = currentProjects
-    .filter(p => p.status === 'done')
+    .filter(p => p.status === 'done' && areaOk(p))
     .sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
   if (!done.length) { content.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0">None yet.</div>`; return; }
-
   const head = `<thead><tr>
-    <th style="width:54px">#</th><th style="width:52px">Order</th><th>Build</th>
-    <th style="width:110px">Area</th><th style="width:76px">Developer</th>
+    <th style="width:54px">#</th><th>Build</th><th style="width:76px">Developer</th>
     <th style="width:48px">Est</th><th style="width:62px">PR</th>
     <th style="width:58px">Notes</th><th style="width:150px">Actions</th>
   </tr></thead>`;
   const rows = done.map(p => `<tr id="proj-${p.number}">
-    <td style="font-size:12px;font-weight:600;white-space:nowrap"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none">#${p.number}</a></td>
-    <td style="font-size:11px;color:var(--text-muted);font-weight:700">${p.orderLabel || '—'}</td>
-    <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(shortTitle(p.title))}</a>
-        ${p.openButDone ? `<span class="lane-pill lane-untriaged" title="Labelled status:done but the issue is still open. Check the body before closing it — an open issue under a done label usually means the card has a live tail, and the label is the thing that is wrong.">issue still open</span>` : ''}
+    ${numCell(p)}
+    <td><span style="color:#4caf50;font-size:14px;margin-right:5px">✓</span><a class="proj-title" href="${p.url}" target="_blank">${esc(p.title)}</a>
+        ${TRACK_PILL[p.track]} ${HOME_PILL[p.home]}
         <div class="proj-desc">${esc(buildSummary(p))}</div></td>
-    <td>${TRACK_PILL[p.track]} ${HOME_PILL[p.home]}</td>
     <td>${assigneeHtml(p.assignees)}</td>
     <td>${estHtml(p.codingEst)}</td>
     <td>${prHtml(p.prUrl, p.prNum)}</td>
     <td>${notesHtml(p)}</td>
-    <td><div class="actions">${p.home==='command'?promptBtn(p.number):''} ${editBtn(p.number)} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a></div></td>
+    <td><div class="actions">${promptBtn(p.number)} ${editBtn(p.number)} <a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a></div></td>
   </tr>`).join('');
   content.innerHTML = `<div class="proj-table-wrap"><table>${head}<tbody>${rows}</tbody></table></div>`;
 }
@@ -1721,12 +1864,48 @@ function renderAbandoned() {
   el.innerHTML = `<div class="proj-table-wrap"><table>
     <thead><tr><th style="width:54px">#</th><th>Build</th><th style="width:110px">Area</th><th style="width:58px">Notes</th><th style="width:60px"></th></tr></thead>
     <tbody>${ab.map(p => `<tr id="proj-${p.number}">
-      <td style="font-size:12px;font-weight:600"><a href="${p.url}" target="_blank" style="color:var(--text-muted);text-decoration:none">#${p.number}</a></td>
-      <td><a class="proj-title" href="${p.url}" target="_blank" style="text-decoration:line-through;opacity:.7">${esc(shortTitle(p.title))}</a></td>
+      ${numCell(p)}
+      <td><a class="proj-title" href="${p.url}" target="_blank" style="text-decoration:line-through;opacity:.7">${esc(p.title)}</a></td>
       <td>${TRACK_PILL[p.track]}</td>
       <td>${notesHtml(p)}</td>
       <td><a href="${p.url}" target="_blank" class="btn btn-outline btn-sm">↗</a></td>
     </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── Stage-group collapse + tier jumps (as on the Portal Tracker) ─────────────
+const CP_GROUP_KEY = 'pm_tracker_cp_groups_v1';
+const CP_COLLAPSED_BY_DEFAULT = [];
+function cpGroupState() {
+  try { return JSON.parse(localStorage.getItem(CP_GROUP_KEY) || '{}'); } catch { return {}; }
+}
+function cpGroupClosed(key) {
+  const remembered = cpGroupState()[key];
+  return remembered ? remembered === 'closed' : CP_COLLAPSED_BY_DEFAULT.includes(key);
+}
+function jumpToTier(key, i) {
+  document.getElementById('sec-cp')?.classList.remove('sec-collapsed');
+  const grp = document.querySelector(`.cp-group#cp-${key}`);
+  if (grp && grp.classList.contains('cp-collapsed')) toggleCpGroup(key);
+  const row = document.getElementById(`cp-tier-${key}-${i}`);
+  if (!row) { toast('Nothing in that group right now'); return; }
+  row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function toggleCpGroup(key) {
+  const el = document.querySelector(`.cp-group#cp-${key}`);
+  if (!el) return;
+  el.classList.toggle('cp-collapsed');
+  const closed = el.classList.contains('cp-collapsed');
+  const btn = el.querySelector('.cp-toggle');
+  if (btn) btn.setAttribute('aria-expanded', closed ? 'false' : 'true');
+  const st = cpGroupState(); st[key] = closed ? 'closed' : 'open';
+  try { localStorage.setItem(CP_GROUP_KEY, JSON.stringify(st)); } catch {}
+}
+function jumpToGroup(key) {
+  document.getElementById('sec-cp')?.classList.remove('sec-collapsed');
+  const grp = document.querySelector(`.cp-group#cp-${key}`);
+  if (!grp) { jumpTo('cp'); return; }
+  if (grp.classList.contains('cp-collapsed')) toggleCpGroup(key);
+  grp.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Notes modal ───────────────────────────────────────────────────────────────
@@ -2090,18 +2269,17 @@ async function submitNewProject() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ title, body, labels, assignees: assign ? [currentUser.login] : [] })
     });
-    pendingProjectPrompt = home === 'command'
-      ? buildCommandProjectPrompt({ number: issue.number, title, body, url: issue.html_url, labels, track: 'untriaged' })
-      : '';
+    pendingProjectPrompt = buildPMPrompt({ number: issue.number, title, body, url: issue.html_url, labels,
+      oncRefs: extractOncRefs(title + ' ' + body), isCurrent: false, track: area.replace(/^pm-/, ''), home });
     document.querySelectorAll('#add-modal .modal-field, #add-modal .modal-row').forEach(el => el.style.display = 'none');
     document.getElementById('modal-form-actions').style.display = 'none';
     document.getElementById('modal-success-title').textContent = title;
     document.getElementById('modal-success-link').href = issue.html_url;
     document.getElementById('modal-success').style.display = 'block';
     const ns = document.getElementById('modal-next-step');
-    if (ns && home !== 'command') ns.innerHTML = `<strong>Next step:</strong> open it on the <a href="index.html#proj-${issue.number}">Portal Tracker</a> — that is where portal work is staged and where its Claude prompt is copied (it carries the ONC context this board does not).`;
+    if (ns) ns.innerHTML = `<strong>Next step:</strong> it is in <strong>Future Builds</strong>. Press <strong>Claim</strong> on it (or paste the prompt below — the session claims it as its first step), then build it localhost → alpha → beta → gamma.`;
     const cp = document.getElementById('modal-copy-prompt-btn');
-    if (cp) { cp.textContent = '📋 Copy Claude Prompt'; cp.style.display = pendingProjectPrompt ? '' : 'none'; }
+    if (cp) { cp.textContent = '📋 Copy Claude Prompt'; cp.style.display = ''; }
     await loadAll();
   } catch(e) {
     toast(`Error: ${e.message}`, true);
@@ -2167,71 +2345,189 @@ async function saveEdit() {
 }
 
 // ── Project Prompt ───────────────────────────────────────────────────────────
-// Kept byte-for-byte in step with the portal tracker's buildCommandProjectPrompt.
-// Pointing the session at ~/claude/command/'s MD files is the whole mechanism:
-// GitHub Free cannot enforce the branch/PR rule on a private repo, so the
-// instruction has to travel with the work.
-function buildCommandProjectPrompt(proj) {
-  const firstLine = (proj.body||'').split('\n').filter(l=>l.trim()).slice(0,6).join('\n');
-  const activeCommand = currentProjects
-    .filter(p => p.home === 'command' && p.status !== 'done' && p.status !== 'abandoned' && !isUmbrella(p))
-    .map(p => `  - #${p.number} "${p.title}" [${p.status}]`)
+// Every Practice Management card ships like portal work, so its Claude prompt IS
+// the Portal Tracker's prompt — housekeepingBlock(), claimBlock() and
+// buildPortalProjectPrompt() below are copied from index.html unchanged (keep
+// them in step when index.html changes). buildPMPrompt() then adds only what is
+// specific to this board:
+//   • a Future Build's claim also moves it onto the stage board (current-project)
+//   • the Practice Management rules — billing / claims / credentialing data
+//   • Command's MD files for a card whose code lives in Command
+//   • the card's own "### Claude prompt" block, when it has one
+//   • the overlap check against the whole repo, not just this board
+function housekeepingBlock() {
+  return `
+━━━ AT SESSION START — CLEAN UP FINISHED WORK (in the background, don't wait) ━━━
+Launch with run_in_background, then go straight on to the claim step below:
+  f=~/.togohealth/worktree-cleanup/cleanup.py; mkdir -p "\${f%/*}"; gh api repos/togohealth-dev/strategy-sessions/contents/tools/worktree-cleanup.py --jq .content | base64 -d > "\$f.new" && [ -s "\$f.new" ] && mv "\$f.new" "\$f"; [ -f "\$f" ] && python3 "\$f" --apply --if-stale
+It removes worktrees for cards now in beta / closed / abandoned — only when nothing is uncommitted,
+unpushed or running in them. When it finishes, report in ≤3 lines: disk freed, worktrees removed,
+and any "Needs a look" items. Never force-remove anything it held — ask the user.
+`;
+}
+
+function claimBlock(n, extra = '') {
+  return `
+━━━ FIRST ACTION — CLAIM THIS CARD (before reading or editing anything) ━━━
+An in-progress card must always have an owner. As the person doing the work:
+  gh issue view ${n} --repo togohealth-dev/emr-beta --json assignees,labels
+- Labelled status:blocked → STOP. Do not claim it; tell the user why it is blocked.
+- Assigned to someone else → ask the user before taking it over.
+- Otherwise claim it:
+  gh issue edit ${n} --repo togohealth-dev/emr-beta --add-assignee @me --add-label status:in-progress ${extra}--remove-label status:draft --remove-label status:needs-revision
+Re-run the view and confirm your login is an assignee and status:in-progress is set.
+Then rename this session so it can be found again: "${n} <short topic>" (desktop app: the session-rename
+tool on self). Card numbers, not PR numbers; add a number if this session picks up another card.
+`;
+}
+
+function buildPortalProjectPrompt(proj) {
+  const oncContext = (proj.oncRefs||[]).length
+    ? proj.oncRefs.map(id => {
+        const c = CTX[id];
+        return c
+          ? `${id}:\n  What exists: ${c.existing}\n  Scaffold generically: ${c.scaffold}\n  Enables downstream: ${c.enables.join(', ')||'—'}`
+          : id;
+      }).join('\n\n')
+    : 'None — not directly tied to ONC/MIPS certification.\n(Still check strategy-1-portal-onc.md to see if any current build overlaps.)';
+
+  const activeProjects = currentProjects
+    .filter(p => p.status !== 'done' && p.status !== 'abandoned')
+    .map(p => `  - #${p.number} "${p.title}" [${p.status}]${p.oncRefs.length ? ' — touches ' + p.oncRefs.join(', ') : ''}`)
     .join('\n') || '  - None currently in progress';
-  const portalSide = true; // board rule: every Practice Management card ships localhost→alpha→beta→gamma
+
+  const firstLine = (proj.body||'').split('\n').filter(l=>l.trim()).slice(0,6).join('\n');
 
   return `Session topic: Building "${proj.title}"
-GitHub Issue: https://github.com/${REPO}/issues/${proj.number}
-Lane: COMMAND — outside the portal. Open the session in ~/claude/command/.
-Tracker: the Command Project Tracker (command.html), not the portal board.
-
+GitHub Issue: https://github.com/togohealth-dev/emr-beta/issues/${proj.number}
+${housekeepingBlock()}${claimBlock(proj.number)}
 ━━━ BEFORE WRITING ANY CODE — READ THESE IN ORDER ━━━
-1. ~/claude/command/CLAUDE.md
-   → lane rules, and HOW WORK REACHES PRODUCTION IN THIS LANE
-2. ~/claude/command/command-app/CLAUDE.md
-   → review & deploy, what Command may do with portal data, the patient-data line
-3. ~/claude/command/projects/docs/website-runbook.md   (marketing-site work only)
-4. The repo's own MIGRATION-NOTES.md, if you are touching togohealth-web
+1. ~/claude/togo/togo-emr/strategy-sessions-repo/SESSION-STARTER.md
+2. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-1-portal-onc.md
+   → ONC DEPENDENCY MAP, BUILD-WITH-END-IN-MIND PROTOCOL
+3. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-5-developer-integration.md
+   → PR REVIEW STANDARDS, CONSTRAINTS, FRONTEND-FIRST RULE
+4. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-2-facility-tools.md  (if this touches facility/scheduling)
+5. ~/claude/togo/togo-emr/strategy-sessions-repo/strategy-3-clinical-protocols.md  (if this touches clinical protocols)
 
 ─── WHAT THIS BUILD DOES ─────────────────────────────
 ${firstLine}
 
-─── OTHER COMMAND WORK IN FLIGHT (do not duplicate) ──
-${activeCommand}
+─── ONC / MIPS CRITERIA THIS TOUCHES ────────────────
+${oncContext}
 
-─── HOW THIS SHIPS ───────────────────────────────────
-${portalSide
-? `⚠️ This is a Practice Management card: by board rule it ships like portal work.
-Ship path: localhost → alpha → beta → gamma, through Scott, exactly as portal
-work always has been. Driven from the Portal Tracker. Do NOT merge it yourself.
-If you find it does not actually touch the portal, say so and re-label it
-command-only before building — that changes the flow entirely.`
-: `Ship path: localhost → gamma. No alpha, no beta, no Scott, and any developer
-can push it.
+─── CURRENT PROJECTS IN FLIGHT (do not contradict or duplicate) ──
+${activeProjects}
 
-Branch → pull request → tick "I ran it on localhost" in the PR description and
-say what you clicked through → CI green → merge your own PR. No reviewer gate:
-your statement that you actually tested it IS the gate.
+─── OVERLAP CHECK — STATE ALL OF THESE OUT LOUD ──────
+1. Does any current project above share DB tables, API routes, or UI components
+   with this build? If yes — reuse, don't duplicate. Coordinate the schema now.
+2. Does this build touch any ONC criterion above?
+   If yes — check BUILD-WITH-END-IN-MIND in strategy-1-portal-onc.md.
+   Build shared infrastructure generically so the next criterion doesn't refactor it.
+3. Does this touch EHI (patient data, visit notes, medications, orders)?
+   → Audit log hook required before the feature logic.
+4. Does this add a new route? → Role enforcement middleware goes on first.
+5. Does this touch medications, allergies, or orders? → RxNorm/LOINC, not free text.
 
-Do NOT push straight to main. The one exception is an emergency fix for a broken
-site, and the commit message must say so. A workflow flags every direct push.
+─── CONSTRAINTS ──────────────────────────────────────
+- PR SCOPE — keep it small: 2–3 minor changes OR 1 major change per PR (Scott wants 1–2 features/PR). As you build, if it's growing past that (a 2nd/3rd feature, a big new surface, a migration + several endpoints), STOP and ask Greg: "this is getting to be a major change — split the rest into a new session/PR?" — offer BEFORE it balloons.
+- SQLX_OFFLINE=true. Runtime sqlx only — no query! macros.
+- FRONTEND BUILD (Next.js): before touching portal/web, READ portal/web/CLAUDE.md. Typecheck with npx tsc --noEmit, and RUN THE TEST SUITE BEFORE OPENING THE PR: cd portal/web && bun test. Judge that run by its EXIT CODE, not the summary — when an import throws at module scope bun aborts the whole file and drops its tests, yet still prints "0 fail" beside a bare "1 error", so a green-reading run can be one where an entire suite never executed. Do NOT read $? after a pipe (that is the pipe's last command, not bun); redirect instead: bun test > /tmp/bt.log 2>&1; echo $?. Watch the "Ran N tests across M files" line too — if M falls, a file aborted rather than failed. A passing single-file run proves nothing about the rest.
+- BACKEND BUILD (Rust): before touching the Rust backend, READ portal/backend/CLAUDE.md. Build with CURRENT STABLE Rust — the team is on 1.96 and the backend is edition 2024 (needs Rust >= 1.85). Run "rustup update stable"; do NOT pin an old toolchain (there is no rust-toolchain.toml). Then source ~/.cargo/env and run: SQLX_OFFLINE=true cargo check -p grab-legacy-backend (offline sqlx validates against .sqlx/). Compile errors about edition 2024 / unknown syntax = your toolchain is too old -> update stable, don't downgrade.
+- INTEGRATIONS + ONC: external-data integrations usually touch ONC §170.315 — identify which and build cert-safe from line 1 (read strategy-1-portal-onc.md ONC map). Map: e-prescribing -> (b)(3) [meds must carry RxNorm / (a)(1)]; drug-interaction & allergy checks -> (a)(4)+(a)(8); formulary/benefit -> (a)(10); lab orders -> (a)(2) LOINC; imaging orders -> (a)(3) LOINC; results + med/allergy/problem reconciliation -> (b)(2) coded; HIE / transitions of care -> (b)(1) C-CDA R2.1 + (g)(10) FHIR US Core; predictive/AI clinical alerts -> (a)(9) CDS (cite evidence, allow accept/modify/reject, LOG the decision — a dismissable popup is NOT cert-compliant). Use standard vocab (RxNorm/LOINC/SNOMED/ICD-10) + audit-log hooks so nothing needs retrofitting under ATL review.
+- LABS / IMAGING / DIAGNOSTICS VENDORS — ASK ABOUT HEALTH GORILLA FIRST, BEFORE DESIGNING ANY INTERFACE. Health Gorilla is our diagnostic aggregator (#289 umbrella, #294 lab orders, #293 lab results, #295 radiology, #296 vendor enablement): if a vendor is reachable on the HG network we get labs AND imaging through ONE FHIR pipe instead of a bespoke HL7 v2 / SFTP / portal interface per vendor. So do NOT start building a direct vendor interface on assumption. FIRST tell the user, in your opening reply, that this is a blocking question and ask them to confirm with the vendor: (1) 'Are you reachable through Health Gorilla / are you on the HG network?' (2) if not, what DO you support — HL7 v2 ORM/ORU, FHIR, an SFTP result drop, or web-portal-only? (3) is there a test/staging environment + an interface spec, and who is the IT/integrations contact? Many small mobile vendors are portal-only, in which case the realistic scope shrinks to ingesting their PDF via the fax/document intake path (#170) — a completely different build. State plainly that the answer changes the architecture, and while you wait, build only what is answer-independent (order data model, coded order persistence, result-to-chart filing, status tracking) behind a thin vendor-adapter seam. Never invent vendor endpoints or credentials — ask Greg or Scott.
+- ONC/MIPS % IS AUTOMATIC — KEEP THE STATUS LABEL ACCURATE. Each project owns a weighted slice of the ONC/MIPS criteria it advances, and the tracker fills that slice straight from the issue's status label: PR opened + status:pr-alpha-ready (or alpha-testing) = 50%, status:beta-version = 75%, closed/gamma = 100%. So the certification bars move the moment the card is re-labeled at each stage — you never hand-edit a percentage, and there is no separate 'update the ONC number' step. What you MUST do: when you open the PR, move the card to PR Alpha Ready (add status:pr-alpha-ready, remove status:in-progress and status:needs-revision) — that is what lifts the bar; Scott's beta/gamma promotions do the rest. If this project advances an ONC/MIPS criterion that isn't already listed on the issue, say so in the PR description so its weight can be added.
+- AI / PHI (BAA): TogoHealth has a signed BAA with **OpenAI** — it is the approved model provider for PHI-touching AI features (this unblocks AI work formerly gated on the Anthropic BAA #265). Key = OPENAI_API_KEY, already set in the gitignored portal/backend/.env (Secret Manager for deployed envs) — read it from there, or ASK Greg; never hardcode it, never commit it, never paste it into an issue/PR/comment. Call the model SERVER-SIDE from the Rust backend only (never from the browser). Send minimum-necessary PHI (only the text being parsed — no name/MRN/DOB, and do the matching against chart data locally in our code). Require zero-data-retention / no-training on the PHI account. AI output is assistive only: the clinician confirms every write, and log the decision (see (a)(9) CDS above).
+- No Firebase/Firestore for new data — Postgres only.
+- Frontend-first: confirm feature can't be done with existing API before adding backend.
+  If backend is needed, stop and get approval from Greg first.
+- PDF/exports: server-side only (Rust backend). Never browser-side (no jsPDF/html2canvas).
+- Frontend + backend changes ship in the same PR.
+- Deployment: localhost (sandbox DB) → alpha (per-feature, prod DB, tested one at a time) → beta (every 2 wks, all alphas combined) → gamma (full production, all users). Never skip a stage.
+- Before you commit / open a PR: run the MANUAL CHECKLIST in strategy-5-developer-integration.md. A green build is NOT a passing check — manually click through every new path on localhost (against a migrated dev DB) before opening the PR.
+- PHI stays on Mac mini (192.168.1.190). No PHI in this chat.
+- LOCALHOST STARTUP: don't rebuild/repoint the launchd-managed local backend or edit forceProd. Each worktree's gitignored portal/web/.env.local already routes the frontend to the LOCAL sandbox backend (never prod). To open localhost: verify the local backend port is up (:8085 on Greg's machine / :8080 default), start your worktree frontend on a FREE port (next dev --webpack -p PORT; rm -rf .next first if you changed .env.local on a running server), and confirm calls hit the local backend — a /auth/* 404 means a stale non-local_auth backend, STOP. Login is password-first then passkey (Touch ID) for MFA. Full routine in SESSION-STARTER.md and ~/.togohealth/greg-login/README.md.
+- SHARED DB (only): alpha/beta/gamma have per-environment frontends AND backends — only the DATABASE is shared (per Scott). Ordinary code/features promote per-env and need no special gating. The one gotcha is DATA: a DB row created for testing is live in production the instant it exists (can't "seed only in alpha"; a separate PR/branch/migration doesn't isolate a DB row). If a not-ready row would confuse real users, gate it with an env check until ready — e.g. metadata.prod_hidden=true filtered out in production (via the backend's per-env config, or a frontend origin check like isProdOrigin(); ref PR #254). Keep test patient/PHI data out of the shared DB (local sandbox only).
 
-⚠️ GitHub does not enforce this — the org is on the Free plan, where branch
-protection and rulesets refuse on private repos. The rule lives in the MD files
-above. Read them; they are the enforcement.`}
+─── FULL PLAN BEFORE CODING ─────────────────────────
+State out loud before writing a single line:
+1. Which current projects does this overlap with, and how will you coordinate?
+2. Which ONC criteria does this touch? What shared infra should be built generically?
+3. Complete implementation plan (schema changes, endpoints, frontend, migrations).
+   Wait for explicit approval before executing.
 
-─── THE TWO HARD LIMITS ──────────────────────────────
-1. **Patient data.** Nothing patient-identifying lives outside the portal. Read
-   from the portal, manipulate in Command, link back — never write to the portal,
-   and never store a patient identifier here. Anything touching patient data
-   needs Scott's review; everything else does not.
-2. **Editing the portal** — its code, its database, its UI — needs Scott AND the
-   localhost→alpha→beta→gamma flow. If the build starts reaching into the portal,
-   stop and say so.
+─── WHEN THE PR IS READY — MOVE THE TRACKER YOURSELF ───
+After the developer approves and you run gh pr create, move THIS project to the
+"PR Alpha Ready" step on their behalf (don't leave it as a manual tracker button):
+  gh issue edit ${proj.number} --repo togohealth-dev/emr-beta --add-label status:pr-alpha-ready --remove-label status:in-progress --remove-label status:needs-revision
+  gh issue comment ${proj.number} --repo togohealth-dev/emr-beta --body "Ready for review — @msdrigg · PR #<n>: <PR-URL> · @<your-gh-handle>"
+Clearing in-progress/needs-revision is required — needs-revision outranks pr-alpha-ready,
+so a leftover label keeps this out of the Alpha tier. This lands the project in
+Alpha Testing -> PR-alpha-ready and pings Scott. Do NOT deploy an alpha or mark Alpha
+Testing — Scott promotes to alpha (alpha.portal.togohealth.com unless a build-specific link is given) and closes the PR.`;
+}
 
-─── BEFORE WRITING CODE — STATE OUT LOUD ────────────
-1. Which of the MD files above did you read, and which rule in them applies here?
-2. Does this touch patient data or edit the portal? (If yes → Scott, and say so now.)
-3. Full implementation plan — wait for approval before executing.`;
+
+function pmRulesBlock(proj) {
+  const cmd = proj.home === 'command';
+  return `
+━━━ PRACTICE MANAGEMENT CARD — READ BEFORE PLANNING ━━━
+Board: Practice Management tracker (practice-mgmt.html) · Area: ${AREAS[proj.track]?.name || 'not set'}
+Ship path: localhost → alpha → beta → gamma, through Scott — the same as every physician-portal
+card, with no exceptions on this board${cmd ? ' (this card is labelled command + portal-integration)' : ''}.
+${cmd ? `
+This card's code lives in COMMAND. Read Command's rules too, before the portal ones:
+  ~/claude/command/CLAUDE.md
+  ~/claude/command/command-app/CLAUDE.md
+Where Command's files say "command-only ships localhost→gamma", this card does NOT —
+the Practice Management rule wins: PR → Scott → alpha → beta → gamma.
+` : ''}
+Billing / claims / eligibility work:
+- X12 lives in portal/backend/src/claims_processing (837 claims, 270/271 eligibility, 835 remits,
+  999 acks). Reuse its builders, parsers, queries and advisory locks — never write a second one.
+- NEVER transmit to Waystar production from localhost or alpha. Localhost runs against the sandbox
+  DB with X12_USAGE_INDICATOR=T. alpha/beta/gamma share ONE database, so anything that sends a 270
+  or 837 must be gated so only the gamma scheduler (or an admin-only, server-decided trigger) fires.
+- Money: no floating-point arithmetic on amounts. Show the math (CPT × RVU × conversion factor ×
+  rate) in the PR description whenever expected amounts change.
+- Billing screens are role-gated (GBilling / GBillingAdmin). Check the role on the SERVER — a
+  client-supplied flag is never a gate (see #554).
+Credentialing / provider data:
+- SSN, DEA, license numbers, CAQH / PECOS / NPPES logins: never logged, never put in an issue,
+  PR, commit message, screenshot or this chat. Encrypted at rest, masked, audited on reveal.
+- Use public verification sources (NPPES, OIG LEIE, SAM.gov, DOPL) by their documented bulk files
+  or APIs — no scraping behind a login.
+`;
+}
+
+// The card's own build instructions, when the issue body carries them.
+function cardPromptBlock(body) {
+  const m = (body || '').match(/### Claude prompt\s*\n```[^\n]*\n([\s\S]*?)```/);
+  return m ? `\n─── BUILD TASK (from the card) ────────────────────────\n${m[1].trim()}\n` : '';
+}
+
+function buildPMPrompt(proj) {
+  let text = buildPortalProjectPrompt(proj);
+  // A Future Build is claimed onto the stage board by the same command.
+  if (!proj.isCurrent) {
+    text = text.replace(claimBlock(proj.number), claimBlock(proj.number, '--add-label current-project --remove-label future-idea '));
+  }
+  // The issue body may be longer than the 6 lines the prompt quotes.
+  text = text.replace('─── WHAT THIS BUILD DOES ─────────────────────────────',
+    `${pmRulesBlock(proj)}
+─── WHAT THIS BUILD DOES ─────────────────────────────
+(Read the WHOLE card and its comments first: gh issue view ${proj.number} --repo togohealth-dev/emr-beta --comments)`);
+  text = text.replace('─── ONC / MIPS CRITERIA THIS TOUCHES', `${cardPromptBlock(proj.body)}
+─── ONC / MIPS CRITERIA THIS TOUCHES`);
+  // This board only lists Practice Management cards — check the rest of the repo too.
+  text = text.replace('─── OVERLAP CHECK — STATE ALL OF THESE OUT LOUD ──────', `─── OVERLAP CHECK — RUN THESE FIRST (the list above is this board only) ──
+gh issue list --repo togohealth-dev/emr-beta --label "current-project" --state open --json number,title,labels
+gh issue list --repo togohealth-dev/emr-beta --label "practice-mgmt" --state all --json number,title,state
+
+─── OVERLAP CHECK — STATE ALL OF THESE OUT LOUD ──────`);
+  text = text.replace('─── CURRENT PROJECTS IN FLIGHT (do not contradict or duplicate) ──', '─── PRACTICE MANAGEMENT PROJECTS IN FLIGHT (do not contradict or duplicate) ──');
+  return text;
 }
 
 function copyNewProjectPrompt() {
@@ -2244,8 +2540,7 @@ function copyNewProjectPrompt() {
 function copyProjectPrompt(number) {
   const p = currentProjects.find(p => p.number === number);
   if (!p) { toast(`Can't build a prompt for #${number} — project not loaded`, true); return; }
-  if (p.home !== 'command') { location.href = `index.html#proj-${number}`; return; }
-  copyToClipboard(buildCommandProjectPrompt(p));
+  copyToClipboard(buildPMPrompt(p));
   const btn = document.getElementById(`cpbtn-${number}`);
   if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = 'Copy Prompt'; }, 2000); }
 }
@@ -2274,8 +2569,8 @@ function toast(msg, err=false) {
 
 // Section open/closed state persists per browser. Its own key — sharing the
 // portal tracker's would collapse sections here that share a name there.
-const SEC_STATE_KEY = 'pm_tracker_sections_v1';
-const SEC_COLLAPSED_BY_DEFAULT = ['done','ab'];
+const SEC_STATE_KEY = 'pm_tracker_sections_v2';
+const SEC_COLLAPSED_BY_DEFAULT = ['done','ab'];  // sec-cp / sec-fu start open
 function readSecState() {
   try { return JSON.parse(localStorage.getItem(SEC_STATE_KEY) || '{}'); } catch { return {}; }
 }
